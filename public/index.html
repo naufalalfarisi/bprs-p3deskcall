@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BPRS Mitra Harmoni Yogyakarta — Sistem Informasi Penagihan Terpadu AO, P3 &amp; Desk Call</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed": "#00201d",
+                    "primary-fixed": "#9cf2e8",
+                    "error": "#ba1a1a",
+                    "warning": "#B05C08",
+                    "info": "#1A5FA8",
+                    "primary-fixed-dim": "#80d5cb",
+                    "surface-bright": "#f7f9fb",
+                    "border": "#E2E8F0",
+                    "tertiary-container": "#9c573a",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-dim": "#d8dadc",
+                    "primary": "#005c55",
+                    "primary-container": "#0f766e",
+                    "secondary-fixed": "#93f3ea",
+                    "on-background": "#191c1e",
+                    "surface": "#FFFFFF",
+                    "success": "#0D7A4E",
+                    "on-primary-container": "#a3faef",
+                    "text-secondary": "#475569",
+                    "on-tertiary-container": "#ffe5db",
+                    "surface-container-low": "#f2f4f6",
+                    "on-surface-variant": "#3e4947",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed": "#370e00",
+                    "outline-variant": "#bdc9c6",
+                    "tertiary-fixed": "#ffdbce",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#2d3133",
+                    "danger": "#C0392C",
+                    "surface-tint": "#006a63",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#ffb598",
+                    "secondary-fixed-dim": "#76d7ce",
+                    "on-surface": "#191c1e",
+                    "tertiary": "#7f4025",
+                    "on-secondary-fixed-variant": "#00504b",
+                    "surface-variant": "#e0e3e5",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-secondary-fixed": "#00201e",
+                    "on-secondary-container": "#006f69",
+                    "on-primary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "text-primary": "#0F172A",
+                    "secondary": "#006a64",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed-variant": "#00504a",
+                    "background": "#f7f9fb",
+                    "outline": "#6e7977",
+                    "surface-container": "#eceef0",
+                    "surface-container-highest": "#e0e3e5",
+                    "surface-container-high": "#e6e8ea",
+                    "inverse-primary": "#80d5cb",
+                    "on-tertiary-fixed-variant": "#72361b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "48px",
+                    "xs": "8px",
+                    "sm": "12px",
+                    "gutter": "24px",
+                    "md": "20px",
+                    "base": "4px",
+                    "lg": "32px",
+                    "container-max": "1440px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "body-base": ["Plus Jakarta Sans"],
+                    "label-caps": ["Plus Jakarta Sans"],
+                    "button": ["Plus Jakarta Sans"],
+                    "stat-value": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "headline-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "body-base": ["15px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "button": ["14px", {"lineHeight": "20px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+</script>
+<style>
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    vertical-align: middle;
+  }
+  .auth-card-shadow {
+    box-shadow: 0 12px 24px rgba(15, 118, 110, 0.08);
+  }
+  .mesh-bg {
+    background-color: #f7f9fb;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(15, 118, 110, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(15, 118, 110, 0.05) 0px, transparent 50%);
+  }
+</style>
+<script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('bprs_theme')||'light');})();</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link id="app-favicon" rel="icon" href="/favicon.ico"/>
+<link rel="stylesheet" href="/public/css/style.css?v=3.0">
+<style>
+  /* UNIFIED MODERN ROUNDED SEARCHBOX THEME */
+  .form-input,
+  .form-select,
+  .modal-box input,
+  .modal-box select,
+  .modal-box textarea,
+  .rbb-field input,
+  .rbb-field select,
+  .rbb-field textarea,
+  #modal-dc-form input, #modal-dc-form select, #modal-dc-form textarea,
+  #modal-p3-form input, #modal-p3-form select, #modal-p3-form textarea,
+  #modal-legal-form input, #modal-legal-form select, #modal-legal-form textarea,
+  #modal-pay-form input, #modal-pay-form select, #modal-pay-form textarea,
+  #modal-user-form input, #modal-user-form select, #modal-user-form textarea {
+    border-radius: 9999px !important;
+    border: 1.5px solid var(--border, #E2E8F0) !important;
+    background-color: var(--bg-input, #FFFFFF) !important;
+    color: var(--text, #0F172A) !important;
+    padding: 10px 18px !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    box-shadow: 0 1px 3px 0 rgba(15,23,42,0.05) !important;
+    transition: all 0.18s ease !important;
+  }
+
+  /* AUTH OVERLAY INPUT STYLING - Enterprise Banking Standard */
+  #auth-overlay input[type='text'],
+  #auth-overlay input[type='password'],
+  #auth-overlay input[type='email'],
+  #auth-overlay input[type='date'],
+  #auth-overlay select {
+    border-radius: 12px !important;
+    border: 1.5px solid #CBD5E1 !important;
+    background-color: #FFFFFF !important;
+    font-size: 14.5px !important;
+    font-weight: 500 !important;
+    color: #0F172A !important;
+    height: 46px !important;
+    transition: all 0.18s ease !important;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04) !important;
+  }
+  #auth-overlay input[type='text']:focus,
+  #auth-overlay input[type='password']:focus,
+  #auth-overlay input[type='email']:focus,
+  #auth-overlay input[type='date']:focus,
+  #auth-overlay select:focus {
+    border-color: #0F766E !important;
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14) !important;
+    background-color: #ffffff !important;
+  }
+  #auth-overlay input.pl-10 {
+    padding-left: 2.75rem !important;
+  }
+  #auth-overlay input.pr-11 {
+    padding-right: 2.85rem !important;
+  }
+  #auth-overlay input.pr-4 {
+    padding-right: 1.25rem !important;
+  }
+
+  select,
+  .form-select,
+  .modal-box select,
+  .rbb-field select {
+    border-radius: 9999px !important;
+    padding-right: 38px !important;
+    padding-left: 18px !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+    background-size: 14px 14px !important;
+    cursor: pointer !important;
+  }
+
+  textarea,
+  textarea.form-input,
+  .modal-box textarea {
+    border-radius: 16px !important;
+    padding: 12px 18px !important;
+  }
+
+  .form-input:focus,
+  .form-select:focus,
+  .modal-box input:focus,
+  .modal-box select:focus,
+  .modal-box textarea:focus,
+  .rbb-field input:focus,
+  #auth-overlay input:focus,
+  #auth-overlay select:focus {
+    outline: none !important;
+    border-color: #0F766E !important;
+    background-color: #FFFFFF !important;
+    box-shadow: 0 0 0 3.5px rgba(15, 118, 110, 0.16) !important;
+  }
+
+  /* Modal dialog styling */
+  .modal-box {
+    border-radius: 22px !important;
+    box-shadow: 0 20px 25px -5px rgba(15,23,42,0.12), 0 8px 10px -6px rgba(15,23,42,0.04) !important;
+  }
+  .modal-hdr {
+    padding: 18px 24px 14px !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+  }
+  .modal-body {
+    padding: 20px 24px !important;
+  }
+  .modal-footer {
+    padding: 14px 24px 20px !important;
+    border-top: 1px solid #E2E8F0 !important;
+  }
+  .modal-close {
+    border-radius: 9999px !important;
+  }
+  .rbb-field {
+    border-radius: 18px !important;
+    background: #ffffff !important;
+    border: 1.5px solid #E2E8F0 !important;
+  }
+</style>
+</head>
+<body class="mesh-bg min-h-screen flex flex-col">
+<div id="toast-zone"></div>
+
+<!-- AUTH OVERLAY -->
+<div id="auth-overlay" class="min-h-screen flex flex-col justify-between bg-slate-50 font-sans">
+
+  <!-- Institutional Top Header -->
+  <header class="w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-6 py-3.5 flex justify-between items-center max-w-[1440px] mx-auto flex-shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-[#0F766E] text-white flex items-center justify-center font-bold text-sm shadow-md tracking-wider">
+        BM
+      </div>
+      <div>
+        <div class="font-extrabold text-sm text-slate-900 tracking-tight leading-none">PT BPRS MITRA HARMONI YOGYAKARTA</div>
+        <div class="text-[10px] font-bold text-[#0F766E] tracking-wider uppercase mt-0.5">Sistem Informasi Penagihan Terpadu AO, P3 &amp; Desk Call</div>
+      </div>
+    </div>
+    <div class="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
+      <div class="flex items-center gap-1.5 text-teal-800 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-200/60">
+        <span class="material-symbols-outlined text-base">verified_user</span>
+        <span class="text-[11px] font-bold">Portal Keuangan Terenkripsi 256-Bit</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Auth Canvas (Dual-Column Enterprise Banking Card) -->
+  <main class="flex-1 flex items-center justify-center p-4 md:p-8">
+    <div class="w-full max-w-[960px] bg-white rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col md:flex-row">
+      
+      <!-- LEFT HERO BRAND PANEL (Emerald Banking Motif) -->
+      <div class="md:w-5/12 bg-gradient-to-br from-[#074742] via-[#0F766E] to-[#115E59] p-8 md:p-10 text-white flex flex-col justify-between relative overflow-hidden">
+        <!-- Background Decorative Glow -->
+        <div class="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-teal-400/10 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-emerald-300/10 blur-3xl pointer-events-none"></div>
+        
+        <!-- Top Hero Content -->
+        <div class="relative z-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold mb-6 text-teal-100">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Enterprise Banking Portal</span>
+          </div>
+
+          <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight leading-tight mb-3">
+            Sistem Informasi Penagihan Terpadu
+          </h2>
+          <p class="text-xs md:text-sm text-teal-100/90 leading-relaxed font-medium mb-6">
+            Platform manajemen data penagihan lapangan (AO &amp; P3), monitoring Desk Call, serta pengelolaan berkas legal BPRS Mitra Harmoni Yogyakarta.
+          </p>
+
+          <!-- Key Highlights -->
+          <div class="space-y-3.5 pt-2">
+            <div class="flex items-center gap-3 text-xs text-teal-50">
+              <div class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-emerald-300 flex-shrink-0">
+                <span class="material-symbols-outlined text-base">shield_lock</span>
+              </div>
+              <span class="font-semibold">Otentikasi Berlapis &amp; Role Management</span>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-teal-50">
+              <div class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-emerald-300 flex-shrink-0">
+                <span class="material-symbols-outlined text-base">analytics</span>
+              </div>
+              <span class="font-semibold">Monitoring Real-Time KPI &amp; Roll Rate NPF</span>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-teal-50">
+              <div class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-emerald-300 flex-shrink-0">
+                <span class="material-symbols-outlined text-base">assignment_turned_in</span>
+              </div>
+              <span class="font-semibold">Dokumentasi Bukti Kunjungan P3 &amp; Audit Trail</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Security Badges -->
+        <div class="relative z-10 pt-8 mt-6 border-t border-white/15 flex items-center justify-between text-[11px] text-teal-100/80">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-base text-emerald-300">gpp_good</span>
+            <span class="font-semibold">Pengawasan OJK</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-base text-emerald-300">lock</span>
+            <span class="font-semibold">SSL 256-Bit</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT FORM PANEL -->
+      <div class="md:w-7/12 p-8 md:p-10 flex flex-col justify-between bg-white">
+        <div>
+          <!-- Header -->
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-slate-900 tracking-tight mb-1">Selamat Datang Kembali</h3>
+            <p class="text-xs text-slate-500 font-medium">Silakan masuk menggunakan akun atau NIP resmi Anda.</p>
+          </div>
+
+          <!-- Auth Tab Switcher -->
+          <div class="flex p-1 bg-slate-100 rounded-xl mb-6 border border-slate-200/80">
+            <button id="tab-btn-login" class="flex-1 py-2.5 text-xs font-bold rounded-lg transition-all shadow-sm bg-white text-[#0F766E]" onclick="switchAuthTab('login')">
+              Masuk Akun
+            </button>
+            <button id="tab-btn-register" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900" onclick="switchAuthTab('register')">
+              Daftar Akun Baru
+            </button>
+          </div>
+
+          <!-- LOGIN FORM -->
+          <div id="page-login">
+            <form class="space-y-4" id="loginForm" onsubmit="event.preventDefault();handleLogin();">
+              <!-- Username -->
+              <div>
+                <label class="block text-[11.5px] font-bold text-slate-700 uppercase tracking-wider mb-1.5" for="l-user">Username / NIP</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <span class="material-symbols-outlined text-lg">person</span>
+                  </div>
+                  <input class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:ring-4 focus:ring-[#0F766E]/12 transition-all font-medium" id="l-user" name="username" placeholder="Masukkan Username / NIP" required="" type="text" autocomplete="username"/>
+                </div>
+              </div>
+
+              <!-- Password -->
+              <div>
+                <div class="flex justify-between items-center mb-1.5">
+                  <label class="block text-[11.5px] font-bold text-slate-700 uppercase tracking-wider" for="l-pass">Kata Sandi</label>
+                  <a class="text-xs font-bold text-[#0F766E] hover:underline" href="#" onclick="event.preventDefault();openModal('modal-forgot-pw')">Lupa Kata Sandi?</a>
+                </div>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <span class="material-symbols-outlined text-lg">lock</span>
+                  </div>
+                  <input class="w-full pl-10 pr-11 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:ring-4 focus:ring-[#0F766E]/12 transition-all font-medium" id="l-pass" name="password" placeholder="••••••••" required="" type="password" onkeydown="if(event.key==='Enter')handleLogin()"/>
+                  <button class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600" onclick="togglePw('l-pass')" type="button">
+                    <span class="material-symbols-outlined text-lg" id="l-pass-icon">visibility</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Remember Me -->
+              <div class="flex items-center pt-1">
+                <input class="w-4 h-4 rounded border-slate-300 text-[#0F766E] focus:ring-[#0F766E] accent-[#0F766E] cursor-pointer" id="remember" type="checkbox"/>
+                <label class="ml-2.5 text-xs text-slate-600 font-semibold cursor-pointer" for="remember">Tetap masuk di perangkat ini</label>
+              </div>
+
+              <!-- Error Alert -->
+              <div id="l-err" class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3 font-semibold hidden"></div>
+
+              <!-- Submit Button -->
+              <button class="w-full bg-[#0F766E] hover:bg-[#0D9488] active:bg-[#115E59] text-white font-bold text-sm py-3.5 rounded-xl shadow-lg shadow-[#0F766E]/20 hover:shadow-xl hover:shadow-[#0F766E]/30 transition-all flex justify-center items-center gap-2 group cursor-pointer" type="submit">
+                <span>Masuk ke Sistem</span>
+                <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- REGISTER FORM (Side-by-Side 2-Column Grid, Fits Without Scrollbar) -->
+          <div id="page-register" style="display:none;">
+            <form class="space-y-3" onsubmit="event.preventDefault();handleRegister();">
+              <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-nama">Nama Lengkap</label>
+                  <input id="r-nama" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] font-medium" type="text" placeholder="Sesuai KTP / SK"/>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-user">Username / NIP</label>
+                  <input id="r-user" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] font-medium" type="text" placeholder="Username / NIP"/>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-email">Email Official</label>
+                  <input id="r-email" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] font-medium" type="email" placeholder="email@bprs.co.id"/>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-ttl">Tanggal Lahir</label>
+                  <input id="r-ttl" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#0F766E] font-medium" type="date"/>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-posisi">Jabatan / Peran</label>
+                  <select id="r-posisi" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#0F766E] font-medium">
+                    <option value="">— Pilih —</option>
+                    <option value="staff_p3">Staff P3</option>
+                    <option value="desk_call">Staff Desk Call</option>
+                    <option value="kabid_p3">Kabid P3</option>
+                    <option value="legal">Staff Legal</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-pass">Kata Sandi</label>
+                  <input id="r-pass" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#0F766E] font-medium" type="password" placeholder="Min 8 karakter" oninput="evalStrength(this.value)"/>
+                </div>
+
+                <div class="col-span-2">
+                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-conf">Konfirmasi Kata Sandi</label>
+                  <input id="r-conf" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#0F766E] font-medium" type="password" placeholder="Ulangi Kata Sandi Anda"/>
+                </div>
+              </div>
+
+              <div class="str-bar mt-1.5"><div id="str-fill" class="str-fill"></div></div>
+              <div id="str-label" class="str-label text-[10px] text-slate-500 min-h-[12px]"></div>
+
+              <div id="r-err" class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2.5 font-semibold hidden"></div>
+              <div id="r-ok" class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 font-semibold items-center gap-2 hidden"></div>
+
+              <button class="w-full bg-[#0F766E] hover:bg-[#0D9488] active:bg-[#115E59] text-white font-bold text-xs py-3 rounded-xl shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer mt-1" type="submit">
+                <span>Kirim Permohonan Akun Baru</span>
+                <span class="material-symbols-outlined text-base">send</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Professional Demo Account Bar -->
+        <div class="mt-6 pt-5 border-t border-slate-200/80" id="auth-demo-bar">
+          <p class="text-[11.5px] font-bold text-slate-700 mb-2.5 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-base text-[#0F766E]">badge</span>
+            <span>Akses Cepat Akun Demo:</span>
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('admin')">Administrator</button>
+            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('kabid_p3')">Kabid P3</button>
+            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('staff_p3')">Staff P3</button>
+            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('desk_call')">Desk Call</button>
+            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('legal')">Staff Legal</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Clean Enterprise Footer -->
+  <footer class="w-full py-3.5 px-6 max-w-[1440px] mx-auto border-t border-slate-200/80 bg-white/80 backdrop-blur-md flex flex-col md:flex-row justify-between items-center gap-2 flex-shrink-0 text-slate-500">
+    <div class="text-xs font-semibold text-slate-600">
+      © 2026 PT BPRS Mitra Harmoni Yogyakarta. Hak Cipta Dilindungi.
+    </div>
+    <div class="flex flex-wrap justify-center gap-6 text-xs font-medium text-slate-500">
+      <a class="hover:text-[#0F766E] transition-colors" href="#" onclick="event.preventDefault();">Kebijakan Privasi</a>
+      <a class="hover:text-[#0F766E] transition-colors" href="#" onclick="event.preventDefault();">Ketentuan Layanan</a>
+      <a class="hover:text-[#0F766E] transition-colors" href="#" onclick="event.preventDefault();">Keamanan Informasi</a>
+    </div>
+  </footer>
+</div>
+
+<!-- DEVICE WARNING MODAL -->
+<div class="modal-overlay" id="modal-device">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-body" style="text-align:center;padding-top:24px;">
+      <div class="warn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <h3 style="font-size:15px;font-weight:800;margin-bottom:8px;">Akun aktif di perangkat lain</h3>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.6;">Melanjutkan akan otomatis mengeluarkan sesi pada perangkat tersebut.</p>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-device')">Batal</button><button class="btn btn-primary btn-sm" onclick="forceLogin()">Lanjutkan</button></div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="modal-profile">
+  <div class="modal-box" style="max-width:540px;border-radius:18px;overflow:hidden;box-shadow:var(--sh-xl);">
+    <div class="modal-hdr" style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg-card);">
+      <div class="modal-title" style="font-size:16px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Pengaturan Profil Pengguna
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+
+    <div class="modal-body" style="padding:20px 22px 24px;background:var(--bg);">
+      <!-- USER IDENTITY BANNER CARD -->
+      <div style="display:flex;align-items:center;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:var(--sh-sm);">
+        <div style="position:relative;width:64px;height:64px;flex-shrink:0;cursor:pointer;" onclick="document.getElementById('profile-avatar-input').click()" title="Klik untuk mengunggah foto profil baru">
+          <div id="prof-av" style="width:64px;height:64px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;overflow:hidden;border:2.5px solid var(--brand-mid);box-shadow:var(--sh-sm);">AD</div>
+          <div style="position:absolute;bottom:0;right:0;background:var(--brand);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.25);border:2px solid var(--bg-card);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+        </div>
+        <input type="file" id="profile-avatar-input" style="display:none !important;" accept=".png,.jpg,.jpeg,.svg" onchange="uploadMyAvatar(this.files[0])"/>
+
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <div id="prof-nama" style="font-size:16.5px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Nama User</div>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('profile-avatar-input').click()" style="font-size:11.5px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;">📷 Ganti Foto</button>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+            <span class="badge badge-teal" id="prof-badge" style="font-size:11px;padding:3px 10px;">Posisi</span>
+            <span class="mono" style="font-size:11.5px;color:var(--text-3);" id="prof-user">@username</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEGMENTED NAV TABS -->
+      <div style="display:flex;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:18px;box-shadow:var(--sh-sm);">
+        <button class="prof-tab-btn active" id="prof-tab-info" onclick="switchProfileTab('info')" style="flex:1;padding:9px 12px;border-radius:9px;font-size:12.5px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;background:var(--brand);color:#ffffff;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Informasi Pribadi
+        </button>
+        <button class="prof-tab-btn" id="prof-tab-pw" onclick="switchProfileTab('pw')" style="flex:1;padding:9px 12px;border-radius:9px;font-size:12.5px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;background:transparent;color:var(--text-2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Ubah Password
+        </button>
+        <button class="prof-tab-btn" id="prof-tab-admin" onclick="switchProfileTab('admin')" style="display:none;flex:1;padding:9px 12px;border-radius:9px;font-size:12.5px;font-weight:700;border:none;cursor:pointer;align-items:center;justify-content:center;gap:6px;transition:all .15s;background:transparent;color:var(--text-2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Sistem Admin
+        </button>
+      </div>
+
+      <!-- TAB 1: INFORMASI PRIBADI -->
+      <div id="prof-sec-info" style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--sh-sm);">
+        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:6px;">
+          <span>📋 Data Identitas Pengguna</span>
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Nama Lengkap</label>
+          <input type="text" id="prof-input-nama" class="form-input" placeholder="Nama lengkap Anda" style="width:100%;box-sizing:border-box;"/>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Email</label>
+            <input type="email" id="prof-input-email" class="form-input" placeholder="nama@email.com" style="width:100%;box-sizing:border-box;"/>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Tanggal Lahir</label>
+            <input type="date" id="prof-input-ttl" class="form-input" style="width:100%;box-sizing:border-box;"/>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="saveMyProfileInfo()" style="margin-top:6px;width:100%;padding:11px;font-weight:700;border-radius:10px;">💾 Simpan Perubahan Profil</button>
+      </div>
+
+      <!-- TAB 2: UBAH PASSWORD -->
+      <div id="prof-sec-pw" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--sh-sm);">
+        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;">🔒 Keamanan & Pembaruan Password</div>
+        <p style="font-size:11.5px;color:var(--text-3);margin-bottom:14px;">Password baru minimal harus terdiri dari 8 karakter.</p>
+        
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Password Saat Ini (Lama)</label>
+          <input type="password" id="prof-pw-old" class="form-input" placeholder="Masukkan password lama Anda" style="width:100%;box-sizing:border-box;"/>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Password Baru</label>
+            <input type="password" id="prof-pw-new" class="form-input" placeholder="Min. 8 karakter" style="width:100%;box-sizing:border-box;"/>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Konfirmasi Password Baru</label>
+            <input type="password" id="prof-pw-confirm" class="form-input" placeholder="Ulangi password baru" style="width:100%;box-sizing:border-box;"/>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="changeMyPassword()" style="margin-top:6px;width:100%;padding:11px;font-weight:700;border-radius:10px;">🔒 Perbarui Password Saya</button>
+      </div>
+
+      <!-- TAB 3: ADMIN OPTIONS (Admin Only) -->
+      <div id="prof-sec-admin" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--sh-sm);">
+        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;">⚙️ Pengaturan Sistem Aplikasi</div>
+        <button class="btn btn-outline btn-block" onclick="closeModal('modal-profile');switchPane('appmgmt')" style="width:100%;padding:10px;margin-bottom:12px;border-radius:10px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Buka Manajemen Aplikasi (Branding, Logo, Favicon)
+        </button>
+
+        <div id="sec-pending" style="display:none;">
+          <div class="divider" style="margin:12px 0;"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="font-size:12.5px;font-weight:700;">Permintaan Pendaftaran Akun Baru</span><span class="badge badge-red" id="pend-cnt-badge">0 menunggu</span></div>
+          <div id="pend-list"></div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:18px 0 14px;"></div>
+      <button class="btn btn-danger-out btn-block" onclick="doLogout()" style="width:100%;padding:10px;border-radius:10px;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Keluar dari Sesi Aplikasi
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-body" style="text-align:center;padding-top:22px;">
+      <div class="confirm-icon" id="conf-ico" style="background:var(--danger-bg);color:var(--danger);margin:0 auto 12px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+      <h3 id="conf-title" style="font-size:15px;font-weight:800;margin-bottom:7px;">Konfirmasi</h3>
+      <p id="conf-msg" style="font-size:13px;color:var(--text-2);line-height:1.6;"></p>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-confirm')">Batal</button><button class="btn btn-danger btn-sm" id="conf-ok">Ya, Lanjutkan</button></div>
+  </div>
+</div>
+
+<!-- DEBITUR / P3 DETAIL MODAL (shared) -->
+<div class="modal-overlay" id="modal-debitur">
+  <div class="modal-box" style="max-width:720px;">
+    <div class="modal-hdr"><div class="modal-title" id="dmd-title">Detail</div><button class="modal-close" onclick="closeModal('modal-debitur')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body" id="dmd-body"></div>
+  </div>
+</div>
+
+<!-- DESK CALL FORM MODAL -->
+<div class="modal-overlay" id="modal-dc-form">
+  <div class="modal-box" style="max-width:580px;">
+    <div class="modal-hdr"><div class="modal-title" id="dcf-title">Catat Desk Call</div><button class="modal-close" onclick="closeModal('modal-dc-form')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <div class="form-group" style="position:relative;">
+        <label class="form-label">Debitur</label>
+        <input id="dcf-debitur" class="form-input" type="text" placeholder="Ketik nama atau no. rekening..." oninput="dcAutocomplete(this.value)" autocomplete="off"/>
+        <div id="dcf-ac" style="position:absolute;left:0;right:0;top:100%;z-index:50;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--sh-md);overflow:hidden;display:none;max-height:180px;overflow-y:auto;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tanggal &amp; Waktu</label><input id="dcf-tgl" class="form-input" type="datetime-local"/></div>
+        <div class="form-group"><label class="form-label">Jenis Kontak</label><select id="dcf-jenis" class="form-select"><option value="Telepon">📞 Telepon</option><option value="WhatsApp">💬 WhatsApp</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Status Kontak</label><select id="dcf-status" class="form-select"><option>Terhubung</option><option>Tidak Diangkat</option><option>Sibuk</option><option>Tidak Aktif</option><option>Salah Nomor</option></select></div>
+        <div class="form-group"><label class="form-label">Prioritas</label><select id="dcf-prioritas" class="form-select"><option>Kritis</option><option>Tinggi</option><option selected>Sedang</option><option>Rendah</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tindak Lanjut</label><select id="dcf-tindak" class="form-select"><option value="">— Pilih —</option><option>Janji Bayar</option><option>Negosiasi</option><option>Restrukturisasi</option><option>Eskalasi</option><option>Tidak Ada</option></select></div>
+        <div class="form-group"><label class="form-label">Nominal Janji (Rp)</label><input id="dcf-nominal" class="form-input" type="number" placeholder="0" min="0"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Tanggal Janji Bayar</label><input id="dcf-tgl-janji" class="form-input" type="date"/></div>
+      <div class="form-group"><label class="form-label">Baki Debet saat Call</label><input id="dcf-baki" class="form-input mono" type="text" readonly style="background:var(--bg);color:var(--text-2);"/><div style="font-size:10.5px;color:var(--text-3);margin-top:4px;">Snapshot otomatis — tidak berubah setelah disimpan</div></div>
+      <div class="form-group"><label class="form-label">Catatan / Hasil Komunikasi</label><textarea id="dcf-catatan" class="form-input" rows="3" placeholder="Catatan hasil panggilan..." style="resize:vertical;"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-dc-form')">Batal</button><button class="btn btn-primary btn-sm" onclick="saveDC()">Simpan</button></div>
+  </div>
+</div>
+
+<!-- P3 JADWAL FORM MODAL -->
+<div class="modal-overlay" id="modal-p3-form">
+  <div class="modal-box" style="max-width:580px;">
+    <div class="modal-hdr"><div class="modal-title" id="p3f-title">Jadwal Penagihan Baru</div><button class="modal-close" onclick="closeModal('modal-p3-form')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <div class="form-group" style="position:relative;">
+        <label class="form-label">Debitur</label>
+        <input id="p3f-debitur" class="form-input" type="text" placeholder="Ketik nama atau no. rekening..." oninput="p3Autocomplete(this.value)" autocomplete="off"/>
+        <div id="p3f-ac" style="position:absolute;left:0;right:0;top:100%;z-index:50;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--sh-md);overflow:hidden;display:none;max-height:180px;overflow-y:auto;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tanggal</label><input id="p3f-tanggal" class="form-input" type="date"/></div>
+        <div class="form-group"><label class="form-label">Waktu Mulai</label><input id="p3f-waktu" class="form-input" type="time"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Petugas</label>
+          <select id="p3f-petugas" class="form-select"><option value="">— Memuat petugas... —</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Prioritas</label>
+          <select id="p3f-prioritas" class="form-select"><option>Kritis</option><option>Tinggi</option><option selected>Sedang</option><option>Rendah</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Area</label><input id="p3f-area" class="form-input" type="text" placeholder="Auto dari kota debitur"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Jenis Tagih</label>
+          <select id="p3f-jenis" class="form-select"><option>Penagihan Tunggakan</option><option>Negosiasi Restrukturisasi</option><option>Monitoring Rutin</option><option>Somasi</option><option>Eksekusi Jaminan</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Metode</label>
+          <select id="p3f-metode" class="form-select"><option>Kunjungan Langsung</option><option>Undangan ke Kantor</option><option>Mediasi</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Target Tagih (Rp)</label><input id="p3f-target" class="form-input" type="number" placeholder="0" min="0"/></div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea id="p3f-catatan" class="form-input" rows="3" placeholder="Catatan opsional..." style="resize:vertical;"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-p3-form')">Batal</button><button class="btn btn-primary btn-sm" onclick="saveP3Form()">Simpan Jadwal</button></div>
+  </div>
+</div>
+
+<!-- P3 DETAIL & FOTO MODAL -->
+<div class="modal-overlay" id="modal-p3-detail">
+  <div class="modal-box" style="max-width:680px;">
+    <div class="modal-hdr">
+      <div class="modal-title" id="p3d-title">Detail Jadwal Penagihan P3</div>
+      <button class="modal-close" onclick="closeModal('modal-p3-detail')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="p3d-body"></div>
+  </div>
+</div>
+
+<!-- DC DETAIL MODAL -->
+<div class="modal-overlay" id="modal-dc-detail">
+  <div class="modal-box" style="max-width:580px;">
+    <div class="modal-hdr"><div class="modal-title" id="dcd-title">Detail Desk Call</div><button class="modal-close" onclick="closeModal('modal-dc-detail')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body" id="dcd-body"></div>
+  </div>
+</div>
+
+<!-- PEMBAYARAN DETAIL MODAL -->
+<div class="modal-overlay" id="modal-pay-detail">
+  <div class="modal-box" style="max-width:580px;">
+    <div class="modal-hdr"><div class="modal-title" id="payd-title">Detail Pembayaran</div><button class="modal-close" onclick="closeModal('modal-pay-detail')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body" id="payd-body"></div>
+  </div>
+</div>
+
+<!-- IMPORT BAYAR MODAL -->
+<div class="modal-overlay" id="modal-import-bayar">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-hdr"><div class="modal-title">Import Pembayaran</div><button class="modal-close" onclick="closeModal('modal-import-bayar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <div class="import-zone" onclick="document.getElementById('import-file-input').click()"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="event.preventDefault();this.classList.remove('drag-over');handleImportFile(event.dataTransfer.files[0])">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 10px;opacity:.5;color:var(--text-2);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <p style="font-size:13px;font-weight:600;color:var(--text-2);" id="import-file-label">Drag &amp; drop file .xlsx / .csv</p>
+        <p style="font-size:11.5px;color:var(--text-3);margin-top:4px;">atau klik untuk pilih · Maks 10MB</p>
+      </div>
+      <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleImportFile(this.files[0])"/>
+      <div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:10px;font-size:11.5px;color:var(--text-2);line-height:1.7;">
+        <strong>Format kolom yang dibutuhkan:</strong><br/>
+        <span class="mono">noRek</span> — No. Rekening<br/>
+        <span class="mono">namaDebitur</span> — Nama Debitur *<br/>
+        <span class="mono">tanggal</span> — Tgl Bayar (YYYY-MM-DD) *<br/>
+        <span class="mono">jumlah</span> — Jumlah Bayar (angka) *<br/>
+        <span class="mono">kol</span>, <span class="mono">metode</span>, <span class="mono">petugas</span>, <span class="mono">keterangan</span> — opsional<br/>
+        <span style="color:var(--text-3);">✳️ Kolom * wajib. Baris tidak valid dilewati. Header baris pertama harus sesuai nama kolom.</span>
+      </div>
+      <div id="import-preview-area" style="display:none;">
+        <div class="divider"></div>
+        <div class="import-preview-stats">
+          <div class="import-preview-stat"><div class="n" style="color:var(--success);" id="imp-stat-ok">0</div><div class="l">Valid</div></div>
+          <div class="import-preview-stat"><div class="n" style="color:var(--warning);" id="imp-stat-ambig">0</div><div class="l">Perlu Review</div></div>
+          <div class="import-preview-stat"><div class="n" style="color:var(--danger);" id="imp-stat-fail">0</div><div class="l">Dilewati</div></div>
+        </div>
+        <div id="import-error-detail"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-import-bayar')">Batal</button>
+      <button class="btn btn-primary btn-sm" id="import-confirm-btn" style="display:none;" onclick="confirmImportBayar()">Terapkan Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT FORM MODAL (shared: Riwayat Bayar + Debitur) -->
+<div class="modal-overlay" id="modal-pay-form">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-hdr"><div class="modal-title" id="payf-title">Catat Pembayaran Baru</div><button class="modal-close" onclick="closeModal('modal-pay-form')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <div class="form-group" style="position:relative;">
+        <label class="form-label">Debitur</label>
+        <input id="payf-debitur" class="form-input" type="text" placeholder="Ketik nama atau no. rekening..." oninput="payAutocomplete(this.value)" autocomplete="off"/>
+        <div id="payf-ac" class="pay-autocomplete-list"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tanggal Bayar</label><input id="payf-tanggal" class="form-input" type="date"/></div>
+        <div class="form-group"><label class="form-label">Jumlah Bayar (Rp)</label><input id="payf-jumlah" class="form-input" type="number" placeholder="0" min="0"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">KOL</label>
+          <select id="payf-kol" class="form-select"><option>Lancar</option><option>DPK</option><option>Kurang Lancar</option><option>Diragukan</option><option>Macet</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Metode Bayar</label>
+          <select id="payf-metode" class="form-select"><option>Transfer</option><option>Tunai</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Petugas Pencatat</label><input id="payf-petugas" class="form-input pay-locked-field" type="text" readonly/></div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea id="payf-keterangan" class="form-input" rows="2" placeholder="Catatan opsional..." style="resize:vertical;"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-pay-form')">Batal</button>
+      <button class="btn btn-primary btn-sm" onclick="savePayForm()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEGAL FORM MODAL -->
+<div class="modal-overlay" id="modal-legal-form">
+  <div class="modal-box" style="max-width:500px;">
+    <div class="modal-hdr">
+      <div class="modal-title" id="legalf-title">Tambah Berkas Legal Baru</div>
+      <button class="modal-close" onclick="closeModal('modal-legal-form')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="position:relative;">
+        <label class="form-label">Debitur</label>
+        <input id="legalf-debitur" class="form-input" type="text" placeholder="Ketik nama atau no. rekening..." oninput="legalAutocomplete(this.value)" autocomplete="off"/>
+        <div id="legalf-ac" class="pay-autocomplete-list"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jenis Agunan</label>
+        <select id="legalf-jenis-agunan" class="form-select">
+          <option value="Sertifikat Hak Milik (SHM)">Sertifikat Hak Milik (SHM)</option>
+          <option value="Sertifikat Hak Guna Bangunan (SHGB)">Sertifikat Hak Guna Bangunan (SHGB)</option>
+          <option value="BPKB Kendaraan Bermotor">BPKB Kendaraan Bermotor</option>
+          <option value="Giro / Deposito / Tabungan">Giro / Deposito / Tabungan</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Notaris / PPAT</label>
+          <input id="legalf-notaris" class="form-input" type="text" placeholder="Nama Notaris PPAT"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">No. Akad</label>
+          <input id="legalf-no-akad" class="form-input" type="text" placeholder="Nomor Akad Pembiayaan"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lokasi Arsip Dokumen</label>
+        <input id="legalf-lokasi-arsip" class="form-input" type="text" placeholder="Cth: Khazanah 1 / Rak 2B / Box 15"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-legal-form')">Batal</button>
+      <button class="btn btn-primary btn-sm" onclick="saveLegalForm()">Simpan Berkas Legal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAJEMEN USER FORM MODAL -->
+<div class="modal-overlay" id="modal-user-form">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-hdr">
+      <div class="modal-title" id="uf-title">Kelola User & Divisi</div>
+      <button class="modal-close" onclick="closeModal('modal-user-form')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="uf-id" />
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input id="uf-username" class="form-input mono" type="text" placeholder="Masukkan username" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap</label>
+        <input id="uf-nama" class="form-input" type="text" placeholder="Nama lengkap petugas" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input id="uf-email" class="form-input" type="email" placeholder="email@bprs.co.id" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tanggal Lahir</label>
+        <input id="uf-ttl" class="form-input" type="date" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Posisi / Divisi</label>
+          <select id="uf-posisi" class="form-select">
+            <option value="admin">Administrator Utama</option>
+            <option value="kabid_p3">Kabid P3</option>
+            <option value="staff_p3">Staff P3 (Penagihan Lapangan)</option>
+            <option value="desk_call">Staff Desk Call</option>
+            <option value="legal">Staff Legal & Agunan</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status Akun</label>
+          <select id="uf-status" class="form-select">
+            <option value="active">Active (Aktif)</option>
+            <option value="inactive">Inactive (Non-Aktif)</option>
+            <option value="pending">Pending (Menunggu)</option>
+            <option value="rejected">Rejected (Ditolak)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password / Reset Password</label>
+        <input id="uf-password" class="form-input" type="password" placeholder="Isi hanya jika membuat / ingin ubah password" />
+      </div>
+      <div id="uf-err" class="auth-error"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-user-form')">Batal</button>
+      <button class="btn btn-primary btn-sm" onclick="saveUserForm()">Simpan Pengguna</button>
+    </div>
+  </div>
+</div>
+
+<!-- LUPA PASSWORD MODAL -->
+<div class="modal-overlay" id="modal-forgot-pw">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-hdr"><div class="modal-title">Lupa Password</div><button class="modal-close" onclick="closeModal('modal-forgot-pw');resetForgotPwModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <div id="fp-step1">
+        <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;">Verifikasi identitas dengan username dan tanggal lahir yang terdaftar.</p>
+        <div class="form-group"><label class="form-label">Username</label><input id="fp-user" class="form-input" type="text" placeholder="Masukkan username"/></div>
+        <div class="form-group"><label class="form-label">Tanggal Lahir</label><input id="fp-ttl" class="form-input" type="date"/></div>
+        <button class="btn btn-primary btn-block" onclick="verifyForgotPw()">Verifikasi</button>
+        <div id="fp-err1" class="auth-error"></div>
+      </div>
+      <div id="fp-step2" style="display:none;">
+        <div class="auth-success" style="margin-bottom:16px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>Identitas terverifikasi. Silakan buat password baru.</span></div>
+        <div class="form-group"><label class="form-label">Password Baru</label><input id="fp-newpass" class="form-input" type="password" placeholder="Min 8 karakter" oninput="evalStrength(this.value)"/></div>
+        <div class="str-bar"><div id="str-fill-fp" class="str-fill"></div></div>
+        <div class="form-group"><label class="form-label">Konfirmasi Password Baru</label><input id="fp-confpass" class="form-input" type="password" placeholder="Ulangi password baru"/></div>
+        <button class="btn btn-primary btn-block" onclick="submitForgotPw()">Simpan Password Baru</button>
+        <div id="fp-err2" class="auth-error"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION PANEL -->
+<div class="modal-overlay" id="modal-notif">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-hdr"><div class="modal-title">Notifikasi</div><button class="modal-close" onclick="closeModal('modal-notif')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body" id="notif-panel-body"></div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox-overlay" id="lightbox-overlay" onclick="if(event.target===this)closeLightbox()">
+  <div class="lightbox-close" onclick="closeLightbox()">✕</div>
+  <img class="lightbox-img" id="lightbox-img" src="" alt="Foto kunjungan"/>
+  <div class="lightbox-caption" id="lightbox-caption"></div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app-shell">
+  <header id="app-header">
+    <div class="hdr-left">
+      <button class="hbg" onclick="toggleDrawer()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <div class="hdr-brand">
+        <div class="hdr-logo-box">BM</div>
+        <div class="hdr-texts"><div class="hdr-pt-name" id="hdr-pt-name">PT BPRS Mitra Harmoni Yogyakarta</div><div class="hdr-role-sub" id="hdr-role-sub">Administrator</div></div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <button class="hdr-icon" id="notif-bell" onclick="openNotifPanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-cnt" style="display:none;">0</span>
+      </button>
+      <button class="hdr-icon" onclick="toggleTheme()">
+        <svg id="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="user-chip" onclick="openProfileModal()">
+        <span class="user-av" id="user-av">AD</span>
+        <span class="user-chip-info"><span class="user-chip-name" id="user-cname">Admin</span><span class="user-chip-role" id="user-crole">Administrator</span></span>
+      </button>
+    </div>
+  </header>
+  <div id="drawer-scrim" onclick="closeDrawer()"></div>
+  <div id="main-layout">
+    <nav id="app-drawer">
+      <div class="drawer-hdr" style="display:none !important;">
+        <div class="drawer-logo">BM</div>
+        <div><div class="drawer-pt" id="dr-pt">BPRS Mitra Harmoni</div><div class="drawer-sub" id="dr-sub">Administrator</div></div>
+      </div>
+      <div class="drawer-nav" id="drawer-nav"></div>
+      <div class="drawer-footer">Sistem v3.0 &middot; <span id="yr">2026</span></div>
+    </nav>
+    <div id="content-area">
+      <div id="page-container">
+
+        <div class="tab-pane" id="pane-dashboard">
+          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Dashboard Eksekutif</div><div class="page-sub">Ringkasan performa kolektibilitas, distribusi NPF, dan agregasi portofolio pembiayaan bank.</div></div></div></div>
+          <div id="dash-content"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-debitur">
+          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Data Debitur Pembiayaan</div><div class="page-sub">Manajemen data nasabah, rincian tunggakan, riwayat Baki Debet, dan status kolektibilitas.</div></div></div></div>
+          <div id="deb-content"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-deskcall">
+          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Monitoring Desk Call</div><div class="page-sub">Pencatatan produktivitas panggilan dan pelacakan janji bayar nasabah untuk optimalisasi penagihan harian.</div></div><div id="dc-hdr-actions"></div></div></div>
+          <div class="dc-tabs"><div class="dc-tab active" id="dctab-harian" onclick="switchDCTab('harian')">📋 Laporan Harian</div><div class="dc-tab" id="dctab-bulanan" onclick="switchDCTab('bulanan')">📅 Laporan Bulanan</div><div class="dc-tab" id="dctab-insight" onclick="switchDCTab('insight')">📊 Customer Insight</div></div>
+          <div id="dc-content"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-p3">
+          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Penagihan Lapangan (P3)</div><div class="page-sub">Pengelolaan jadwal kunjungan tim lapangan, target penagihan, dan dokumentasi foto bukti kunjungan.</div></div><button class="btn btn-primary btn-sm" onclick="openP3Form()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Buat Jadwal P3 Baru</button></div></div>
+          <div id="p3-content"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-legal">
+          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Manajemen Berkas Legal &amp; Agunan</div><div class="page-sub">Pengelolaan dokumen hukum, kepemilikan agunan, notaris, dan kelengkapan berkas pembiayaan.</div></div><button class="btn btn-primary btn-sm" onclick="openLegalForm()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Berkas</button></div></div>
+          <div id="legal-content"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-bayar">
+          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Riwayat Pembayaran Nasabah</div><div class="page-sub">Pencatatan transaksi pembayaran angsuran, import data transaksi, dan pelacakan realisasi.</div></div><div class="toolbar-actions"><button class="btn btn-secondary btn-sm" onclick="exportPembayaranPdfHarian()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Export PDF Harian</button><button class="btn btn-outline btn-sm" onclick="openImportBayar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Import XLSX/CSV</button><button class="btn btn-primary btn-sm" onclick="openPayForm()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Pembayaran</button></div></div></div>
+          <div id="bayar-content"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-kpi">
+          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Target &amp; KPI Rencana Bisnis Bank (RBB)</div><div class="page-sub">Evaluasi rasio NPF, target pemulihan tunggakan, dan pemantauan kinerja indikator utama.</div></div></div></div>
+          <div id="kpi-content"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-appmgmt">
+          <div class="page-hd"><div class="page-title">Pengaturan Identitas &amp; Branding Aplikasi</div><div class="page-sub">Kustomisasi nama institusi, logo perusahaan, favicon visual, dan aksen warna tema.</div></div>
+          <div id="appmgmt-content"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-users">
+          <div class="page-hd"><div class="page-title">Manajemen Pengguna &amp; Pengawasan Akun</div><div class="page-sub">Persetujuan registrasi staf, manajemen role pengguna, dan kontrol hak akses aplikasi.</div></div>
+          <div id="users-content"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-importcbs">
+          <div class="page-hd"><div class="page-title">Import Data Core Banking System (CBS)</div><div class="page-sub">Upload snapshot laporan kolektibilitas harian/bulanan dari Core Banking Assist-BPRS.Net.</div></div>
+          <div id="importcbs-content"></div>
+        </div>
+
+      </div>
+      <footer class="app-footer">
+        <div class="footer-inner">
+          <div class="footer-brand"><div class="footer-logo">BM</div><div><div class="footer-pt" id="ftr-pt">PT BPRS Mitra Harmoni Yogyakarta</div><div class="footer-tag">Solusi Keuangan Syariah Terpercaya</div></div></div>
+          <div class="footer-copy">Copyright &copy; <span id="ftr-yr">2026</span> — All rights reserved<br><strong id="ftr-pt2">PT BPRS Mitra Harmoni Yogyakarta</strong></div>
+        </div>
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script src="/public/js/app.js?v=1784728400"></script>
+</body>
+</html>
+

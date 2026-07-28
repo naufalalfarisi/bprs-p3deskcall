@@ -1,0 +1,300 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                      String         @id @default(uuid())
+  username                String         @unique
+  passwordHash            String
+  nama                    String
+  email                   String
+  tglLahir                DateTime
+  posisi                  String         // admin, kabid_p3, staff_p3, desk_call, legal
+  status                  String         // pending, active, rejected, inactive
+  avatarUrl               String?
+  registerAttemptCount    Int            @default(0)
+  lastRegisterAttemptAt   DateTime?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  refreshTokens           RefreshToken[]
+  deskCalls               DeskCall[]
+  jadwalPenagihan        JadwalPenagihan[]
+  penagihanFoto           PenagihanFoto[]
+  legalBerkasChecklist   LegalBerkasChecklist[]
+  legalFiles              LegalFile[]
+  auditLogs               AuditLog[]
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  userId      String
+  tokenHash   String
+  deviceInfo  String?
+  revoked     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Debitur {
+  id                   String               @id // no_rekening
+  cif                  String
+  nama                 String
+  nik                  String
+  tglLahir             DateTime
+  umur                 String?
+  alamat               String
+  kota                 String
+  telepon              String
+  pekerjaan            String
+  agama                String
+  resiko               String               // Rendah/Sedang/Tinggi
+  jenisMargin          String               // jenis akad pembiayaan
+  rateMargin           Float
+  jw                   Int                  // jangka waktu (bulan)
+  tglAwal              DateTime
+  tglJt                DateTime
+  tglAngsuranTerakhir  DateTime?
+  ao                   String
+  plafon               Float
+  bakiDebet            Float
+  angsPrincipal        Float
+  angsMargin           Float
+  tPokok               Float                // tunggakan pokok
+  frPokok              Int                  // frekuensi tunggakan pokok
+  frhPokok             Int                  // hari tunggakan pokok
+  tMargin              Float                // tunggakan margin
+  frMargin             Int
+  frhMargin            Int
+  totalTunggakan       Float                // tPokok + tMargin
+  fr                   Int                  // frekuensi gabungan
+  frHari               Int                  // hari gabungan
+  kol                  String               // Lancar, DPK, Kurang Lancar, Diragukan, Macet
+  kolMurni             String               // kode numerik asli dari CBS (1-5)
+  restruk              Int                  // jumlah kali direstrukturisasi
+  rekTabungan          String?
+  saldoTabungan        Float?
+  jenisAgunan          String?
+  nilaiJaminan         Float?
+  spkNumber            String?
+  statusDebitur        String               @default("Aktif") // Aktif, Lunas, TidakDitemukan
+  lastSyncedAt         DateTime?
+  lastSeenInImportAt   DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  kolHistory           DebiturKolHistory[]
+  deskCalls            DeskCall[]
+  jadwalPenagihan      JadwalPenagihan[]
+  legalBerkas          LegalBerkas[]
+  pembayaran           Pembayaran[]
+}
+
+model DebiturKolHistory {
+  id              String   @id @default(uuid())
+  debiturId       String
+  tanggalSnapshot DateTime
+  bulanLabel      String
+  kol             String
+  bakiDebet       Float
+
+  debitur         Debitur  @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+}
+
+model DeskCall {
+  id                 String    @id @default(uuid())
+  debiturId          String
+  namaDebitur        String
+  tanggal            DateTime
+  waktu              String    // format HH:mm:ss
+  petugasId          String
+  kol                String    // snapshot
+  jenisKontak        String    // Telepon, WhatsApp
+  statusKontak       String    // Terhubung, Tersambung Tidak Diangkat, Tidak Diangkat, Sibuk, Tidak Aktif, Salah Nomor
+  hasilKomunikasi    String?
+  tindakLanjut       String?   // Janji Bayar, Negosiasi, Restrukturisasi, Eskalasi, Tidak Ada
+  prioritas          String    // Kritis, Tinggi, Sedang, Rendah
+  nominalJanji       Float?
+  tanggalJanjiBayar  DateTime?
+  bakiDebet          Float     // snapshot
+  createdAt          DateTime  @default(now())
+
+  debitur            Debitur   @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+  petugas            User      @relation(fields: [petugasId], references: [id], onDelete: Cascade)
+}
+
+model JadwalPenagihan {
+  id               String          @id @default(uuid())
+  nomorJadwal      String          // format P3/2026/06/041
+  tanggal          DateTime
+  waktuMulai       String          // format HH:mm
+  petugasId        String
+  area             String
+  prioritas        String          // Kritis, Tinggi, Sedang, Rendah
+  debiturId        String
+  namaDebitur      String
+  kol              String          // snapshot
+  bakiDebet        Float           // snapshot
+  targetTagih      Float
+  alamat           String
+  jenisTagih       String
+  metode           String
+  status           String          @default("Terjadwal") // Terjadwal, Dalam Proses, Selesai, Batal, Lewat Jatuh Tempo
+  nominalRealisasi Float           @default(0)
+  catatan          String?
+  hasil            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  debitur          Debitur         @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+  petugas          User            @relation(fields: [petugasId], references: [id], onDelete: Cascade)
+  fotos            PenagihanFoto[]
+}
+
+model PenagihanFoto {
+  id         String   @id @default(uuid())
+  jadwalId   String
+  filePath   String
+  uploadedAt DateTime @default(now())
+  uploadedBy String
+
+  jadwal     JadwalPenagihan @relation(fields: [jadwalId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+}
+
+model LegalBerkas {
+  id          String   @id // LF-001 format
+  debiturId   String
+  plafon      Float
+  jenisAgunan String
+  notaris     String
+  noAkad      String
+  lokasiArsip String
+  status      String   // Lengkap, Proses, Kurang (auto-calculated)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  debitur     Debitur  @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+  checklists  LegalBerkasChecklist[]
+  files       LegalFile[]
+}
+
+model LegalBerkasChecklist {
+  id            String    @id @default(uuid())
+  legalBerkasId String
+  kategori      String    // Identitas, Usaha, Agunan, Akad & Notarial
+  itemName      String
+  checked       Boolean   @default(false)
+  checkedAt     DateTime?
+  checkedBy     String?
+
+  berkas        LegalBerkas @relation(fields: [legalBerkasId], references: [id], onDelete: Cascade)
+  user          User?       @relation(fields: [checkedBy], references: [id])
+}
+
+model LegalFile {
+  id            String   @id @default(uuid())
+  legalBerkasId String
+  fileName      String
+  filePath      String
+  uploadedAt    DateTime @default(now())
+  uploadedBy    String
+
+  berkas        LegalBerkas @relation(fields: [legalBerkasId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+}
+
+model Pembayaran {
+  id            String    @id @default(uuid())
+  debiturId     String
+  nama          String
+  tanggal       DateTime
+  nominal       Float
+  kol           String    // snapshot
+  metode        String    // Transfer, Tunai
+  petugas       String    // nama petugas pencatat
+  keterangan    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime? @updatedAt
+  updatedBy     String?
+  importBatchId String?
+
+  debitur       Debitur   @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+}
+
+model RbbTarget {
+  id                   String   @id @default(uuid())
+  periode              String   @unique // format YYYY-MM
+  npfGross             Float    @default(5.0)
+  collectionRate       Float    @default(70.0)
+  recoveryRate         Float    @default(40.0)
+  cureRate             Float    @default(20.0)
+  ptpRate              Float    @default(40.0)
+  promiseKept          Float    @default(60.0)
+  coverageRatio        Float    @default(80.0)
+  kunjunganPerPetugas  Float    @default(15.0)
+  restrukSuccess       Float    @default(50.0)
+  ppapCoverage         Float    @default(100.0)
+  updatedBy            String
+  updatedAt            DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  tableName String
+  recordId  String
+  oldValue  String?  // JSON string
+  newValue  String?  // JSON string
+  ipAddress String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String
+}
+
+model ImportBatch {
+  id                    String    @id @default(uuid())
+  uploadedBy            String
+  uploadedAt            DateTime  @default(now())
+  fileName              String
+  tanggalSnapshot       DateTime
+  totalRowsParsed       Int
+  totalUpdated          Int
+  totalNewDetected      Int
+  totalMissingDetected  Int
+  status                String    // pending_review, applied, failed
+  appliedAt             DateTime?
+}
+
+model ImportStagingRow {
+  id         String   @id @default(uuid())
+  batchId    String
+  rawData    String   // JSON string of row
+  rowStatus  String   // valid, error
+  errorMessage String?
+}
+
+model PembayaranImportBatch {
+  id            String   @id @default(uuid())
+  uploadedBy    String
+  uploadedAt    DateTime @default(now())
+  fileName      String
+  totalValid    Int
+  totalAmbiguous Int
+  totalFailed   Int
+}

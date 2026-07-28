@@ -1,0 +1,36 @@
+{
+  "name": "bprs-npf-dashboard",
+  "version": "1.0.0",
+  "description": "Sistem Dashboard Penagihan NPF BPRS Mitra Harmoni Yogyakarta",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "tunnel": "npx localtunnel --port 3000 --subdomain bprs-p3deskcall-demo",
+    "share": "npx localtunnel --port 3000 --subdomain bprs-p3deskcall-demo",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "seed": "tsx src/seed.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.11.4",
+    "@prisma/client": "^5.14.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "hono": "^4.3.7",
+    "jose": "^5.3.0",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.12.12",
+    "prisma": "^5.14.0",
+    "tsx": "^4.10.5",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}
