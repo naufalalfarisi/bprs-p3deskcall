@@ -419,7 +419,18 @@ async function openProfileModal() {
     }
   } catch (e) {}
 
-  const initials = state.user.nama ? state.user.nama.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'US';
+  let initials = 'AD';
+  if (state.user.nama) {
+    const parts = state.user.nama.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts.length === 1 && parts[0].length > 0) {
+      initials = parts[0].substring(0, 2).toUpperCase();
+    }
+  } else if (state.user.username) {
+    initials = state.user.username.substring(0, 2).toUpperCase();
+  }
+
   if (av) {
     if (state.user.avatarUrl) {
       av.innerHTML = `<img src="${state.user.avatarUrl}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;"/>`;
@@ -620,7 +631,17 @@ function setupAppShell() {
   const user = state.user;
   if (!user) return;
 
-  const initials = user.nama.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  let initials = 'AD';
+  if (user.nama) {
+    const parts = user.nama.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts.length === 1 && parts[0].length > 0) {
+      initials = parts[0].substring(0, 2).toUpperCase();
+    }
+  } else if (user.username) {
+    initials = user.username.substring(0, 2).toUpperCase();
+  }
   
   const userAv = document.getElementById('user-av');
   const userCname = document.getElementById('user-cname');
@@ -636,7 +657,7 @@ function setupAppShell() {
       userAv.style.background = 'transparent';
       userAv.style.padding = '0';
     } else {
-      userAv.innerText = initials;
+      userAv.innerHTML = initials;
       userAv.style.background = '';
     }
   }
