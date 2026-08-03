@@ -673,9 +673,7 @@ function renderNavMenu(role) {
     { id: 'legal', label: 'Legal', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', roles: ['admin', 'kabid_p3', 'legal'] },
     { id: 'bayar', label: 'Riwayat Bayar', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal'] },
     { id: 'kpi', label: 'KPI & Scorecard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal'] },
-    { id: 'users', label: 'Manajemen User', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>', roles: ['admin'] },
-    { id: 'appmgmt', label: 'Manajemen Aplikasi', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>', roles: ['admin'] },
-    { id: 'importcbs', label: 'Import Data CBS', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>', roles: ['admin'] }
+    { id: 'settings', label: 'Pengaturan & Admin', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>', roles: ['admin'] }
   ];
 
   container.innerHTML = menu.filter(item => item.roles.includes(role)).map(item => `
@@ -686,9 +684,44 @@ function renderNavMenu(role) {
   `).join('');
 }
 
+// Subtab switcher inside unified Settings pane
+function switchSettingsSubtab(subId) {
+  document.querySelectorAll('.setting-subtab').forEach(btn => {
+    btn.classList.remove('active');
+    btn.style.borderBottomColor = 'transparent';
+    btn.style.color = 'var(--text-2)';
+    btn.style.fontWeight = '600';
+  });
+  document.querySelectorAll('.settings-subpane').forEach(p => p.style.display = 'none');
+
+  const targetBtn = document.getElementById(`subtab-${subId}`);
+  const targetPane = document.getElementById(`settings-subpane-${subId}`);
+
+  if (targetBtn) {
+    targetBtn.classList.add('active');
+    targetBtn.style.borderBottomColor = 'var(--brand)';
+    targetBtn.style.color = 'var(--brand)';
+    targetBtn.style.fontWeight = '700';
+  }
+  if (targetPane) {
+    targetPane.style.display = 'block';
+  }
+
+  if (subId === 'users') loadUsersView();
+  if (subId === 'appmgmt') loadAppMgmtView();
+  if (subId === 'importcbs') loadImportCbsView();
+}
+
 // Pane Switcher & SPA Router
-function switchPane(paneId) {
+function switchPane(paneId, subId = null) {
   closeDrawer();
+
+  // Redirect old admin route links to settings pane with corresponding subtab
+  if (['users', 'appmgmt', 'importcbs'].includes(paneId)) {
+    subId = paneId;
+    paneId = 'settings';
+  }
+
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -708,9 +741,10 @@ function switchPane(paneId) {
   if (paneId === 'legal') loadLegalView();
   if (paneId === 'bayar') loadBayarView();
   if (paneId === 'kpi') loadKpiView();
-  if (paneId === 'users') loadUsersView();
-  if (paneId === 'appmgmt') loadAppMgmtView();
-  if (paneId === 'importcbs') loadImportCbsView();
+  if (paneId === 'settings') {
+    const activeSub = subId || 'users';
+    switchSettingsSubtab(activeSub);
+  }
 }
 
 // Notifications Panel
