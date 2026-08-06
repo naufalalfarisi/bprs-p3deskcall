@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { prisma } from '../db.js';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
 import { logAudit } from '../utils/audit.js';
+import { normalizePhoneTo08 } from '../utils/phone.js';
 
 export const importRouter = new Hono();
 
@@ -238,11 +239,12 @@ importRouter.post('/cbs', async (c) => {
         nik = ''; // scientific notation corrupt data is set to empty
       }
 
-      // Telephone single quote strip
+      // Telephone single quote strip & 08 normalization
       let telepon = getValue('Telepon');
       if (telepon && telepon.startsWith("'")) {
         telepon = telepon.substring(1);
       }
+      telepon = normalizePhoneTo08(telepon);
 
       // Populate parsed raw row data
       const parsedData = {

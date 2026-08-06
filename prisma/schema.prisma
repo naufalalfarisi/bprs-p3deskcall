@@ -84,6 +84,8 @@ model Debitur {
   jenisAgunan          String?
   nilaiJaminan         Float?
   spkNumber            String?
+  latitude             Float?
+  longitude            Float?
   statusDebitur        String               @default("Aktif") // Aktif, Lunas, TidakDitemukan
   lastSyncedAt         DateTime?
   lastSeenInImportAt   DateTime?
@@ -95,6 +97,7 @@ model Debitur {
   jadwalPenagihan      JadwalPenagihan[]
   legalBerkas          LegalBerkas[]
   pembayaran           Pembayaran[]
+  suratLegal           SuratLegal[]
 }
 
 model DebiturKolHistory {
@@ -124,6 +127,7 @@ model DeskCall {
   nominalJanji       Float?
   tanggalJanjiBayar  DateTime?
   bakiDebet          Float     // snapshot
+  durasiPanggilan    String?   // durasi panggilan telepon (cth: "01:30" / "45 dtk")
   createdAt          DateTime  @default(now())
 
   debitur            Debitur   @relation(fields: [debiturId], references: [id], onDelete: Cascade)
@@ -150,6 +154,10 @@ model JadwalPenagihan {
   nominalRealisasi Float           @default(0)
   catatan          String?
   hasil            String?
+  checkInLat       Float?
+  checkInLng       Float?
+  checkInTime      DateTime?
+  checkInAddress   String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -162,6 +170,9 @@ model PenagihanFoto {
   id         String   @id @default(uuid())
   jadwalId   String
   filePath   String
+  latitude   Float?
+  longitude  Float?
+  gpsAddress String?
   uploadedAt DateTime @default(now())
   uploadedBy String
 
@@ -209,6 +220,30 @@ model LegalFile {
 
   berkas        LegalBerkas @relation(fields: [legalBerkasId], references: [id], onDelete: Cascade)
   user          User        @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+}
+
+model SuratLegal {
+  id             String    @id @default(uuid())
+  nomorSurat     String    @unique
+  jenisSurat     String    // SP1, SP2, Somasi 1, Somasi 2, Eksekusi Jaminan
+  debiturId      String
+  namaDebitur    String
+  tanggalSurat   DateTime
+  tglJatuhTempo  DateTime?
+  hal            String
+  totalTunggakan Float
+  tPokok         Float
+  tMargin        Float
+  bakiDebet      Float
+  status         String    @default("Diterbitkan") // Diterbitkan, Terkirim, Diterima, Selesai
+  penerima       String?
+  tglDiterima    DateTime?
+  petugas        String
+  catatan        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  debitur        Debitur   @relation(fields: [debiturId], references: [id], onDelete: Cascade)
 }
 
 model Pembayaran {

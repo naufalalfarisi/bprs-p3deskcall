@@ -5,9 +5,9 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "tunnel": "npx localtunnel --port 3000 --subdomain bprs-p3deskcall-demo",
-    "share": "npx localtunnel --port 3000 --subdomain bprs-p3deskcall-demo",
+    "dev": "tsx src/index.ts",
+    "tunnel": "npx localtunnel --port 3001 --subdomain bprs-p3deskcall-demo",
+    "share": "npx localtunnel --port 3001 --subdomain bprs-p3deskcall-demo",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",

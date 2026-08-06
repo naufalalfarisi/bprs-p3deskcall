@@ -302,7 +302,7 @@ legalRouter.post('/berkas/:id/files', async (c) => {
 });
 
 // DELETE /berkas/:id/files/:fileId - Delete file
-legalRouter.delete('/berkas/:id/files/:fileId', async (c) => {
+legalRouter.delete('/berkas/:id/files/:fileId', roleMiddleware(['admin', 'legal', 'kabid_p3', 'staff_p3', 'desk_call']), async (c) => {
   try {
     const id = c.req.param('id');
     const fileId = c.req.param('fileId');
@@ -312,8 +312,12 @@ legalRouter.delete('/berkas/:id/files/:fileId', async (c) => {
       return c.json({ error: 'File tidak ditemukan' }, 404);
     }
 
-    // Unlink disk file
-    const diskPath = path.join(process.cwd(), file.filePath);
+    // Unlink disk file cleanly
+    let relPath = file.filePath;
+    if (relPath.startsWith('/') || relPath.startsWith('\\')) {
+      relPath = relPath.substring(1);
+    }
+    const diskPath = path.join(process.cwd(), relPath);
     try {
       await fs.unlink(diskPath);
     } catch (e) {
@@ -321,9 +325,236 @@ legalRouter.delete('/berkas/:id/files/:fileId', async (c) => {
     }
 
     await prisma.legalFile.delete({ where: { id: fileId } });
-    await logAudit(c, 'delete_legal_file', 'legal_files', fileId, file);
+    await logAudit(c, 'delete_legal_file', 'legal_files', fileId || '', file);
 
     return c.json({ message: 'File dokumen berhasil dihapus' });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// DELETE /berkas/:id - Delete whole Legal Berkas
+legalRouter.delete('/berkas/:id', roleMiddleware(['admin', 'legal', 'kabid_p3', 'staff_p3', 'desk_call']), async (c) => {
+  try {
+    const id = c.req.param('id') || '';
+    const berkas = await (prisma as any).legalBerkas.findUnique({
+      where: { id },
+      include: { files: true }
+    });
+
+    if (!berkas) {
+      return c.json({ error: 'Berkas legal tidak ditemukan' }, 404);
+    }
+
+    // Unlink physical files if any
+    for (const f of berkas.files || []) {
+      if (f && f.filePath) {
+        let relPath = f.filePath;
+        if (relPath.startsWith('/') || relPath.startsWith('\\')) relPath = relPath.substring(1);
+        const diskPath = path.join(process.cwd(), relPath);
+        try {
+          await fs.unlink(diskPath);
+        } catch (e) {
+          // ignore disk delete error
+        }
+      }
+    }
+
+    // Delete relation records explicitly to satisfy foreign key constraints
+    await (prisma as any).legalBerkasChecklist.deleteMany({ where: { legalBerkasId: id } });
+    await (prisma as any).legalFile.deleteMany({ where: { legalBerkasId: id } });
+    await (prisma as any).legalBerkas.delete({ where: { id } });
+
+    await logAudit(c, 'delete_legal_berkas', 'legal_berkas', id, berkas);
+
+    return c.json({ message: 'Berkas legal berhasil dihapus' });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ==========================================
+// SP1, SP2, & SOMASI ENDPOINTS
+// ==========================================
+
+// GET /surat - List Surat Peringatan & Somasi
+legalRouter.get('/surat', async (c) => {
+  try {
+    const q = c.req.query('q') || '';
+    const jenis = c.req.query('jenis') || '';
+    const status = c.req.query('status') || '';
+
+    const whereClause: any = {};
+    if (jenis) whereClause.jenisSurat = jenis;
+    if (status) whereClause.status = status;
+    if (q) {
+      whereClause.OR = [
+        { nomorSurat: { contains: q } },
+        { namaDebitur: { contains: q } },
+        { debiturId: { contains: q } }
+      ];
+    }
+
+    const list = await (prisma as any).suratLegal.findMany({
+      where: whereClause,
+      include: {
+        debitur: {
+          select: {
+            nama: true,
+            alamat: true,
+            telepon: true,
+            tglJt: true,
+            jenisMargin: true,
+            ao: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return c.json(list);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// POST /surat - Buat SP1, SP2, atau Somasi Baru
+legalRouter.post('/surat', async (c) => {
+  try {
+    const body = await c.req.json();
+    const {
+      debiturId,
+      jenisSurat, // SP1, SP2, Somasi 1, Somasi 2, Eksekusi Jaminan
+      tanggalSurat,
+      tglJatuhTempo,
+      hal,
+      catatan
+    } = body;
+
+    if (!debiturId || !jenisSurat || !tanggalSurat) {
+      return c.json({ error: 'Debitur, Jenis Surat, dan Tanggal wajib diisi' }, 400);
+    }
+
+    const debitur = await (prisma as any).debitur.findUnique({ where: { id: debiturId } });
+    if (!debitur) {
+      return c.json({ error: 'Debitur tidak ditemukan' }, 404);
+    }
+
+    const user = (c as any).get('user');
+
+    // Generate auto reference number: e.g. SP1/2026/08/001
+    const prefixMap: any = {
+      'SP1': 'SP1',
+      'SP2': 'SP2',
+      'Somasi 1': 'SOM1',
+      'Somasi 2': 'SOM2',
+      'Eksekusi Jaminan': 'EKS'
+    };
+    const prefix = prefixMap[jenisSurat] || 'SUR';
+    const now = new Date(tanggalSurat);
+    const yearStr = now.getFullYear();
+    const monthStr = (now.getMonth() + 1).toString().padStart(2, '0');
+
+    const count = await (prisma as any).suratLegal.count({
+      where: {
+        jenisSurat
+      }
+    });
+
+    const seq = (count + 1).toString().padStart(3, '0');
+    const nomorSurat = `${prefix}/${yearStr}/${monthStr}/${seq}`;
+
+    const newSurat = await (prisma as any).suratLegal.create({
+      data: {
+        nomorSurat,
+        jenisSurat,
+        debiturId: debitur.id,
+        namaDebitur: debitur.nama,
+        tanggalSurat: new Date(tanggalSurat),
+        tglJatuhTempo: tglJatuhTempo ? new Date(tglJatuhTempo) : null,
+        hal: hal || `Surat Peringatan / Somasi atas Tunggakan Pembiayaan ${debitur.jenisMargin}`,
+        totalTunggakan: debitur.totalTunggakan,
+        tPokok: debitur.tPokok,
+        tMargin: debitur.tMargin,
+        bakiDebet: debitur.bakiDebet,
+        status: 'Diterbitkan',
+        petugas: user.nama,
+        catatan
+      }
+    });
+
+    await logAudit(c, 'create_surat_legal', 'surat_legal', newSurat.id, null, newSurat);
+
+    return c.json(newSurat, 201);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// GET /surat/:id - Detail Surat Legal
+legalRouter.get('/surat/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const surat = await (prisma as any).suratLegal.findUnique({
+      where: { id },
+      include: { debitur: true }
+    });
+
+    if (!surat) {
+      return c.json({ error: 'Surat tidak ditemukan' }, 404);
+    }
+
+    return c.json(surat);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// PUT /surat/:id - Update Status / Catatan Surat Legal
+legalRouter.put('/surat/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const existing = await (prisma as any).suratLegal.findUnique({ where: { id } });
+    if (!existing) {
+      return c.json({ error: 'Surat tidak ditemukan' }, 404);
+    }
+
+    const body = await c.req.json();
+    const { status, penerima, tglDiterima, catatan, hal, tglJatuhTempo } = body;
+
+    const updated = await (prisma as any).suratLegal.update({
+      where: { id },
+      data: {
+        status: status || existing.status,
+        penerima: penerima !== undefined ? penerima : existing.penerima,
+        tglDiterima: tglDiterima !== undefined ? (tglDiterima ? new Date(tglDiterima) : null) : existing.tglDiterima,
+        catatan: catatan !== undefined ? catatan : existing.catatan,
+        hal: hal || existing.hal,
+        tglJatuhTempo: tglJatuhTempo !== undefined ? (tglJatuhTempo ? new Date(tglJatuhTempo) : null) : existing.tglJatuhTempo
+      }
+    });
+
+    await logAudit(c, 'update_surat_legal', 'surat_legal', id, existing, updated);
+
+    return c.json(updated);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// DELETE /surat/:id - Hapus Surat Legal
+legalRouter.delete('/surat/:id', roleMiddleware(['admin', 'legal', 'kabid_p3', 'staff_p3', 'desk_call']), async (c) => {
+  try {
+    const id = c.req.param('id') || '';
+    const surat = await (prisma as any).suratLegal.findUnique({ where: { id } });
+    if (!surat) {
+      return c.json({ error: 'Surat tidak ditemukan' }, 404);
+    }
+
+    await (prisma as any).suratLegal.delete({ where: { id } });
+    await logAudit(c, 'delete_surat_legal', 'surat_legal', id, surat);
+
+    return c.json({ message: 'Surat berhasil dihapus' });
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }

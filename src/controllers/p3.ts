@@ -6,12 +6,19 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 // Sharp import with a fallback in case sharp is not compiled or fails on Node 17
-let sharp: any = null;
-try {
-  const sharpModule = await import('sharp');
-  sharp = sharpModule.default || sharpModule;
-} catch (e) {
-  console.warn('Sharp module not loaded, falling back to direct write:', e);
+let sharpInstance: any = null;
+let sharpLoaded = false;
+
+async function getSharp() {
+  if (sharpLoaded) return sharpInstance;
+  try {
+    const sharpModule = await import('sharp');
+    sharpInstance = sharpModule.default || sharpModule;
+  } catch (e) {
+    console.warn('Sharp module not loaded, falling back to direct write:', e);
+  }
+  sharpLoaded = true;
+  return sharpInstance;
 }
 
 export const p3Router = new Hono();
@@ -273,7 +280,7 @@ p3Router.put('/jadwal/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { status, nominalRealisasi, hasil, catatan, clientUpdatedAt } = body;
+    const { status, nominalRealisasi, hasil, catatan, clientUpdatedAt, checkInLat, checkInLng, checkInAddress } = body;
 
     const existing = await prisma.jadwalPenagihan.findUnique({ where: { id } });
     if (!existing) {
@@ -297,7 +304,11 @@ p3Router.put('/jadwal/:id', async (c) => {
         status: status || existing.status,
         nominalRealisasi: nominalRealisasi !== undefined ? parseFloat(nominalRealisasi) : existing.nominalRealisasi,
         hasil: hasil !== undefined ? hasil : existing.hasil,
-        catatan: catatan !== undefined ? catatan : existing.catatan
+        catatan: catatan !== undefined ? catatan : existing.catatan,
+        checkInLat: checkInLat ? parseFloat(checkInLat) : existing.checkInLat,
+        checkInLng: checkInLng ? parseFloat(checkInLng) : existing.checkInLng,
+        checkInAddress: checkInAddress || existing.checkInAddress,
+        checkInTime: checkInLat ? new Date() : existing.checkInTime
       }
     });
 
@@ -373,6 +384,7 @@ p3Router.post('/jadwal/:id/foto', async (c) => {
         const webpRelativePath = `/public/uploads/p3/${fileName}`;
 
         // Attempt compress & resize with Sharp, fallback to raw write if sharp is unavailable
+        const sharp = await getSharp();
         if (sharp) {
           await sharp(buffer)
             .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
@@ -388,7 +400,10 @@ p3Router.post('/jadwal/:id/foto', async (c) => {
           data: {
             jadwalId: id,
             filePath: webpRelativePath,
-            uploadedBy: user.id
+            uploadedBy: user.id,
+            latitude: body.latitude ? parseFloat(String(body.latitude)) : null,
+            longitude: body.longitude ? parseFloat(String(body.longitude)) : null,
+            gpsAddress: body.gpsAddress ? String(body.gpsAddress) : null
           }
         });
 

@@ -56,13 +56,14 @@ notificationsRouter.get('/', async (c) => {
       }
     }
 
-    // 3. Janji bayar jatuh tempo (desk_call, admin)
-    if (role === 'desk_call' || role === 'admin') {
-      // Find range: H+0 to H+3 (today and last 3 days)
+    // 3. Janji bayar jatuh tempo (H-1 Pengingat Otomatis PTP & H+0 / Overdue)
+    // 3. Janji bayar jatuh tempo (H-1 Pengingat Otomatis PTP & H+0 / Overdue)
+    if (role === 'desk_call' || role === 'admin' || role === 'staff_p3' || role === 'kabid_p3') {
       const startDate = new Date(today);
-      startDate.setDate(today.getDate() - 3); // 3 days ago
+      startDate.setDate(today.getDate() - 5); // 5 days ago
       
-      const endDate = new Date(today); // today
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + 1); // Tomorrow (H-1)
 
       const callsWithJanji = await prisma.deskCall.findMany({
         where: {
@@ -72,29 +73,65 @@ notificationsRouter.get('/', async (c) => {
             lte: endDate
           }
         },
-        orderBy: { tanggalJanjiBayar: 'desc' }
+        include: { debitur: true },
+        orderBy: { tanggalJanjiBayar: 'asc' }
       });
 
-      // Filter: only show if no newer desk call exists for this debitur after the call date
       for (const call of callsWithJanji) {
         if (!call.tanggalJanjiBayar) continue;
 
-        const newerCallCount = await prisma.deskCall.count({
+        // Check if debitur has paid after promise call date
+        const paidAfterCount = await prisma.pembayaran.count({
           where: {
             debiturId: call.debiturId,
-            tanggal: { gt: call.tanggal }
+            tanggal: { gte: call.tanggal }
           }
         });
 
-        // If no newer call exists, it means the promise is unresolved and needs follow up!
-        if (newerCallCount === 0) {
-          const promiseDateStr = call.tanggalJanjiBayar.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        // Skip if debitur has already paid
+        if (paidAfterCount > 0) continue;
+
+        // Count follow-up Desk Calls recorded after this promise call date
+        const followUpCount = await prisma.deskCall.count({
+          where: {
+            debiturId: call.debiturId,
+            id: { not: call.id },
+            tanggal: { gte: call.tanggal }
+          }
+        });
+
+        const promiseDateStr = call.tanggalJanjiBayar.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        const isTomorrow = call.tanggalJanjiBayar.toISOString().substring(0, 10) === new Date(today.getTime() + 86400000).toISOString().substring(0, 10);
+        
+        const nominalText = call.nominalJanji ? `Rp ${new Intl.NumberFormat('id-ID').format(call.nominalJanji)}` : 'sesuai kesepakatan';
+        const maxFollowUp = 3;
+        const cappedFollowUp = Math.min(followUpCount, maxFollowUp);
+
+        if (isTomorrow) {
+          notifications.push({
+            id: `promise_h1_${call.id}`,
+            type: 'warning',
+            title: 'Pengingat H-1 Janji Bayar',
+            message: `Nasabah ${call.namaDebitur} dijadwalkan bayar BESOK (${promiseDateStr}) sebesar ${nominalText}`,
+            link: `#/debitur?q=${call.debiturId}`,
+            debiturId: call.debiturId,
+            debiturNama: call.namaDebitur,
+            followUpCount: cappedFollowUp,
+            maxFollowUp,
+            canFollowUp: followUpCount < maxFollowUp
+          });
+        } else {
           notifications.push({
             id: `promise_${call.id}`,
             type: 'danger',
             title: 'Janji Bayar Jatuh Tempo',
-            message: `Nasabah ${call.namaDebitur} menjanjikan bayar pada ${promiseDateStr}`,
-            link: `#/debitur?q=${call.debiturId}`
+            message: `Nasabah ${call.namaDebitur} menjanjikan bayar (${promiseDateStr}) sebesar ${nominalText}`,
+            link: `#/debitur?q=${call.debiturId}`,
+            debiturId: call.debiturId,
+            debiturNama: call.namaDebitur,
+            followUpCount: cappedFollowUp,
+            maxFollowUp,
+            canFollowUp: followUpCount < maxFollowUp
           });
         }
       }

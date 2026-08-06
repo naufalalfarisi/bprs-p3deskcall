@@ -23,7 +23,11 @@ import { userRouter } from './controllers/user.js';
 const app = new Hono();
 
 // Middlewares
-app.use('*', cors());
+app.use('*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization']
+}));
 app.use('*', async (c, next) => {
   c.header('X-Frame-Options', 'SAMEORIGIN');
   c.header('X-Content-Type-Options', 'nosniff');
@@ -32,6 +36,12 @@ app.use('*', async (c, next) => {
   await next();
 });
 app.use('/public/*', serveStatic({ root: '.' }));
+app.use('/icons/*', serveStatic({ root: './public' }));
+app.use('/uploads/*', serveStatic({ root: './public' }));
+app.get('/manifest.json', serveStatic({ path: './public/manifest.json' }));
+app.get('/sw.js', serveStatic({ path: './public/sw.js' }));
+app.get('/apple-touch-icon.png', serveStatic({ path: './public/icons/apple-touch-icon.png' }));
+app.get('/favicon.ico', serveStatic({ path: './public/icons/pwa-192x192.png' }));
 
 // Default static redirect or index
 app.get('/', (c) => c.redirect('/public/index.html'));
@@ -60,5 +70,7 @@ serve({
   fetch: app.fetch,
   port: config.port,
   hostname: '0.0.0.0'
+}, (info) => {
+  console.log(`BPRS NPF Dashboard server listening on http://localhost:${info.port}`);
 });
 export default app;

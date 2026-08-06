@@ -2,11 +2,21 @@
 <html lang="id" data-theme="light">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <title>BPRS Mitra Harmoni Yogyakarta — Sistem Informasi Penagihan Terpadu AO, P3 &amp; Desk Call</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/pwa-192x192.png" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="theme-color" content="#0F766E" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="BPRS Penagihan" />
 <script id="tailwind-config">
       tailwind.config = {
         darkMode: "class",
@@ -256,11 +266,11 @@
   <!-- Institutional Top Header -->
   <header class="w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-6 py-3.5 flex justify-between items-center max-w-[1440px] mx-auto flex-shrink-0">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-[#0F766E] text-white flex items-center justify-center font-bold text-sm shadow-md tracking-wider">
+      <div class="w-9 h-9 rounded-xl bg-[#0F766E] text-white flex items-center justify-center font-bold text-sm shadow-md tracking-wider auth-logo">
         BM
       </div>
       <div>
-        <div class="font-extrabold text-sm text-slate-900 tracking-tight leading-none">PT BPRS MITRA HARMONI YOGYAKARTA</div>
+        <div class="font-extrabold text-sm text-slate-900 tracking-tight leading-none" id="auth-header-pt-name">PT BPRS MITRA HARMONI YOGYAKARTA</div>
         <div class="text-[10px] font-bold text-[#0F766E] tracking-wider uppercase mt-0.5">Sistem Informasi Penagihan Terpadu AO, P3 &amp; Desk Call</div>
       </div>
     </div>
@@ -293,7 +303,7 @@
             Sistem Informasi Penagihan Terpadu
           </h2>
           <p class="text-xs md:text-sm text-teal-100/90 leading-relaxed font-medium mb-6">
-            Platform manajemen data penagihan lapangan (AO &amp; P3), monitoring Desk Call, serta pengelolaan berkas legal BPRS Mitra Harmoni Yogyakarta.
+            Platform manajemen data penagihan lapangan (AO &amp; P3), monitoring Desk Call, serta pengelolaan berkas legal <span id="auth-pt-name">PT BPRS Mitra Harmoni Yogyakarta</span>.
           </p>
 
           <!-- Key Highlights -->
@@ -375,7 +385,7 @@
                   <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <span class="material-symbols-outlined text-lg">lock</span>
                   </div>
-                  <input class="w-full pl-10 pr-11 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:ring-4 focus:ring-[#0F766E]/12 transition-all font-medium" id="l-pass" name="password" placeholder="••••••••" required="" type="password" onkeydown="if(event.key==='Enter')handleLogin()"/>
+                  <input class="w-full pl-10 pr-11 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:ring-4 focus:ring-[#0F766E]/12 transition-all font-medium" id="l-pass" name="password" placeholder="••••••••" required="" type="password"/>
                   <button class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600" onclick="togglePw('l-pass')" type="button">
                     <span class="material-symbols-outlined text-lg" id="l-pass-icon">visibility</span>
                   </button>
@@ -402,28 +412,28 @@
           <!-- REGISTER FORM (Side-by-Side 2-Column Grid, Fits Without Scrollbar) -->
           <div id="page-register" style="display:none;">
             <form class="space-y-3" onsubmit="event.preventDefault();handleRegister();">
-              <div class="grid grid-cols-2 gap-2.5">
+              <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-nama">Nama Lengkap</label>
-                  <input id="r-nama" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] font-medium" type="text" placeholder="Sesuai KTP / SK"/>
+                  <label class="form-label" for="r-nama">Nama Lengkap</label>
+                  <input id="r-nama" class="form-input" type="text" placeholder="Sesuai KTP / SK"/>
                 </div>
                 <div>
-                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-user">Username / NIP</label>
-                  <input id="r-user" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] font-medium" type="text" placeholder="Username / NIP"/>
-                </div>
-
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-email">Email Official</label>
-                  <input id="r-email" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] font-medium" type="email" placeholder="email@bprs.co.id"/>
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-ttl">Tanggal Lahir</label>
-                  <input id="r-ttl" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#0F766E] font-medium" type="date"/>
+                  <label class="form-label" for="r-user">Username / NIP</label>
+                  <input id="r-user" class="form-input" type="text" placeholder="Username / NIP"/>
                 </div>
 
                 <div>
-                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-posisi">Jabatan / Peran</label>
-                  <select id="r-posisi" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#0F766E] font-medium">
+                  <label class="form-label" for="r-email">Email Official</label>
+                  <input id="r-email" class="form-input" type="email" placeholder="email@bprs.co.id"/>
+                </div>
+                <div>
+                  <label class="form-label" for="r-ttl">Tanggal Lahir</label>
+                  <input id="r-ttl" class="form-input" type="date"/>
+                </div>
+
+                <div>
+                  <label class="form-label" for="r-posisi">Jabatan / Peran</label>
+                  <select id="r-posisi" class="form-select">
                     <option value="">— Pilih —</option>
                     <option value="staff_p3">Staff P3</option>
                     <option value="desk_call">Staff Desk Call</option>
@@ -432,13 +442,13 @@
                   </select>
                 </div>
                 <div>
-                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-pass">Kata Sandi</label>
-                  <input id="r-pass" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#0F766E] font-medium" type="password" placeholder="Min 8 karakter" oninput="evalStrength(this.value)"/>
+                  <label class="form-label" for="r-pass">Kata Sandi</label>
+                  <input id="r-pass" class="form-input" type="password" placeholder="Min 8 karakter" oninput="evalStrength(this.value)"/>
                 </div>
 
                 <div class="col-span-2">
-                  <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1" for="r-conf">Konfirmasi Kata Sandi</label>
-                  <input id="r-conf" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#0F766E] font-medium" type="password" placeholder="Ulangi Kata Sandi Anda"/>
+                  <label class="form-label" for="r-conf">Konfirmasi Kata Sandi</label>
+                  <input id="r-conf" class="form-input" type="password" placeholder="Ulangi Kata Sandi Anda"/>
                 </div>
               </div>
 
@@ -463,11 +473,11 @@
             <span>Akses Cepat Akun Demo:</span>
           </p>
           <div class="flex flex-wrap gap-1.5">
-            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('admin')">Administrator</button>
-            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('kabid_p3')">Kabid P3</button>
-            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('staff_p3')">Staff P3</button>
-            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('desk_call')">Desk Call</button>
-            <button class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('legal')">Staff Legal</button>
+            <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('admin')">Administrator</button>
+            <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('kabid_p3')">Kabid P3</button>
+            <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('staff_p3')">Staff P3</button>
+            <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('desk_call')">Desk Call</button>
+            <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('legal')">Staff Legal</button>
           </div>
         </div>
 
@@ -478,7 +488,7 @@
 
   <!-- Clean Enterprise Footer -->
   <footer class="w-full py-3.5 px-6 max-w-[1440px] mx-auto border-t border-slate-200/80 bg-white/80 backdrop-blur-md flex flex-col md:flex-row justify-between items-center gap-2 flex-shrink-0 text-slate-500">
-    <div class="text-xs font-semibold text-slate-600">
+    <div class="text-xs font-semibold text-slate-600" id="footer-copy">
       © 2026 PT BPRS Mitra Harmoni Yogyakarta. Hak Cipta Dilindungi.
     </div>
     <div class="flex flex-wrap justify-center gap-6 text-xs font-medium text-slate-500">
@@ -592,12 +602,12 @@
             <input type="password" id="prof-pw-confirm" class="form-input" placeholder="Ulangi password baru" style="width:100%;box-sizing:border-box;"/>
           </div>
         </div>
-        <button class="btn btn-primary btn-block" onclick="changeMyPassword()" style="margin-top:6px;width:100%;padding:11px;font-weight:700;border-radius:10px;">🔒 Perbarui Password Saya</button>
+        <button class="btn btn-primary btn-block" onclick="changeMyPassword()" style="margin-top:6px;width:100%;padding:11px;font-weight:700;border-radius:10px;">Perbarui Password Saya</button>
       </div>
 
       <!-- TAB 3: ADMIN OPTIONS (Admin Only) -->
       <div id="prof-sec-admin" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--sh-sm);">
-        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;">⚙️ Pengaturan Sistem Aplikasi</div>
+        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;">Pengaturan Sistem Aplikasi</div>
         <button class="btn btn-outline btn-block" onclick="closeModal('modal-profile');switchPane('appmgmt')" style="width:100%;padding:10px;margin-bottom:12px;border-radius:10px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Buka Manajemen Aplikasi (Branding, Logo, Favicon)
@@ -611,6 +621,9 @@
       </div>
 
       <div class="divider" style="margin:18px 0 14px;"></div>
+      <button class="btn btn-outline btn-block mb-2" id="pwa-install-btn-profile" onclick="triggerPWAInstall()" style="width:100%;padding:10px;border-radius:10px;font-weight:700;border-color:var(--brand);color:var(--brand);margin-bottom:10px;">
+        📱 Install Aplikasi ke HP / Desktop
+      </button>
       <button class="btn btn-danger-out btn-block" onclick="doLogout()" style="width:100%;padding:10px;border-radius:10px;font-weight:700;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Keluar dari Sesi Aplikasi
@@ -655,17 +668,85 @@
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Status Kontak</label><select id="dcf-status" class="form-select"><option>Terhubung</option><option>Tidak Diangkat</option><option>Sibuk</option><option>Tidak Aktif</option><option>Salah Nomor</option></select></div>
-        <div class="form-group"><label class="form-label">Prioritas</label><select id="dcf-prioritas" class="form-select"><option>Kritis</option><option>Tinggi</option><option selected>Sedang</option><option>Rendah</option></select></div>
+        <div class="form-group"><label class="form-label">Durasi Panggilan</label><input id="dcf-durasi" class="form-input mono" type="text" placeholder="Cth: 01:30 atau 45 dtk"/></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Tindak Lanjut</label><select id="dcf-tindak" class="form-select"><option value="">— Pilih —</option><option>Janji Bayar</option><option>Negosiasi</option><option>Restrukturisasi</option><option>Eskalasi</option><option>Tidak Ada</option></select></div>
-        <div class="form-group"><label class="form-label">Nominal Janji (Rp)</label><input id="dcf-nominal" class="form-input" type="number" placeholder="0" min="0"/></div>
+        <div class="form-group"><label class="form-label">Prioritas</label><select id="dcf-prioritas" class="form-select"><option>Kritis</option><option>Tinggi</option><option selected>Sedang</option><option>Rendah</option></select></div>
+        <div class="form-group"><label class="form-label">Tindak Lanjut</label><select id="dcf-tindak" class="form-select"><option value="">— Pilih —</option><option>Sudah Bayar</option><option>Janji Bayar</option><option>Negosiasi</option><option>Restrukturisasi</option><option>Eskalasi</option><option>Tidak Ada</option></select></div>
       </div>
-      <div class="form-group"><label class="form-label">Tanggal Janji Bayar</label><input id="dcf-tgl-janji" class="form-input" type="date"/></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nominal Janji (Rp)</label><input id="dcf-nominal" class="form-input mono" type="text" inputmode="numeric" placeholder="0" oninput="formatCurrencyInput(this)"/></div>
+          <div class="form-group"><label class="form-label">Tanggal Janji Bayar</label><input id="dcf-tgl-janji" class="form-input" type="date"/></div>
+        </div>
       <div class="form-group"><label class="form-label">Baki Debet saat Call</label><input id="dcf-baki" class="form-input mono" type="text" readonly style="background:var(--bg);color:var(--text-2);"/><div style="font-size:10.5px;color:var(--text-3);margin-top:4px;">Snapshot otomatis — tidak berubah setelah disimpan</div></div>
       <div class="form-group"><label class="form-label">Catatan / Hasil Komunikasi</label><textarea id="dcf-catatan" class="form-input" rows="3" placeholder="Catatan hasil panggilan..." style="resize:vertical;"></textarea></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-dc-form')">Batal</button><button class="btn btn-primary btn-sm" onclick="saveDC()">Simpan</button></div>
+  </div>
+</div>
+
+<!-- CLICK-TO-DIAL & CALL TRACKER MODAL -->
+<div class="modal-overlay" id="modal-click-dialer">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-hdr">
+      <div class="modal-title" id="dialer-title">📞 Panggil Telepon &amp; Log Panggilan</div>
+      <button class="modal-close" onclick="closeModal('modal-click-dialer');stopCallTimer();">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:24px 20px;text-align:center;">
+      <div style="font-size:16px;font-weight:800;color:var(--text);" id="dialer-debitur-nama">-</div>
+      <div class="mono" style="font-size:14px;color:var(--text-3);margin-top:2px;" id="dialer-debitur-phone">-</div>
+      
+      <!-- Live Timer Container -->
+      <div style="margin:20px 0;padding:16px;background:var(--bg-hover);border:1.5px solid var(--border);border-radius:16px;">
+        <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Durasi Panggilan Terlacak</div>
+        <div class="mono" style="font-size:36px;font-weight:800;color:var(--brand);" id="dialer-timer">00:00</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:4px;" id="dialer-status-text">Siap melakukan panggilan...</div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button type="button" class="btn btn-sm" id="dialer-start-btn" style="background:#2563EB;color:#fff;font-size:15px;padding:12px;border-radius:9999px;" onclick="startCallDialerProcess()">
+          📞 Mulai Telepon &amp; Jalan Timer
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" id="dialer-end-btn" style="display:none;font-size:15px;padding:12px;border-radius:9999px;" onclick="endCallDialerProcess()">
+          🔴 Akhiri &amp; Catat Ke Desk Call
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INTERACTIVE MAP & ROUTE MODAL -->
+<div class="modal-overlay" id="modal-map-view">
+  <div class="modal-box" style="max-width:860px;width:95%;">
+    <div class="modal-hdr">
+      <div class="modal-title">🗺️ Peta Rute Kunjungan Debitur P3 (Geo-Tagging)</div>
+      <button class="modal-close" onclick="closeModal('modal-map-view')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select class="form-select form-select-auto" id="map-filter-kol" onchange="renderMapMarkers()" style="font-size:12.5px;">
+            <option value="NPF" selected>Hanya NPF / Bermasalah (KOL 3-5)</option>
+            <option value="Semua">Semua Kolektibilitas (KOL 1-5)</option>
+            <option value="5">KOL 5 (Macet)</option>
+            <option value="4">KOL 4 (Diragukan)</option>
+            <option value="3">KOL 3 (Kurang Lancar)</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="locateUserPosition()" style="font-size:12.5px;">
+            📍 Lokasi Saya (Check-in)
+          </button>
+        </div>
+        <div style="font-size:12px;color:var(--text-3);" id="map-info-text">Memuat peta...</div>
+      </div>
+
+      <!-- Map Container -->
+      <div id="p3-map-container" style="height:460px;width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:var(--sh-md);"></div>
+    </div>
   </div>
 </div>
 
@@ -700,7 +781,7 @@
           <select id="p3f-metode" class="form-select"><option>Kunjungan Langsung</option><option>Undangan ke Kantor</option><option>Mediasi</option></select>
         </div>
       </div>
-      <div class="form-group"><label class="form-label">Target Tagih (Rp)</label><input id="p3f-target" class="form-input" type="number" placeholder="0" min="0"/></div>
+      <div class="form-group"><label class="form-label">Target Tagih (Rp)</label><input id="p3f-target" class="form-input mono" type="text" inputmode="numeric" placeholder="0" oninput="formatCurrencyInput(this)"/></div>
       <div class="form-group"><label class="form-label">Catatan</label><textarea id="p3f-catatan" class="form-input" rows="3" placeholder="Catatan opsional..." style="resize:vertical;"></textarea></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-p3-form')">Batal</button><button class="btn btn-primary btn-sm" onclick="saveP3Form()">Simpan Jadwal</button></div>
@@ -725,6 +806,211 @@
   <div class="modal-box" style="max-width:580px;">
     <div class="modal-hdr"><div class="modal-title" id="dcd-title">Detail Desk Call</div><button class="modal-close" onclick="closeModal('modal-dc-detail')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body" id="dcd-body"></div>
+  </div>
+</div>
+
+<!-- DC EDIT MODAL -->
+<div class="modal-overlay" id="modal-dc-edit">
+  <div class="modal-box" style="max-width:540px;">
+    <div class="modal-hdr">
+      <div class="modal-title" id="dce-title">Edit Detail Desk Call</div>
+      <button class="modal-close" onclick="closeModal('modal-dc-edit')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="form-dc-edit" onsubmit="submitDCEdit(event)">
+        <input type="hidden" id="dce-id"/>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="form-lbl">Tanggal Call</label>
+            <input type="date" id="dce-tanggal" class="form-input" required/>
+          </div>
+          <div>
+            <label class="form-lbl">Waktu Call</label>
+            <input type="text" id="dce-waktu" class="form-input" placeholder="HH:mm" required/>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="form-lbl">Jenis Kontak</label>
+            <select id="dce-jenis" class="form-select">
+              <option value="Telepon">Telepon</option>
+              <option value="WhatsApp">WhatsApp</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-lbl">Status Kontak</label>
+            <select id="dce-status" class="form-select">
+              <option value="Terhubung">Terhubung</option>
+              <option value="Tersambung Tidak Diangkat">Tersambung Tidak Diangkat</option>
+              <option value="Tidak Diangkat">Tidak Diangkat</option>
+              <option value="Sibuk">Sibuk</option>
+              <option value="Tidak Aktif">Tidak Aktif</option>
+              <option value="Salah Nomor">Salah Nomor</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="form-lbl">Tindak Lanjut</label>
+            <select id="dce-tindak" class="form-select">
+              <option value="Tidak Ada">Tidak Ada</option>
+              <option value="Sudah Bayar">Sudah Bayar</option>
+              <option value="Janji Bayar">Janji Bayar (PTP)</option>
+              <option value="Negosiasi">Negosiasi</option>
+              <option value="Restrukturisasi">Restrukturisasi</option>
+              <option value="Eskalasi">Eskalasi P3 / Legal</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-lbl">Prioritas</label>
+            <select id="dce-prioritas" class="form-select">
+              <option value="Rendah">Rendah</option>
+              <option value="Sedang">Sedang</option>
+              <option value="Tinggi">Tinggi</option>
+              <option value="Kritis">Kritis</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="form-lbl">Nominal Janji Bayar (Rp)</label>
+            <input type="text" id="dce-nominal" class="form-input mono" inputmode="numeric" placeholder="0" oninput="formatCurrencyInput(this)"/>
+          </div>
+          <div>
+            <label class="form-lbl">Tenggat Janji Bayar</label>
+            <input type="date" id="dce-tgljanji" class="form-input"/>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-lbl">Hasil Komunikasi & Catatan</label>
+          <textarea id="dce-catatan" class="form-textarea" rows="3" placeholder="Catatan hasil percakapan dengan nasabah..."></textarea>
+        </div>
+        <div class="modal-ftr">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-dc-edit')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- SURAT FORM MODAL -->
+<div class="modal-overlay" id="modal-surat-form">
+  <div class="modal-box" style="max-width:620px;">
+    <div class="modal-hdr">
+      <div class="modal-title" id="suratf-title">Buat Surat Peringatan / Somasi</div>
+      <button type="button" class="modal-close" onclick="closeModal('modal-surat-form')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="form-surat" onsubmit="submitSuratForm(event)" style="display:flex;flex-direction:column;gap:16px;">
+        
+        <!-- 1. Cari & Pilih Debitur (Autocomplete Live Suggestions) -->
+        <div class="form-group mb-0" style="position:relative;">
+          <label class="form-label">Cari &amp; Pilih Debitur <span style="color:var(--danger);">*</span></label>
+          <input type="text" id="suratf-debitur-input" class="form-input" placeholder="Ketik nama atau no. rekening debitur..." oninput="suratDebiturAutocomplete(this.value)" autocomplete="off" required />
+          <input type="hidden" id="suratf-debitur-id" />
+          <div id="suratf-ac" style="position:absolute;left:0;right:0;top:100%;z-index:60;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--sh-lg);overflow:hidden;display:none;max-height:200px;overflow-y:auto;"></div>
+        </div>
+
+        <!-- Debitur Summary Card -->
+        <div id="suratf-info" class="hidden" style="background:var(--brand-light);border:1px solid var(--brand-mid);border-radius:12px;padding:12px 16px;">
+          <div style="font-weight:800;font-size:13.5px;color:var(--brand-dark);margin-bottom:6px;" id="suratf-nama">-</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;color:var(--text-2);">
+            <div>Total Tunggakan: <strong class="mono" style="color:var(--danger);" id="suratf-tunggakan">Rp 0</strong></div>
+            <div>Baki Debet: <strong class="mono" style="color:var(--brand);" id="suratf-baki">Rp 0</strong></div>
+          </div>
+        </div>
+
+        <!-- 2. Row 1: Jenis Surat & Perihal Surat (Symmetrical 2-Column Grid) -->
+        <div class="form-row" style="grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="form-group mb-0">
+            <label class="form-label">Jenis Surat <span style="color:var(--danger);">*</span></label>
+            <select id="suratf-jenis" class="form-select" required>
+              <option value="SP1">Surat Peringatan 1 (SP1)</option>
+              <option value="SP2">Surat Peringatan 2 (SP2)</option>
+              <option value="Somasi 1">Somasi Pertama</option>
+              <option value="Somasi 2">Somasi Kedua / Terakhir</option>
+              <option value="Eksekusi Jaminan">Pemberitahuan Eksekusi Jaminan</option>
+            </select>
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Hal / Perihal Surat</label>
+            <input type="text" id="suratf-hal" class="form-input" placeholder="Surat Peringatan atas Tunggakan..."/>
+          </div>
+        </div>
+
+        <!-- 3. Row 2: Tanggal Surat & Batas Waktu Tanggapan (Symmetrical 2-Column Grid) -->
+        <div class="form-row" style="grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="form-group mb-0">
+            <label class="form-label">Tanggal Surat <span style="color:var(--danger);">*</span></label>
+            <input type="date" id="suratf-tanggal" class="form-input" required/>
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Batas Waktu Tanggapan (Jt. Tempo)</label>
+            <input type="date" id="suratf-tgljt" class="form-input"/>
+          </div>
+        </div>
+
+        <!-- 4. Catatan Tambahan -->
+        <div class="form-group mb-0">
+          <label class="form-label">Catatan Tambahan / Instruksi Khusus</label>
+          <textarea id="suratf-catatan" class="form-textarea" rows="3" placeholder="Catatan internal atau instruksi pengiriman..."></textarea>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="modal-footer" style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-surat-form')">Batal</button>
+          <button type="submit" class="btn btn-primary">Terbitkan Surat</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- SURAT STATUS MODAL -->
+<div class="modal-overlay" id="modal-surat-status">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-hdr">
+      <div class="modal-title">Update Status Pengiriman Surat</div>
+      <button class="modal-close" onclick="closeModal('modal-surat-status')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="form-surat-status" onsubmit="submitSuratStatus(event)">
+        <input type="hidden" id="surats-id"/>
+        <div class="mb-3">
+          <label class="form-lbl">Status Pengiriman</label>
+          <select id="surats-status" class="form-select">
+            <option value="Diterbitkan">Diterbitkan</option>
+            <option value="Terkirim">Terkirim (Dalam Pengiriman / Kurir)</option>
+            <option value="Diterima">Diterima oleh Debitur / Keluarga</option>
+            <option value="Selesai">Selesai (Nasabah Merespons / Lunas)</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-lbl">Nama Penerima Surat</label>
+          <input type="text" id="surats-penerima" class="form-input" placeholder="Misal: Debitur Sendiri, Istri, Anak"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-lbl">Tanggal Diterima</label>
+          <input type="date" id="surats-tglditerima" class="form-input"/>
+        </div>
+        <div class="mb-4">
+          <label class="form-lbl">Catatan Perkembangan</label>
+          <textarea id="surats-catatan" class="form-textarea" rows="2" placeholder="Tanggapan debitur atau catatan pengiriman..."></textarea>
+        </div>
+        <div class="modal-ftr">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-surat-status')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Status</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -788,7 +1074,7 @@
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Tanggal Bayar</label><input id="payf-tanggal" class="form-input" type="date"/></div>
-        <div class="form-group"><label class="form-label">Jumlah Bayar (Rp)</label><input id="payf-jumlah" class="form-input" type="number" placeholder="0" min="0"/></div>
+        <div class="form-group"><label class="form-label">Jumlah Bayar (Rp)</label><input id="payf-jumlah" class="form-input mono" type="text" inputmode="numeric" placeholder="0" oninput="formatCurrencyInput(this)"/></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">KOL</label>
@@ -968,10 +1254,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="notif-badge" id="notif-cnt" style="display:none;">0</span>
       </button>
-      <button class="hdr-icon" onclick="toggleTheme()">
-        <svg id="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <svg id="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
+
       <button class="user-chip" onclick="openProfileModal()">
         <span class="user-av" id="user-av">AD</span>
         <span class="user-chip-info"><span class="user-chip-name" id="user-cname">Admin</span><span class="user-chip-role" id="user-crole">Administrator</span></span>
@@ -1003,17 +1286,45 @@
 
         <div class="tab-pane" id="pane-deskcall">
           <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Monitoring Desk Call</div><div class="page-sub">Pencatatan produktivitas panggilan dan pelacakan janji bayar nasabah untuk optimalisasi penagihan harian.</div></div><div id="dc-hdr-actions"></div></div></div>
-          <div class="dc-tabs"><div class="dc-tab active" id="dctab-harian" onclick="switchDCTab('harian')">📋 Laporan Harian</div><div class="dc-tab" id="dctab-bulanan" onclick="switchDCTab('bulanan')">📅 Laporan Bulanan</div><div class="dc-tab" id="dctab-insight" onclick="switchDCTab('insight')">📊 Customer Insight</div></div>
+          <div class="dc-tabs">
+            <div class="dc-tab active" id="dctab-harian" onclick="switchDCTab('harian')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <line x1="10" y1="9" x2="8" y2="9"/>
+              </svg>
+              <span>Laporan Harian</span>
+            </div>
+            <div class="dc-tab" id="dctab-bulanan" onclick="switchDCTab('bulanan')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span>Laporan Bulanan</span>
+            </div>
+            <div class="dc-tab" id="dctab-insight" onclick="switchDCTab('insight')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              <span>Customer Insight</span>
+            </div>
+          </div>
           <div id="dc-content"></div>
         </div>
 
         <div class="tab-pane" id="pane-p3">
-          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Penagihan Lapangan (P3)</div><div class="page-sub">Pengelolaan jadwal kunjungan tim lapangan, target penagihan, dan dokumentasi foto bukti kunjungan.</div></div><button class="btn btn-primary btn-sm" onclick="openP3Form()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Buat Jadwal P3 Baru</button></div></div>
+          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Penagihan Lapangan (P3)</div><div class="page-sub">Pengelolaan jadwal kunjungan tim lapangan, target penagihan, dan dokumentasi foto bukti kunjungan.</div></div><button class="btn btn-primary btn-sm" onclick="openP3Form()" style="display:inline-flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Buat Jadwal P3 Baru</span></button></div></div>
           <div id="p3-content"></div>
         </div>
 
         <div class="tab-pane" id="pane-legal">
-          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title">Manajemen Berkas Legal &amp; Agunan</div><div class="page-sub">Pengelolaan dokumen hukum, kepemilikan agunan, notaris, dan kelengkapan berkas pembiayaan.</div></div><button class="btn btn-primary btn-sm" onclick="openLegalForm()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Berkas</button></div></div>
+          <div class="page-hd"><div class="page-hd-row"><div><div class="page-title" id="legal-page-title">Manajemen Berkas Legal &amp; Agunan</div><div class="page-sub" id="legal-page-sub">Pengelolaan dokumen hukum, kepemilikan agunan, notaris, dan kelengkapan berkas pembiayaan.</div></div><button class="btn btn-primary btn-sm" id="legal-main-btn" onclick="openLegalForm()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span id="legal-main-btn-text">Tambah Berkas</span></button></div></div>
           <div id="legal-content"></div>
         </div>
 
@@ -1029,7 +1340,7 @@
 
         <div class="tab-pane" id="pane-settings">
           <div class="page-hd">
-            <div class="page-title">⚙️ Pengaturan Aplikasi &amp; Sistem</div>
+            <div class="page-title">Pengaturan Aplikasi &amp; Sistem</div>
             <div class="page-sub">Pusat konfigurasi pengguna, branding aplikasi, mode tampilan, serta pengintegrasian data Core Banking System (CBS).</div>
           </div>
 
@@ -1072,7 +1383,29 @@
   </div>
 </div>
 
-<script src="/public/js/app.js?v=1784728400"></script>
+<script src="/public/js/app.js?v=1784734000"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        console.log('Service Worker PWA terdaftar:', reg.scope);
+      }).catch((err) => {
+        console.warn('Service Worker PWA error:', err);
+      });
+    });
+  }
+
+  // Disable multi-touch gesture zooming and double-tap zooming on mobile/PWA
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches && e.touches.length > 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('gesturechange', (e) => e.preventDefault());
+  document.addEventListener('gestureend', (e) => e.preventDefault());
+</script>
 </body>
 </html>
 

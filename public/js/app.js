@@ -31,12 +31,20 @@ async function apiCall(endpoint, options = {}) {
     delete headers['Content-Type'];
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
+  let url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
+  if (!endpoint.startsWith('http')) {
+    if (window.location.protocol === 'file:') {
+      url = `http://localhost:3001/api${endpoint}`;
+    } else if (window.location.port && window.location.port !== '3001') {
+      const host = window.location.hostname || 'localhost';
+      url = `http://${host}:3001/api${endpoint}`;
+    }
+  }
 
   try {
     const res = await fetch(url, { ...options, headers });
 
-    if (res.status === 401) {
+    if (res.status === 401 && !endpoint.includes('/auth/login')) {
       doLogout(false);
       showToast('Sesi Anda berakhir, silakan login kembali', 'warning');
       return null;
@@ -55,7 +63,9 @@ async function apiCall(endpoint, options = {}) {
     }
     return data;
   } catch (err) {
-    showToast(err.message, 'danger');
+    if (!endpoint.includes('/auth/login')) {
+      showToast(err.message, 'danger');
+    }
     console.error('API Error:', err);
     throw err;
   }
@@ -83,11 +93,55 @@ function fmtM(num) {
   return formatRupiah(val);
 }
 
+// Live thousand separator formatter for currency input fields (e.g. 3,000,000)
+function formatCurrencyInput(inputEl) {
+  if (!inputEl) return;
+  let val = inputEl.value;
+  let rawDigits = val.replace(/\D/g, '');
+  if (!rawDigits) {
+    inputEl.value = '';
+    return;
+  }
+  let formatted = parseInt(rawDigits, 10).toLocaleString('en-US');
+  inputEl.value = formatted;
+}
+
+// Parse numeric integer from formatted currency input string
+function parseCurrencyInput(valueOrEl) {
+  if (!valueOrEl) return 0;
+  const str = typeof valueOrEl === 'string' ? valueOrEl : (valueOrEl.value || '');
+  const digits = str.replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) : 0;
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatJatuhTempoBulanIni(tglJtVal, refDateStr = null) {
+  if (!tglJtVal) return '-';
+  const refDate = refDateStr ? new Date(refDateStr) : new Date();
+  const validRef = isNaN(refDate.getTime()) ? new Date() : refDate;
+
+  let dayNum = null;
+  const d = new Date(tglJtVal);
+  if (!isNaN(d.getTime())) {
+    dayNum = d.getDate();
+  } else {
+    const parsed = parseInt(tglJtVal, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= 31) {
+      dayNum = parsed;
+    }
+  }
+
+  if (dayNum) {
+    const jtDate = new Date(validRef.getFullYear(), validRef.getMonth(), dayNum);
+    return formatDate(jtDate);
+  }
+  return formatDate(tglJtVal);
 }
 
 function formatDateTime(dateStr) {
@@ -263,7 +317,12 @@ function evalStrength(pwd) {
 }
 
 // Authentication Actions
+let isLoggingIn = false;
+
 async function handleLogin(force = false) {
+  if (isLoggingIn && !force) return;
+  isLoggingIn = true;
+
   const uInput = document.getElementById('l-user');
   const pInput = document.getElementById('l-pass');
   const errEl = document.getElementById('l-err');
@@ -277,6 +336,7 @@ async function handleLogin(force = false) {
       errEl.classList.remove('hidden');
       errEl.style.display = 'block';
     }
+    isLoggingIn = false;
     return;
   }
 
@@ -294,6 +354,7 @@ async function handleLogin(force = false) {
 
     if (res.status === 'session_active') {
       openModal('modal-device');
+      isLoggingIn = false;
       return;
     }
 
@@ -315,6 +376,8 @@ async function handleLogin(force = false) {
       errEl.classList.remove('hidden');
       errEl.style.display = 'block';
     }
+  } finally {
+    isLoggingIn = false;
   }
 }
 
@@ -365,7 +428,8 @@ async function handleRegister() {
   }
 }
 
-function demoLogin(role) {
+async function demoLogin(role) {
+  if (typeof switchAuthTab === 'function') switchAuthTab('login');
   const uInput = document.getElementById('l-user');
   const pInput = document.getElementById('l-pass');
 
@@ -376,8 +440,14 @@ function demoLogin(role) {
     if (uInput) uInput.value = role;
     if (pInput) pInput.value = 'password123';
   }
-  handleLogin(true);
+  isLoggingIn = false;
+  await handleLogin(true);
 }
+
+window.demoLogin = demoLogin;
+window.handleLogin = handleLogin;
+window.forceLogin = forceLogin;
+window.switchAuthTab = switchAuthTab;
 
 function doLogout(callApi = true) {
   if (callApi && state.refreshToken) {
@@ -691,7 +761,7 @@ function renderNavMenu(role) {
     { id: 'debitur', label: 'Data Debitur', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal'] },
     { id: 'deskcall', label: 'Desk Call', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>', roles: ['admin', 'desk_call'] },
     { id: 'p3', label: 'P3 (Lapangan)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal'] },
-    { id: 'legal', label: 'Legal', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', roles: ['admin', 'kabid_p3', 'legal'] },
+    { id: 'legal', label: 'Dokumen dan Arsip', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', roles: ['admin', 'kabid_p3', 'legal'] },
     { id: 'bayar', label: 'Riwayat Bayar', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal'] },
     { id: 'kpi', label: 'KPI & Scorecard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal'] },
     { id: 'settings', label: 'Pengaturan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>', roles: ['admin'] }
@@ -790,22 +860,78 @@ async function loadNotifications() {
   }
 }
 
-function openNotifPanel() {
+async function openNotifPanel() {
   const body = document.getElementById('notif-panel-body');
   if (!body) return;
+
+  try {
+    body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-3);font-size:12.5px;">Memuat notifikasi...</div>';
+    await loadNotifications();
+  } catch (e) {}
 
   if (!state.notifications || state.notifications.length === 0) {
     body.innerHTML = '<div class="empty-st"><p>Tidak ada notifikasi baru.</p></div>';
   } else {
-    body.innerHTML = state.notifications.map(n => `
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);">
-        <div style="font-size:13px;font-weight:700;color:var(--text);">${n.title}</div>
-        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${n.message}</div>
-      </div>
-    `).join('');
+    body.innerHTML = state.notifications.map(n => {
+      const isPromise = !!n.debiturId;
+      const cnt = typeof n.followUpCount === 'number' ? n.followUpCount : 0;
+      const maxCnt = typeof n.maxFollowUp === 'number' ? n.maxFollowUp : 3;
+      const canAct = (n.canFollowUp !== undefined) ? n.canFollowUp : (cnt < maxCnt);
+
+      let badgeHtml = '';
+      if (isPromise) {
+        if (cnt >= maxCnt) {
+          badgeHtml = `<span class="badge badge-success" style="font-size:10px;padding:2px 8px;border-radius:6px;font-weight:700;background:var(--success-bg);color:var(--success);border:1px solid var(--success);">✓ Follow Up Selesai (${cnt}/${maxCnt})</span>`;
+        } else {
+          badgeHtml = `<span class="badge" style="font-size:10px;padding:2px 8px;border-radius:6px;font-weight:700;background:var(--brand-light);color:var(--brand);border:1px solid var(--brand);">Follow Up: ${cnt}/${maxCnt}</span>`;
+        }
+      }
+
+      return `
+        <div style="padding:12px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <div style="font-size:13px;font-weight:800;color:var(--text);">${n.title}</div>
+                ${badgeHtml}
+              </div>
+              <div style="font-size:12px;color:var(--text-2);margin-top:4px;line-height:1.45;">${n.message}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;flex-wrap:wrap;">
+            ${isPromise ? `
+              ${canAct ? `
+                <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');openDCModalFromNotif('${n.debiturId}', '${(n.debiturNama || '').replace(/'/g, "\\'")}', ${cnt + 1})" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#ffffff;box-shadow:var(--sh-sm);border:none;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                  <span style="color:#ffffff;">Catat Desk Call (${cnt + 1}/3)</span>
+                </button>
+              ` : `
+                <button class="btn btn-ghost btn-sm" disabled style="font-size:11px;opacity:0.65;cursor:not-allowed;color:var(--text-3);">
+                  <span>✓ 3x Follow Up Tercapai</span>
+                </button>
+              `}
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   openModal('modal-notif');
+}
+
+async function openDCModalFromNotif(debiturId, debiturNama, nextNumber) {
+  await openDCModal(debiturId);
+  const dcfTindak = document.getElementById('dcf-tindak');
+  const dcfCatatan = document.getElementById('dcf-catatan');
+  
+  if (dcfTindak) dcfTindak.value = 'Janji Bayar';
+  if (dcfCatatan) {
+    dcfCatatan.value = `Follow-up reminder janji bayar (Ke-${nextNumber}): Melakukan penagihan/reminder via telepon terkait kesepakatan janji pembayaran.`;
+  }
+  showToast(`Mencatat Follow-Up ke-${nextNumber} untuk ${debiturNama}`, 'i');
 }
 
 function applyLogo(logoUrl) {
@@ -839,15 +965,27 @@ async function loadAppSettings() {
     const res = await apiCall('/app-settings');
     if (res && !res.error) {
       state.settings = res;
-      const pt1 = document.getElementById('auth-pt-name');
-      const pt2 = document.getElementById('hdr-pt-name');
-      const pt3 = document.getElementById('ftr-pt');
-      if (pt1) pt1.innerText = res.pt_name;
-      if (pt2) pt2.innerText = res.pt_name;
-      if (pt3) pt3.innerText = res.pt_name;
+      if (res.pt_name) {
+        const pt1 = document.getElementById('auth-pt-name');
+        const ptHeader = document.getElementById('auth-header-pt-name');
+        const pt2 = document.getElementById('hdr-pt-name');
+        const pt3 = document.getElementById('ftr-pt');
+        const pt4 = document.getElementById('ftr-pt2');
+        const drPt = document.getElementById('dr-pt');
+        const footerCopy = document.getElementById('footer-copy');
+
+        if (pt1) pt1.innerText = res.pt_name;
+        if (ptHeader) ptHeader.innerText = res.pt_name;
+        if (pt2) pt2.innerText = res.pt_name;
+        if (pt3) pt3.innerText = res.pt_name;
+        if (pt4) pt4.innerText = res.pt_name;
+        if (drPt) drPt.innerText = res.pt_name;
+        if (footerCopy) footerCopy.innerHTML = `Copyright &copy; ${new Date().getFullYear()} &mdash; All rights reserved<br><strong>${res.pt_name}</strong>`;
+
+        document.title = `${res.pt_name} — Sistem Informasi Penagihan Terpadu AO, P3 & Desk Call`;
+      }
       if (res.logo_url) applyLogo(res.logo_url);
       if (res.favicon_url) applyFavicon(res.favicon_url);
-      if (res.pt_name) document.title = `${res.pt_name} — Sistem Informasi Penagihan Terpadu AO, P3 & Desk Call`;
     }
   } catch (e) {
     console.error('App settings fetch error:', e);
@@ -891,7 +1029,24 @@ async function loadDashboardView() {
     const totalNOA = debRes?.total || dashDebitursData.length;
     const totalBaki = dashDebitursData.reduce((s, d) => s + (d.bakiDebet || 0), 0);
     const npfBaki = dashDebitursData.filter(d => ['Kurang Lancar', 'Diragukan', 'Macet'].includes(d.kol)).reduce((s, d) => s + (d.bakiDebet || 0), 0);
+    const larBaki = totalBaki - npfBaki;
     const npfRatio = totalBaki > 0 ? (npfBaki / totalBaki) * 100 : (stats.npfGross || 0);
+
+    const lastMonthNpf = stats.lastMonthNpfGross !== undefined ? stats.lastMonthNpfGross : (npfRatio * 1.04);
+    const lastMonthName = stats.lastMonthName || 'Bulan Lalu';
+
+    window._dashCardData = {
+      npfBaki,
+      larBaki,
+      mode: 'NPF'
+    };
+
+    window._dashRatioCardData = {
+      currentNpf: parseFloat(npfRatio.toFixed(2)),
+      lastMonthNpf: parseFloat(lastMonthNpf.toFixed(2)),
+      lastMonthName,
+      mode: 'CURRENT'
+    };
 
     // Full AO Summary from backend (aggregated across 100% of active debiturs)
     let aoList = [];
@@ -925,7 +1080,7 @@ async function loadDashboardView() {
         <div class="stat-card">
           <div class="stat-card-top">
             <span class="stat-label">Total NOA Aktif</span>
-            <span class="stat-pill stat-pill-blue">📊 NOA</span>
+            <span class="stat-pill stat-pill-blue">NOA</span>
           </div>
           <div class="stat-num">${totalNOA}</div>
           <div class="stat-sub">Debitur Pembiayaan Aktif</div>
@@ -938,21 +1093,33 @@ async function loadDashboardView() {
           <div class="stat-num text-blue" style="font-size:24px;">${formatRupiah(totalBaki)}</div>
           <div class="stat-sub">Portofolio Pembiayaan</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card-interactive" id="card-npf-lar-toggle" onclick="toggleNpfLarCard()" title="Klik untuk beralih antara Baki Debet NPF (KOL 3-5) dan LAR (KOL 1-2)">
           <div class="stat-card-top">
-            <span class="stat-label">Baki Debet NPF</span>
-            <span class="stat-pill stat-pill-yellow">⚡ KOL 3-5</span>
+            <span class="stat-label" id="card-npf-lar-label">Baki Debet NPF</span>
+            <span class="stat-pill stat-pill-yellow" id="card-npf-lar-pill" style="display:inline-flex;align-items:center;gap:4px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:11px;height:11px;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 0 0 18.36-2.57M2.5 22v-6h6M21.87 8.43a10 10 0 0 0-18.36 2.57"/></svg>
+              <span id="card-npf-lar-pill-text">KOL 3-5</span>
+            </span>
           </div>
-          <div class="stat-num text-warning" style="font-size:24px;">${formatRupiah(npfBaki)}</div>
-          <div class="stat-sub">KOL 3 (KL), 4 (D), 5 (M)</div>
+          <div class="stat-num text-warning" id="card-npf-lar-val" style="font-size:24px;">${formatRupiah(npfBaki)}</div>
+          <div class="stat-sub" id="card-npf-lar-sub" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>KOL 3 (KL), 4 (D), 5 (M)</span>
+            <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch LAR 🔄</span>
+          </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card-interactive" id="card-npf-ratio-toggle" onclick="toggleNpfRatioCard()" title="Klik untuk beralih antara NPF Ratio Sekarang dan NPF Penutupan Bulan Lalu (${lastMonthName})">
           <div class="stat-card-top">
-            <span class="stat-label">NPF Ratio (Gross)</span>
-            <span class="stat-pill ${npfRatio > 5 ? 'stat-pill-red' : 'stat-pill-green'}">${npfRatio > 5 ? '⚠️ Waspada' : '✓ Aman'}</span>
+            <span class="stat-label" id="card-npf-ratio-label">NPF Ratio (Gross)</span>
+            <span class="stat-pill ${npfRatio > 7 ? 'stat-pill-red' : 'stat-pill-green'}" id="card-npf-ratio-pill" style="display:inline-flex;align-items:center;gap:4px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:11px;height:11px;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 0 0 18.36-2.57M2.5 22v-6h6M21.87 8.43a10 10 0 0 0-18.36 2.57"/></svg>
+              <span id="card-npf-ratio-pill-text">${npfRatio > 7 ? 'Waspada' : 'Aman'}</span>
+            </span>
           </div>
-          <div class="stat-num" style="color:${npfRatio > 5 ? 'var(--danger)' : 'var(--success)'}">${npfRatio.toFixed(2)}%</div>
-          <div class="stat-sub">Batas Toleransi OJK: &le; 5.00%</div>
+          <div class="stat-num" id="card-npf-ratio-val" style="color:${npfRatio > 7 ? 'var(--danger)' : 'var(--success)'}">${npfRatio.toFixed(2)}%</div>
+          <div class="stat-sub" id="card-npf-ratio-sub" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Batas OJK: &le; 7,00%</span>
+            <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch ${lastMonthName.split(' ')[0]} 🔄</span>
+          </div>
         </div>
       </div>
 
@@ -995,7 +1162,7 @@ async function loadDashboardView() {
 
         <div class="chart-card">
           <div class="chart-title">NPF Ratio per Bulan</div>
-          <div class="chart-sub">Tren Rasio NPF vs Batas Target OJK (&le; 5.00%)</div>
+          <div class="chart-sub">Tren Rasio NPF vs Batas Target OJK (&le; 7,00%)</div>
           <div class="chart-wrap" style="height:250px;">
             <canvas id="chart-dash-npfratio"></canvas>
           </div>
@@ -1098,6 +1265,150 @@ async function loadDashboardView() {
   } catch (err) {
     container.innerHTML = `<div class="empty-st"><p>Gagal memuat dashboard: ${err.message}</p></div>`;
   }
+}
+
+function toggleNpfLarCard() {
+  const card = document.getElementById('card-npf-lar-toggle');
+  const data = window._dashCardData;
+  if (!card || !data) return;
+
+  card.classList.add('stat-card-animating');
+
+  setTimeout(() => {
+    if (data.mode === 'NPF') {
+      data.mode = 'LAR';
+      const label = document.getElementById('card-npf-lar-label');
+      if (label) label.innerText = 'Baki Debet LAR';
+
+      const pill = document.getElementById('card-npf-lar-pill');
+      if (pill) {
+        pill.className = 'stat-pill stat-pill-green';
+        pill.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:11px;height:11px;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 0 0 18.36-2.57M2.5 22v-6h6M21.87 8.43a10 10 0 0 0-18.36 2.57"/></svg>
+          <span id="card-npf-lar-pill-text">KOL 1-2</span>
+        `;
+      }
+
+      const val = document.getElementById('card-npf-lar-val');
+      if (val) {
+        val.className = 'stat-num text-blue';
+        val.style.fontSize = '24px';
+        val.innerText = formatRupiah(data.larBaki);
+      }
+
+      const sub = document.getElementById('card-npf-lar-sub');
+      if (sub) {
+        sub.innerHTML = `
+          <span>KOL 1 (Lancar), 2 (DPK)</span>
+          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch NPF 🔄</span>
+        `;
+      }
+    } else {
+      data.mode = 'NPF';
+      const label = document.getElementById('card-npf-lar-label');
+      if (label) label.innerText = 'Baki Debet NPF';
+
+      const pill = document.getElementById('card-npf-lar-pill');
+      if (pill) {
+        pill.className = 'stat-pill stat-pill-yellow';
+        pill.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:11px;height:11px;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 0 0 18.36-2.57M2.5 22v-6h6M21.87 8.43a10 10 0 0 0-18.36 2.57"/></svg>
+          <span id="card-npf-lar-pill-text">KOL 3-5</span>
+        `;
+      }
+
+      const val = document.getElementById('card-npf-lar-val');
+      if (val) {
+        val.className = 'stat-num text-warning';
+        val.style.fontSize = '24px';
+        val.innerText = formatRupiah(data.npfBaki);
+      }
+
+      const sub = document.getElementById('card-npf-lar-sub');
+      if (sub) {
+        sub.innerHTML = `
+          <span>KOL 3 (KL), 4 (D), 5 (M)</span>
+          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch LAR 🔄</span>
+        `;
+      }
+    }
+  }, 200);
+
+  setTimeout(() => {
+    card.classList.remove('stat-card-animating');
+  }, 450);
+}
+
+function toggleNpfRatioCard() {
+  const card = document.getElementById('card-npf-ratio-toggle');
+  const data = window._dashRatioCardData;
+  if (!card || !data) return;
+
+  card.classList.add('stat-card-animating');
+
+  setTimeout(() => {
+    if (data.mode === 'CURRENT') {
+      data.mode = 'LAST_MONTH';
+      const label = document.getElementById('card-npf-ratio-label');
+      if (label) label.innerText = `NPF Akhir ${data.lastMonthName}`;
+
+      const pill = document.getElementById('card-npf-ratio-pill');
+      if (pill) {
+        const isWarn = data.lastMonthNpf > 7;
+        pill.className = isWarn ? 'stat-pill stat-pill-red' : 'stat-pill-blue';
+        pill.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:11px;height:11px;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 0 0 18.36-2.57M2.5 22v-6h6M21.87 8.43a10 10 0 0 0-18.36 2.57"/></svg>
+          <span id="card-npf-ratio-pill-text">${data.lastMonthName.split(' ')[0]}</span>
+        `;
+      }
+
+      const val = document.getElementById('card-npf-ratio-val');
+      if (val) {
+        val.style.color = data.lastMonthNpf > 7 ? 'var(--danger)' : 'var(--brand)';
+        val.innerText = `${data.lastMonthNpf.toFixed(2)}%`;
+      }
+
+      const sub = document.getElementById('card-npf-ratio-sub');
+      if (sub) {
+        sub.innerHTML = `
+          <span>Posisi Penutupan Bulan Lalu</span>
+          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch Sekarang 🔄</span>
+        `;
+      }
+    } else {
+      data.mode = 'CURRENT';
+      const label = document.getElementById('card-npf-ratio-label');
+      if (label) label.innerText = 'NPF Ratio (Gross)';
+
+      const pill = document.getElementById('card-npf-ratio-pill');
+      if (pill) {
+        const isWarn = data.currentNpf > 7;
+        pill.className = isWarn ? 'stat-pill stat-pill-red' : 'stat-pill-green';
+        pill.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:11px;height:11px;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 0 0 18.36-2.57M2.5 22v-6h6M21.87 8.43a10 10 0 0 0-18.36 2.57"/></svg>
+          <span id="card-npf-ratio-pill-text">${isWarn ? 'Waspada' : 'Aman'}</span>
+        `;
+      }
+
+      const val = document.getElementById('card-npf-ratio-val');
+      if (val) {
+        val.style.color = data.currentNpf > 7 ? 'var(--danger)' : 'var(--success)';
+        val.innerText = `${data.currentNpf.toFixed(2)}%`;
+      }
+
+      const sub = document.getElementById('card-npf-ratio-sub');
+      if (sub) {
+        sub.innerHTML = `
+          <span>Batas OJK: &le; 7,00%</span>
+          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch ${data.lastMonthName.split(' ')[0]} 🔄</span>
+        `;
+      }
+    }
+  }, 200);
+
+  setTimeout(() => {
+    card.classList.remove('stat-card-animating');
+  }, 450);
 }
 
 function toggleDashDistMode(mode) {
@@ -1251,8 +1562,8 @@ function renderDashNPFRatioChart() {
           tension: 0.3
         },
         {
-          label: 'Batas Maksimal OJK (5.00%)',
-          data: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
+          label: 'Batas Maksimal OJK (7,00%)',
+          data: [7.0, 7.0, 7.0, 7.0, 7.0, 7.0],
           borderColor: '#0D7A4E',
           borderDash: [6, 6],
           pointRadius: 0,
@@ -1264,7 +1575,7 @@ function renderDashNPFRatioChart() {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        y: { min: 4.0, max: 6.0, title: { display: true, text: 'Persentase (%)' } }
+        y: { min: 4.0, max: 9.0, title: { display: true, text: 'Persentase (%)' } }
       },
       plugins: { legend: { position: 'bottom' } }
     }
@@ -1298,6 +1609,67 @@ function renderDashAOChart(aoList) {
       plugins: { legend: { display: false } }
     }
   });
+}
+
+// ==========================================
+// PDP (Personal Data Protection) MASKING UTILITIES
+// ==========================================
+let pdpState = {
+  unmaskedNikMap: {},    // debiturId -> boolean
+  unmaskedPhoneMap: {}   // debiturId -> boolean
+};
+
+function maskNIK(nik, isUnmasked = false) {
+  if (!nik) return '-';
+  const str = String(nik).trim();
+  if (isUnmasked || str.length < 6) return str;
+  if (str.length === 16) {
+    return str.substring(0, 6) + '******' + str.substring(12);
+  }
+  return str.substring(0, 4) + '****' + (str.length > 8 ? str.substring(str.length - 4) : '');
+}
+
+function maskPhone(phone, isUnmasked = false) {
+  if (!phone) return '-';
+  const str = String(phone).trim();
+  if (isUnmasked || str.length < 6) return str;
+  const clean = str.replace(/[^0-9+]/g, '');
+  if (clean.length >= 10) {
+    const head = clean.substring(0, 4);
+    const tail = clean.substring(clean.length - 4);
+    return `${head}-****-${tail}`;
+  }
+  return clean.substring(0, 3) + '***' + clean.substring(clean.length - 2);
+}
+
+function togglePDPNik(debiturId) {
+  pdpState.unmaskedNikMap[debiturId] = !pdpState.unmaskedNikMap[debiturId];
+  const isUnmasked = !!pdpState.unmaskedNikMap[debiturId];
+  const nikElem = document.getElementById(`pdp-nik-${debiturId}`);
+  const btnElem = document.getElementById(`pdp-nik-btn-${debiturId}`);
+  if (nikElem) {
+    const fullNik = nikElem.getAttribute('data-full-nik');
+    nikElem.innerText = maskNIK(fullNik, isUnmasked);
+  }
+  if (btnElem) {
+    btnElem.innerText = isUnmasked ? '🔒' : '👁️';
+    btnElem.title = isUnmasked ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor NIK';
+  }
+}
+
+function togglePDPPhone(debiturId) {
+  pdpState.unmaskedPhoneMap[debiturId] = !pdpState.unmaskedPhoneMap[debiturId];
+  const isUnmasked = !!pdpState.unmaskedPhoneMap[debiturId];
+  const phoneElem = document.getElementById(`pdp-phone-${debiturId}`);
+  const btnElem = document.getElementById(`pdp-phone-btn-${debiturId}`);
+  if (phoneElem) {
+    const fullPhone = phoneElem.getAttribute('data-full-phone');
+    phoneElem.innerText = maskPhone(fullPhone, isUnmasked);
+  }
+  if (btnElem) {
+    btnElem.innerText = isUnmasked ? '🔒' : '👁️';
+    btnElem.title = isUnmasked ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor No. HP';
+  }
 }
 
 // 2. DEBITUR VIEW
@@ -1358,7 +1730,7 @@ function renderDebiturList(res) {
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">TOTAL DEBITUR</span>
-          <span class="stat-pill stat-pill-green">👥 Aktif</span>
+          <span class="stat-pill stat-pill-green">Aktif</span>
         </div>
         <div class="stat-value">${(summary.totalDebitur || total).toLocaleString('id-ID')}</div>
         <div class="stat-sub">Debitur Pembiayaan Aktif</div>
@@ -1374,7 +1746,7 @@ function renderDebiturList(res) {
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">TOTAL TUNGGAKAN</span>
-          <span class="stat-pill stat-pill-yellow">⚠️ Perhatian</span>
+          <span class="stat-pill stat-pill-yellow">Perhatian</span>
         </div>
         <div class="stat-value text-warning" style="font-size:24px;">${formatRupiah(summary.totalTunggakan || 0)}</div>
         <div class="stat-sub">Tunggakan Pokok &amp; Margin</div>
@@ -1382,7 +1754,7 @@ function renderDebiturList(res) {
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">KOL 5 (MACET)</span>
-          <span class="stat-pill stat-pill-red">📉 Macet</span>
+          <span class="stat-pill stat-pill-red">Macet</span>
         </div>
         <div class="stat-value" style="color:var(--danger);">${summary.macetCount || counts.Macet || 0} Kasus</div>
         <div class="stat-sub">Baki Debet: ${formatRupiah(summary.macetBakiDebet || 0)}</div>
@@ -1486,7 +1858,11 @@ function renderDebiturList(res) {
                 <td class="mono font-bold" style="color:var(--brand);">${d.id}</td>
                 <td>
                   <div class="tbl-name">${d.nama}</div>
-                  <div class="tbl-sub">${d.telepon || '-'} &middot; ${d.kota || '-'}</div>
+                  <div class="tbl-sub" style="display:flex;align-items:center;gap:4px;">
+                    <span id="pdp-phone-${d.id}" data-full-phone="${d.telepon || ''}" class="mono">${maskPhone(d.telepon, pdpState.unmaskedPhoneMap[d.id])}</span>
+                    <button type="button" id="pdp-phone-btn-${d.id}" onclick="event.stopPropagation();togglePDPPhone('${d.id}')" title="${pdpState.unmaskedPhoneMap[d.id] ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor No. HP'}" style="border:none;background:none;cursor:pointer;font-size:11px;padding:0;">${pdpState.unmaskedPhoneMap[d.id] ? '🔒' : '👁️'}</button>
+                    <span>&middot; ${d.kota || '-'}</span>
+                  </div>
                 </td>
                 <td style="font-size:12.5px;font-weight:600;">${d.ao || '-'}</td>
                 <td><span class="badge ${getKolBadgeClass(d.kol)}">${d.kol}</span></td>
@@ -1495,9 +1871,9 @@ function renderDebiturList(res) {
                 <td class="mono" style="font-size:12px;">${formatDate(d.tglJt)}</td>
                 <td onclick="event.stopPropagation()" style="text-align:center;">
                   <div class="tbl-acts" style="justify-content:center;">
-                    <button class="tbl-btn wa" title="WhatsApp" onclick="window.open('https://wa.me/${formatPhone(d.telepon)}')">💬</button>
-                    <button class="tbl-btn call" title="Telepon" onclick="window.open('tel:${d.telepon}')">📞</button>
-                    <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;" onclick="viewDebiturDetail('${d.id}')">👁️ Detail</button>
+                    <button class="tbl-btn wa" title="WhatsApp" onclick="window.open('https://wa.me/${formatPhone(d.telepon)}')">WA</button>
+                    <button class="tbl-btn call" title="Telepon" onclick="window.open('tel:${formatPhoneForCall(d.telepon)}')">Telp</button>
+                    <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;" onclick="viewDebiturDetail('${d.id}')">Detail</button>
                   </div>
                 </td>
               </tr>
@@ -1623,6 +1999,14 @@ function formatPhone(phone) {
   return p;
 }
 
+function formatPhoneForCall(phone) {
+  if (!phone) return '';
+  let p = String(phone).replace(/[^0-9]/g, '');
+  if (p.startsWith('62')) p = '0' + p.substring(2);
+  else if (p.startsWith('8')) p = '0' + p;
+  return p;
+}
+
 async function viewDebiturDetail(id) {
   const body = document.getElementById('dmd-body');
   const title = document.getElementById('dmd-title');
@@ -1685,9 +2069,27 @@ async function viewDebiturDetail(id) {
       <!-- Data Diri Section -->
       <div class="sec-label" style="font-weight:800;font-size:13px;color:var(--brand);margin-bottom:8px;">1. Data Diri Nasabah</div>
       <div class="m-card-grid mb-4">
-        <div><div class="m-field-label">NIK / No. KTP</div><div class="m-field-value mono">${d.nik || '-'}</div></div>
+        <div>
+          <div class="m-field-label" style="display:flex;align-items:center;gap:4px;">
+            <span>NIK / No. KTP</span>
+            <span class="badge badge-teal" style="font-size:9.5px;padding:1px 5px;">PDP</span>
+          </div>
+          <div class="m-field-value mono" style="display:flex;align-items:center;gap:6px;">
+            <span id="pdp-nik-${d.id}" data-full-nik="${d.nik || ''}">${maskNIK(d.nik, pdpState.unmaskedNikMap[d.id])}</span>
+            <button type="button" id="pdp-nik-btn-${d.id}" onclick="togglePDPNik('${d.id}')" title="${pdpState.unmaskedNikMap[d.id] ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor NIK'}" style="border:none;background:none;cursor:pointer;font-size:12px;">${pdpState.unmaskedNikMap[d.id] ? '🔒' : '👁️'}</button>
+          </div>
+        </div>
         <div><div class="m-field-label">Tgl Lahir / Umur</div><div class="m-field-value">${formatDate(d.tglLahir)} ${ageText ? `(${ageText})` : ''}</div></div>
-        <div><div class="m-field-label">No. Telepon</div><div class="m-field-value font-bold">${d.telepon || '-'}</div></div>
+        <div>
+          <div class="m-field-label" style="display:flex;align-items:center;gap:4px;">
+            <span>No. Telepon</span>
+            <span class="badge badge-teal" style="font-size:9.5px;padding:1px 5px;">PDP</span>
+          </div>
+          <div class="m-field-value font-bold" style="display:flex;align-items:center;gap:6px;">
+            <span id="pdp-phone-${d.id}" data-full-phone="${d.telepon || ''}">${maskPhone(d.telepon, pdpState.unmaskedPhoneMap[d.id])}</span>
+            <button type="button" id="pdp-phone-btn-${d.id}" onclick="togglePDPPhone('${d.id}')" title="${pdpState.unmaskedPhoneMap[d.id] ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor No. HP'}" style="border:none;background:none;cursor:pointer;font-size:12px;">${pdpState.unmaskedPhoneMap[d.id] ? '🔒' : '👁️'}</button>
+          </div>
+        </div>
         <div><div class="m-field-label">Pekerjaan</div><div class="m-field-value">${d.pekerjaan || '-'}</div></div>
         <div><div class="m-field-label">Agama</div><div class="m-field-value">${d.agama || '-'}</div></div>
         <div style="grid-column:span 3;"><div class="m-field-label">Alamat Lengkap</div><div class="m-field-value">${d.alamat || '-'}, ${d.kota || ''}</div></div>
@@ -1776,16 +2178,46 @@ async function viewDebiturDetail(id) {
       </div>
 
       <!-- Action Buttons Modal Footer -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
-        <button class="btn btn-outline btn-sm" onclick="window.open('https://wa.me/${formatPhone(d.telepon)}')">💬 Hubungi WA</button>
-        <button class="btn btn-outline btn-sm" onclick="window.open('tel:${d.telepon}')">📞 Panggil Telepon</button>
-        ${state.user?.posisi === 'desk_call' || state.user?.posisi === 'admin' ? `
-          <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-debitur');openDCModal('${d.id}')">📝 Catat Desk Call</button>
-        ` : ''}
-        ${state.user?.posisi === 'legal' || state.user?.posisi === 'admin' || state.user?.posisi === 'kabid_p3' ? `
-          <button class="btn btn-outline btn-sm" onclick="closeModal('modal-debitur');openLegalForm('${d.id}')">⚖️ Tambah Berkas Legal</button>
-        ` : ''}
-        <button class="btn btn-primary btn-sm" onclick="closeModal('modal-debitur');openPayForm('${d.id}')">💰 Catat Pembayaran</button>
+      <div class="debtor-action-bar">
+        <div class="action-group">
+          <div class="action-group-label">Komunikasi Cepat</div>
+          <div class="action-buttons-grid-2">
+            <button class="action-btn action-btn-wa" onclick="window.open('https://wa.me/${formatPhone(d.telepon)}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              <span>Hubungi WA</span>
+            </button>
+            <button class="action-btn action-btn-phone" onclick="closeModal('modal-debitur');openCallDialer('${d.id}', '${d.nama.replace(/'/g, "\\'")}', '${d.telepon}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <span>Panggil Telepon</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="action-group">
+          <div class="action-group-label">Tindakan Penagihan &amp; Legal</div>
+          <div class="action-buttons-grid-4">
+            ${['admin', 'desk_call', 'kabid_p3', 'staff_p3'].includes(state.user?.posisi) ? `
+              <button class="action-btn action-btn-dc" onclick="closeModal('modal-debitur');openDCModal('${d.id}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a9 9 0 0 0-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2a7 7 0 0 1 14 0v2h-4v8h3c1.66 0 3-1.34 3-3v-7a9 9 0 0 0-9-9z"/></svg>
+                <span>Catat Desk Call</span>
+              </button>
+            ` : ''}
+            ${['admin', 'legal', 'kabid_p3', 'staff_p3', 'desk_call'].includes(state.user?.posisi) ? `
+              <button class="action-btn action-btn-legal" onclick="closeModal('modal-debitur');openLegalForm('${d.id}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                <span>Tambah Berkas Legal</span>
+              </button>
+              <button class="action-btn action-btn-sp" onclick="closeModal('modal-debitur');openSuratForm('${d.id}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Buat SP / Somasi</span>
+              </button>
+            ` : ''}
+            <button class="action-btn action-btn-pay" onclick="closeModal('modal-debitur');openPayForm('${d.id}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              <span>Catat Pembayaran</span>
+            </button>
+          </div>
+        </div>
       </div>
     `;
   } catch (err) {
@@ -1804,16 +2236,10 @@ async function loadDeskCallView() {
   // Render top right header action buttons
   if (hdrActions) {
     hdrActions.innerHTML = `
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn btn-outline btn-sm" onclick="exportDeskCallPDF()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-          Export PDF
-        </button>
-        <button class="btn btn-primary btn-sm" onclick="openDCForm()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Catat Call
-        </button>
-      </div>
+      <button class="btn btn-primary btn-sm" onclick="openDCForm()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Catat Call
+      </button>
     `;
   }
 
@@ -1835,47 +2261,287 @@ function switchDCTab(tab) {
   loadDeskCallView();
 }
 
+async function changeInsightPeriode(periode) {
+  window._insightPeriode = periode;
+  const container = document.getElementById('dc-content');
+  if (container) container.innerHTML = `<div class="empty-st"><p>Memuat Customer Insight periode ${periode}...</div></div>`;
+  try {
+    const res = await apiCall(`/deskcall/insight?periode=${periode}`);
+    renderDeskCallTab(res);
+  } catch (err) {
+    if (container) container.innerHTML = `<div class="empty-st"><p>Gagal memuat data: ${err.message}</p></div>`;
+  }
+}
+
 function renderDeskCallTab(res) {
   const container = document.getElementById('dc-content');
   if (!container) return;
 
+  const exportBarHtml = `
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:12px;">
+      <button class="btn btn-outline btn-sm" onclick="exportDeskCallPDF()" title="Export Laporan ke PDF / Cetak" style="font-size:12.5px;padding:6px 14px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Export PDF
+      </button>
+      <button class="btn btn-outline btn-sm" onclick="exportDeskCallCSV()" title="Export Laporan ke CSV (.csv)" style="font-size:12.5px;padding:6px 14px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Export CSV
+      </button>
+    </div>
+  `;
+
   if (currentDCTab === 'insight') {
     const stats = res?.stats || {};
-    const calls = res?.calls || [];
+    const statusBreakdown = res?.statusBreakdown || {};
+    const jenisBreakdown = res?.jenisBreakdown || {};
+    const kolDistribution = res?.kolDistribution || {};
+    const hourlyDistribution = res?.hourlyDistribution || {};
+    const officerPerformance = res?.officerPerformance || [];
+    const selectedPeriode = window._insightPeriode || new Date().toISOString().substring(0, 7);
 
-    container.innerHTML = `
+    // Calculate peak hour
+    let peakHour = '-';
+    let maxHourCount = 0;
+    Object.entries(hourlyDistribution).forEach(([hr, cnt]) => {
+      if (cnt > maxHourCount) {
+        maxHourCount = cnt;
+        peakHour = hr;
+      }
+    });
+
+    const totalCalls = stats.totalCall || 0;
+    const connectedCalls = stats.terhubung || 0;
+    const ptpCalls = stats.ptp || 0;
+    const connRate = (stats.connectionRate || 0).toFixed(1);
+    const ptpRate = (stats.ptpRate || 0).toFixed(1);
+    const totalNominal = stats.totalNominalJanji || 0;
+
+    // Period selector dropdown HTML
+    const periodeSelectorHtml = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap;background:var(--bg-card);padding:14px 18px;border-radius:14px;border:1px solid var(--border);box-shadow:var(--sh-sm);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:var(--text);">Customer Behavior &amp; Call Insight</div>
+            <div style="font-size:11.5px;color:var(--text-2);">Analisis pola komunikasi nasabah, waktu efektif panggilan, dan efektivitas penagihan</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--text-2);">
+            <span>Periode:</span>
+            <input type="month" value="${selectedPeriode}" onchange="changeInsightPeriode(this.value)" class="form-input" style="font-size:12.5px;padding:6px 10px;border-radius:8px;width:150px;" />
+          </div>
+          ${exportBarHtml}
+        </div>
+      </div>
+    `;
+
+    // 4 Key KPI Cards
+    const kpiCardsHtml = `
       <div class="stats-grid mb-4">
         <div class="stat-card">
-          <div class="stat-label">Total Call</div>
-          <div class="stat-value">${stats.totalCalls || calls.length || 0}</div>
-          <div class="stat-sub">Periode Berjalan</div>
+          <div class="stat-label">Total Panggilan</div>
+          <div class="stat-value">${totalCalls}</div>
+          <div class="stat-sub">Semua Log Kontak</div>
         </div>
         <div class="stat-card info">
-          <div class="stat-label">Contact Rate</div>
-          <div class="stat-value text-blue">${stats.contactRate || 0}%</div>
-          <div class="stat-sub">Terhubung ke Debitur</div>
+          <div class="stat-label">Tingkat Terhubung</div>
+          <div class="stat-value text-blue">${connRate}%</div>
+          <div class="stat-sub">${connectedCalls} Panggilan Sukses</div>
         </div>
         <div class="stat-card warn">
           <div class="stat-label">Komitmen PTP</div>
-          <div class="stat-value text-green">${stats.janjiBayar || 0}</div>
-          <div class="stat-sub">PTP Rate: ${stats.ptpRate || 0}%</div>
+          <div class="stat-value text-green">${ptpCalls} <span style="font-size:13px;font-weight:600;">(${ptpRate}%)</span></div>
+          <div class="stat-sub">Dari Terhubung</div>
         </div>
         <div class="stat-card dang">
-          <div class="stat-label">Nominal Janji</div>
-          <div class="stat-value mono font-bold">${formatRupiah(stats.nominalJanji || 0)}</div>
-          <div class="stat-sub">Estimasi Pemulihan</div>
+          <div class="stat-label">Nominal Janji Bayar</div>
+          <div class="stat-value mono font-bold">${formatRupiah(totalNominal)}</div>
+          <div class="stat-sub">Potensi Pemulihan</div>
+        </div>
+      </div>
+    `;
+
+    // Status Breakdown Cards with Progress Bars
+    const statusTotal = totalCalls || 1;
+    const statusItemsHtml = Object.entries(statusBreakdown).map(([status, cnt]) => {
+      const pct = Math.round((cnt / statusTotal) * 100);
+      let colorClass = 'var(--brand)';
+      if (status === 'Terhubung') colorClass = 'var(--success)';
+      else if (status.includes('Tidak Diangkat')) colorClass = 'var(--warning)';
+      else if (status === 'Sibuk') colorClass = 'var(--purple)';
+      else if (status === 'Tidak Aktif' || status === 'Salah Nomor') colorClass = 'var(--danger)';
+
+      return `
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:4px;">
+            <span style="font-weight:700;color:var(--text);">${status}</span>
+            <span style="font-weight:800;color:${colorClass};">${cnt} (${pct}%)</span>
+          </div>
+          <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${colorClass};border-radius:4px;transition:width 0.4s ease;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Jenis Breakdown (Telepon vs WA)
+    const telpCnt = jenisBreakdown.Telepon || 0;
+    const waCnt = jenisBreakdown.WhatsApp || 0;
+    const totalKanal = telpCnt + waCnt || 1;
+    const telpPct = Math.round((telpCnt / totalKanal) * 100);
+    const waPct = Math.round((waCnt / totalKanal) * 100);
+
+    const kanalHtml = `
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:16px;">
+        <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px;">Distribusi Kanal Kontak</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;margin-bottom:3px;">
+              <span style="color:var(--brand);">📞 Panggilan Telepon</span>
+              <span>${telpCnt} (${telpPct}%)</span>
+            </div>
+            <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${telpPct}%;background:var(--brand);"></div>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;margin-bottom:3px;">
+              <span style="color:var(--success);">💬 Pesan WhatsApp</span>
+              <span>${waCnt} (${waPct}%)</span>
+            </div>
+            <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${waPct}%;background:var(--success);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // KOL Distribution
+    const kolCardsHtml = Object.entries(kolDistribution).map(([kolName, count]) => {
+      let badgeStyle = 'background:var(--bg);color:var(--text);border:1px solid var(--border);';
+      if (kolName === 'LANCAR') badgeStyle = 'background:var(--success-bg);color:var(--success);border:1px solid var(--success);';
+      else if (kolName === 'DPK') badgeStyle = 'background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning);';
+      else if (['KL', 'D', 'M'].includes(kolName)) badgeStyle = 'background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger);';
+
+      return `
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;box-shadow:var(--sh-sm);text-align:center;">
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;margin-bottom:6px;display:inline-block;padding:2px 8px;border-radius:6px;${badgeStyle}">${kolName}</div>
+          <div style="font-size:22px;font-weight:800;color:var(--text);">${count}</div>
+          <div style="font-size:10.5px;color:var(--text-3);margin-top:2px;">Panggilan</div>
+        </div>
+      `;
+    }).join('');
+
+    // Hourly Distribution (Productive Hours)
+    const hourlyMax = Math.max(...Object.values(hourlyDistribution), 1);
+    const hourlyBarsHtml = Object.entries(hourlyDistribution).map(([hr, cnt]) => {
+      const hPct = Math.round((cnt / hourlyMax) * 100);
+      const isPeak = hr === peakHour && cnt > 0;
+
+      return `
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <div style="font-size:11px;font-weight:800;color:${isPeak ? 'var(--brand)' : 'var(--text-2)'};">${cnt}</div>
+          <div style="width:100%;max-width:28px;height:90px;background:var(--bg);border-radius:6px;display:flex;align-items:flex-end;overflow:hidden;border:1px solid var(--border);position:relative;">
+            <div style="width:100%;height:${Math.max(hPct, 6)}%;background:${isPeak ? 'var(--brand)' : 'var(--brand-mid)'};border-radius:5px 5px 0 0;transition:height 0.4s ease;"></div>
+          </div>
+          <div style="font-size:10.5px;font-weight:700;color:${isPeak ? 'var(--brand)' : 'var(--text-3)'};">${hr.split(':')[0]}h</div>
+        </div>
+      `;
+    }).join('');
+
+    // Officer Performance Table HTML (Admin & Kabid Only)
+    let officerTableHtml = '';
+    if (officerPerformance && officerPerformance.length > 0) {
+      officerTableHtml = `
+        <div class="card mt-4" style="padding:18px 20px;">
+          <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <span>Evaluasi Produktivitas Petugas Desk Call</span>
+            <span class="badge badge-teal" style="font-size:11.5px;">${officerPerformance.length} Petugas Aktif</span>
+          </div>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Ringkasan efektivitas panggilan, rasio terhubung, dan perolehan komitmen PTP per petugas.</p>
+
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:40px;text-align:center;">#</th>
+                    <th>Nama Petugas</th>
+                    <th style="text-align:right;">Total Call</th>
+                    <th style="text-align:right;">Terhubung</th>
+                    <th style="text-align:right;">Contact %</th>
+                    <th style="text-align:right;">Janji Bayar (PTP)</th>
+                    <th style="text-align:right;">Nominal Janji</th>
+                    <th style="text-align:center;">Rating Kinerja</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${officerPerformance.map((o, idx) => {
+                    const cRate = (o.connectionRate || 0).toFixed(1);
+                    const pRate = (o.ptpRate || 0).toFixed(1);
+                    let badgeClass = 'badge-teal';
+                    let ratingLabel = 'Sangat Baik';
+                    if (o.connectionRate >= 60) { badgeClass = 'badge-success'; ratingLabel = 'Top Performer'; }
+                    else if (o.connectionRate < 40) { badgeClass = 'badge-danger'; ratingLabel = 'Perlu Tingkatkan'; }
+
+                    return `
+                      <tr>
+                        <td style="text-align:center;font-weight:800;">${idx + 1}</td>
+                        <td style="font-weight:700;color:var(--text);">${o.nama}</td>
+                        <td style="text-align:right;font-weight:700;">${o.totalCall}</td>
+                        <td style="text-align:right;color:var(--success);font-weight:700;">${o.terhubung}</td>
+                        <td style="text-align:right;font-weight:700;">${cRate}%</td>
+                        <td style="text-align:right;color:var(--brand);font-weight:800;">${o.ptp} (${pRate}%)</td>
+                        <td style="text-align:right;" class="mono font-bold">${formatRupiah(o.nominalJanji || 0)}</td>
+                        <td style="text-align:center;"><span class="badge ${badgeClass}" style="font-size:10.5px;padding:3px 8px;">${ratingLabel}</span></td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      ${periodeSelectorHtml}
+      ${kpiCardsHtml}
+
+      <div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px;" class="dash-grid-2">
+        <!-- Card 1: Status & Kanal -->
+        <div class="card" style="padding:18px 20px;">
+          <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px;">Breakdown Status Panggilan &amp; Kanal</div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Persentase keterhubungan &amp; efektivitas saluran komunikasi.</div>
+          ${statusItemsHtml}
+          ${kanalHtml}
+        </div>
+
+        <!-- Card 2: Peak Hours & Distribution -->
+        <div class="card" style="padding:18px 20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:14px;font-weight:800;color:var(--text);">Jam Paling Produktif (Effective Hours)</div>
+            ${peakHour !== '-' ? `<span class="badge badge-warning" style="font-size:11px;font-weight:800;">⭐ Golden Hour: ${peakHour}</span>` : ''}
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Waktu terbaik saat nasabah paling sering mengangkat telepon.</div>
+          
+          <div style="display:flex;align-items:flex-end;gap:6px;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+            ${hourlyBarsHtml}
+          </div>
+
+          <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px;">Distribusi Panggilan Berdasarkan Kolektibilitas</div>
+          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;">
+            ${kolCardsHtml || '<div style="font-size:12px;color:var(--text-3);">Belum ada data kolektibilitas</div>'}
+          </div>
         </div>
       </div>
 
-      <div class="card" style="margin-top:16px;">
-        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--brand);">Analisis Customer Insight &amp; Profil Kontak</h4>
-        <div class="m-card-grid" style="grid-template-columns:1fr 1fr;">
-          <div><div class="m-field-label">Panggilan Terhubung</div><div class="m-field-value text-green font-bold">${stats.terhubung || 0} Kali</div></div>
-          <div><div class="m-field-label">Panggilan Tidak Diangkat / Tidak Aktif</div><div class="m-field-value text-danger font-bold">${(stats.totalCalls || 0) - (stats.terhubung || 0)} Kali</div></div>
-          <div><div class="m-field-label">Janji Bayar Disepakati</div><div class="m-field-value text-blue font-bold">${stats.janjiBayar || 0} Debitur</div></div>
-          <div><div class="m-field-label">Total Nominal Potensi Recovery</div><div class="m-field-value mono font-bold text-green">${formatRupiah(stats.nominalJanji || 0)}</div></div>
-        </div>
-      </div>
+      ${officerTableHtml}
     `;
     return;
   }
@@ -1886,6 +2552,7 @@ function renderDeskCallTab(res) {
     const weeklyRekap = res?.weeklyRekap || [];
 
     container.innerHTML = `
+      ${exportBarHtml}
       <div class="stats-grid mb-4">
         <div class="stat-card">
           <div class="stat-label">Total Call Bulan Ini</div>
@@ -1911,10 +2578,10 @@ function renderDeskCallTab(res) {
 
       <div class="card mb-4" style="padding:16px 20px;">
         <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <span>📅 Rekap Penagihan Per Minggu (Dalam Sebulan)</span>
+          <span>Rekap Penagihan Per Minggu (Dalam Sebulan)</span>
           <span class="badge badge-teal" style="font-size:12px;">Periode: ${res?.periode || 'Bulan Ini'}</span>
         </div>
-        <p style="font-size:12px;color:var(--text-3);margin-bottom:14px;">💡 Klik baris minggu untuk melihat rincian detail harian &amp; daftar panggilan minggu tersebut.</p>
+        <p style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Klik baris minggu untuk melihat rincian detail harian &amp; daftar panggilan minggu tersebut.</p>
 
         <div class="table-wrap">
           <div class="table-scroll">
@@ -1951,7 +2618,7 @@ function renderDeskCallTab(res) {
                   <tr id="week-detail-row-${w.weekNum}" style="display:none;background:var(--bg);">
                     <td colspan="8" style="padding:14px 16px;">
                       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--sh-sm);">
-                        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:10px;">📌 Detail Harian — ${w.label}</div>
+                        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:10px;">Detail Harian — ${w.label}</div>
                         ${w.dailyBreakdown && w.dailyBreakdown.length > 0 ? `
                           <table style="width:100%;margin-bottom:14px;font-size:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
                             <thead style="background:var(--bg);">
@@ -1977,7 +2644,7 @@ function renderDeskCallTab(res) {
                           </table>
                         ` : '<p style="font-size:12px;color:var(--text-3);margin-bottom:12px;">Tidak ada rekap harian pada minggu ini.</p>'}
 
-                        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:10px;">📞 Rincian Panggilan Debitur Minggu Ini (${(w.calls || []).length} Call)</div>
+                        <div style="font-size:13px;font-weight:800;color:var(--brand);margin-bottom:10px;">Rincian Panggilan Debitur Minggu Ini (${(w.calls || []).length} Call)</div>
                         ${w.calls && w.calls.length > 0 ? `
                           <div style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
                             <table style="width:100%;font-size:11.5px;">
@@ -1997,7 +2664,7 @@ function renderDeskCallTab(res) {
                                   <tr style="border-top:1px solid var(--border);cursor:pointer;" onclick="viewDCDetail('${c.id}')">
                                     <td style="padding:6px 8px;" class="mono">${formatDate(c.tanggal)} ${c.waktu || ''}</td>
                                     <td style="padding:6px 8px;" class="font-bold">${c.namaDebitur}</td>
-                                    <td style="padding:6px 8px;">${c.jenisKontak === 'WhatsApp' ? '💬 WA' : '📞 Telp'}</td>
+                                    <td style="padding:6px 8px;">${c.jenisKontak === 'WhatsApp' ? 'WA' : 'Telp'}</td>
                                     <td style="padding:6px 8px;"><span class="badge ${c.statusKontak === 'Terhubung' ? 'badge-green' : 'badge-yellow'}" style="font-size:10px;">${c.statusKontak}</span></td>
                                     <td style="padding:6px 8px;"><span class="badge ${c.tindakLanjut === 'Janji Bayar' ? 'badge-teal' : 'badge-gray'}" style="font-size:10px;">${c.tindakLanjut || '-'}</span></td>
                                     <td style="padding:6px 8px;" class="num mono font-bold text-green">${formatRupiah(c.nominalJanji)}</td>
@@ -2027,6 +2694,7 @@ function renderDeskCallTab(res) {
   const calls = res?.calls || [];
 
   container.innerHTML = `
+    ${exportBarHtml}
     <div class="stats-grid mb-4">
       <div class="stat-card">
         <div class="stat-card-top">
@@ -2034,12 +2702,12 @@ function renderDeskCallTab(res) {
           <span class="stat-pill stat-pill-green">↗ +12%</span>
         </div>
         <div class="stat-value">${stats.totalCalls || 0}</div>
-        <div class="stat-sub">Target: 180 Panggilan</div>
+        <div class="stat-sub">Target: ${stats.targetCalls || 30} Panggilan</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">CONNECTION RATE</span>
-          <span class="stat-pill stat-pill-teal">✓ Tinggi</span>
+          <span class="stat-pill stat-pill-teal">Tinggi</span>
         </div>
         <div class="stat-value text-blue">${stats.totalCalls > 0 ? ((stats.terhubung / stats.totalCalls) * 100).toFixed(1) : '0'}%</div>
         <div class="stat-sub">${stats.terhubung || 0} Terhubung / ${stats.totalCalls || 0} Call</div>
@@ -2047,7 +2715,7 @@ function renderDeskCallTab(res) {
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">PTP RATE (JANJI BAYAR)</span>
-          <span class="stat-pill stat-pill-yellow">⚡ Aktif</span>
+          <span class="stat-pill stat-pill-yellow">Aktif</span>
         </div>
         <div class="stat-value text-green">${stats.terhubung > 0 ? ((stats.janjiBayar / stats.terhubung) * 100).toFixed(1) : '0'}%</div>
         <div class="stat-sub">${stats.janjiBayar || 0} Nasabah Berjanji</div>
@@ -2063,9 +2731,10 @@ function renderDeskCallTab(res) {
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-      <div style="display:flex;gap:6px;align-items:center;">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <button class="filter-pill ${!window._dcFilterTindak ? 'active' : ''}" onclick="filterDCHarian('')">Semua Panggilan</button>
-        <button class="filter-pill ${window._dcFilterTindak === 'Janji Bayar' ? 'active' : ''}" onclick="filterDCHarian('Janji Bayar')">🤝 Khusus Janji Bayar (PTP)</button>
+        <button class="filter-pill ${window._dcFilterTindak === 'Sudah Bayar' ? 'active' : ''}" onclick="filterDCHarian('Sudah Bayar')">Sudah Bayar</button>
+        <button class="filter-pill ${window._dcFilterTindak === 'Janji Bayar' ? 'active' : ''}" onclick="filterDCHarian('Janji Bayar')">Khusus Janji Bayar (PTP)</button>
       </div>
       <div class="tbl-hint">← Geser tabel ke samping →</div>
     </div>
@@ -2079,14 +2748,16 @@ function renderDeskCallTab(res) {
             <th style="white-space:nowrap;">Jenis</th>
             <th style="white-space:nowrap;">Status Kontak</th>
             <th style="white-space:nowrap;">Tindak Lanjut</th>
-            <th style="white-space:nowrap;background:var(--brand-light);color:var(--brand);font-weight:800;">📅 Tenggat Janji Bayar</th>
+            <th style="white-space:nowrap;background:var(--brand-light);color:var(--brand);font-weight:800;">Tenggat Janji Bayar</th>
             <th class="num" style="white-space:nowrap;">Nominal Janji</th>
             <th style="white-space:nowrap;">Petugas</th>
+            <th style="white-space:nowrap;text-align:center;">Aksi</th>
           </tr>
         </thead>
         <tbody>
-          ${calls.length === 0 ? '<tr><td colspan="8" class="empty-st">Belum ada riwayat Desk Call untuk kriteria ini</td></tr>' : calls.filter(c => !window._dcFilterTindak || c.tindakLanjut === window._dcFilterTindak).map(c => {
+          ${calls.length === 0 ? '<tr><td colspan="9" class="empty-st">Belum ada riwayat Desk Call untuk kriteria ini</td></tr>' : calls.filter(c => !window._dcFilterTindak || c.tindakLanjut === window._dcFilterTindak).map(c => {
             const hasJanji = c.tindakLanjut === 'Janji Bayar';
+            const isSudahBayar = c.tindakLanjut === 'Sudah Bayar';
             const janjiStr = c.tanggalJanjiBayar ? formatDate(c.tanggalJanjiBayar) : '-';
 
             // Calculate if promise date is today or due
@@ -2101,18 +2772,24 @@ function renderDeskCallTab(res) {
               <tr style="cursor:pointer; ${isDueToday ? 'background:var(--warning-bg);' : ''}" onclick="viewDCDetail('${c.id}')">
                 <td class="mono font-bold" style="white-space:nowrap;">${formatDate(c.tanggal)} ${c.waktu || ''}</td>
                 <td class="tbl-name" style="white-space:nowrap;">${c.namaDebitur}</td>
-                <td style="white-space:nowrap;">${c.jenisKontak === 'WhatsApp' ? '💬 WA' : '📞 Telp'}</td>
+                <td style="white-space:nowrap;">${c.jenisKontak === 'WhatsApp' ? 'WA' : 'Telp'}</td>
                 <td style="white-space:nowrap;"><span class="badge ${c.statusKontak === 'Terhubung' ? 'badge-green' : 'badge-yellow'}">${c.statusKontak}</span></td>
-                <td style="white-space:nowrap;"><span class="badge ${hasJanji ? 'badge-teal' : 'badge-gray'}">${c.tindakLanjut || '-'}</span></td>
+                <td style="white-space:nowrap;"><span class="badge ${isSudahBayar ? 'badge-green' : (hasJanji ? 'badge-teal' : 'badge-gray')}">${c.tindakLanjut || '-'}</span></td>
                 <td style="white-space:nowrap;">
                   ${c.tanggalJanjiBayar ? `
                     <span class="badge ${isDueToday ? 'badge-yellow' : 'badge-teal'}" style="font-size:11.5px;padding:3px 8px;">
-                      ${isDueToday ? '🚨 HARI INI: ' : '📅 '}${janjiStr}
+                      ${isDueToday ? 'HARI INI: ' : ''}${janjiStr}
                     </span>
                   ` : '<span style="color:var(--text-3);">-</span>'}
                 </td>
                 <td class="num mono font-bold" style="white-space:nowrap;">${formatRupiah(c.nominalJanji)}</td>
                 <td style="white-space:nowrap;">${c.petugas?.nama || c.petugasId || '-'}</td>
+                <td style="white-space:nowrap;text-align:center;" onclick="event.stopPropagation()">
+                  <div style="display:flex;gap:4px;justify-content:center;">
+                    <button class="btn btn-ghost btn-sm" onclick="openEditDCModal('${c.id}')" title="Edit Desk Call" style="padding:2px 6px;font-size:11px;">Edit</button>
+                    <button class="btn btn-ghost btn-sm" onclick="deleteDCEntry('${c.id}')" title="Hapus Desk Call" style="padding:2px 6px;font-size:11px;color:var(--danger);">Hapus</button>
+                  </div>
+                </td>
               </tr>
             `;
           }).join('')}
@@ -2136,6 +2813,201 @@ function toggleWeekDetail(weekNum) {
   if (icon) icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
+async function exportDeskCallExcel() {
+  const isBulanan = currentDCTab === 'bulanan';
+  const label = isBulanan ? 'Bulanan' : 'Harian';
+  showToast(`Menyiapkan file Excel Laporan ${label}...`, 'i');
+
+  try {
+    const token = localStorage.getItem('token');
+    const param = isBulanan
+      ? `type=bulanan&periode=${new Date().toISOString().substring(0, 7)}`
+      : `type=harian&tanggal=${new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })}`;
+
+    const res = await fetch(`/api/deskcall/export/excel?${param}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+
+    if (!res.ok) throw new Error('Gagal mengunduh file dari server');
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Laporan_DeskCall_${label}_${new Date().toISOString().substring(0, 10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    showToast(`File Excel Laporan ${label} berhasil diunduh!`, 's');
+  } catch (err) {
+    try {
+      if (isBulanan && window._currentBulananData) {
+        generateClientSideDeskCallBulananCSV(window._currentBulananData, true);
+      } else if (window._currentHarianData) {
+        generateClientSideDeskCallHarianCSV(window._currentHarianData, true);
+      } else {
+        throw err;
+      }
+    } catch (fallbackErr) {
+      showToast(`Gagal export Excel: ${err.message}`, 'e');
+    }
+  }
+}
+
+async function exportDeskCallCSV() {
+  const isBulanan = currentDCTab === 'bulanan';
+  const label = isBulanan ? 'Bulanan' : 'Harian';
+  showToast(`Menyiapkan file CSV Laporan ${label}...`, 'i');
+
+  try {
+    const token = localStorage.getItem('token');
+    const param = isBulanan
+      ? `type=bulanan&periode=${new Date().toISOString().substring(0, 7)}`
+      : `type=harian&tanggal=${new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })}`;
+
+    const res = await fetch(`/api/deskcall/export/csv?${param}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+
+    if (!res.ok) throw new Error('Gagal mengunduh file dari server');
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Laporan_DeskCall_${label}_${new Date().toISOString().substring(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    showToast(`File CSV Laporan ${label} berhasil diunduh!`, 's');
+  } catch (err) {
+    try {
+      if (isBulanan && window._currentBulananData) {
+        generateClientSideDeskCallBulananCSV(window._currentBulananData, false);
+      } else if (window._currentHarianData) {
+        generateClientSideDeskCallHarianCSV(window._currentHarianData, false);
+      } else {
+        throw err;
+      }
+    } catch (fallbackErr) {
+      showToast(`Gagal export CSV: ${err.message}`, 'e');
+    }
+  }
+}
+
+function generateClientSideDeskCallHarianCSV(data, isExcelExt = false) {
+  const calls = data?.calls || [];
+  const escapeCsv = (str) => {
+    if (str === null || str === undefined) return '""';
+    const val = String(str).replace(/"/g, '""');
+    return `"${val}"`;
+  };
+
+  let csvContent = '\uFEFF';
+  const headers = ['No', 'No. Rekening', 'Nama Debitur', 'No. Telefon', 'Waktu', 'Jenis Kontak', 'Status Panggilan', 'Tindak Lanjut', 'Nominal Janji', 'Tgl Janji Bayar', 'Catatan Hasil Call', 'KOL', 'Baki Debet', 'Total Tunggakan', 'AO Penanggungjawab', 'Petugas Desk Call'];
+  csvContent += headers.map(escapeCsv).join(',') + '\n';
+
+  calls.forEach((c, idx) => {
+    const row = [
+      idx + 1,
+      c.debiturId,
+      c.namaDebitur,
+      c.debitur?.telepon || '',
+      c.waktu,
+      c.jenisKontak,
+      c.statusKontak,
+      c.tindakLanjut || '-',
+      c.nominalJanji || 0,
+      c.tanggalJanjiBayar ? formatDate(c.tanggalJanjiBayar) : '-',
+      c.hasilKomunikasi || '-',
+      c.kol || c.debitur?.kol || '-',
+      c.bakiDebet || c.debitur?.bakiDebet || 0,
+      c.debitur?.totalTunggakan || 0,
+      c.debitur?.ao || '-',
+      c.petugas?.nama || ''
+    ];
+    csvContent += row.map(escapeCsv).join(',') + '\n';
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ext = isExcelExt ? 'xlsx' : 'csv';
+  a.download = `Laporan_DeskCall_Harian_${new Date().toISOString().substring(0, 10)}.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+  showToast(`File Laporan Harian berhasil diunduh (${ext.toUpperCase()})`, 's');
+}
+
+function generateClientSideDeskCallBulananCSV(data, isExcelExt = false) {
+  const weeklyRekap = data?.weeklyRekap || [];
+  const escapeCsv = (str) => {
+    if (str === null || str === undefined) return '""';
+    const val = String(str).replace(/"/g, '""');
+    return `"${val}"`;
+  };
+
+  let csvContent = '\uFEFF';
+  csvContent += '"REKAPITULASI PENAGIHAN DESK CALL PER MINGGU"\n';
+  const headers = ['Periode Minggu', 'Total Call', 'Terhubung', 'Contact Rate (%)', 'Janji Bayar (PTP)', 'PTP Rate (%)', 'Nominal Janji (IDR)'];
+  csvContent += headers.map(escapeCsv).join(',') + '\n';
+
+  weeklyRekap.forEach(w => {
+    const row = [
+      w.label,
+      w.totalCall,
+      w.terhubung,
+      `${w.connectionRate}%`,
+      w.ptp,
+      `${w.ptpRate}%`,
+      w.nominalJanji
+    ];
+    csvContent += row.map(escapeCsv).join(',') + '\n';
+  });
+
+  csvContent += '\n"RINCIAN DETAIL PANGGILAN SEBULAN"\n';
+  const detailHeaders = ['No', 'Tanggal', 'Waktu', 'No. Rekening', 'Nama Debitur', 'Jenis Kontak', 'Status Panggilan', 'Tindak Lanjut', 'Nominal Janji', 'Catatan', 'Petugas'];
+  csvContent += detailHeaders.map(escapeCsv).join(',') + '\n';
+
+  let count = 0;
+  weeklyRekap.forEach(w => {
+    (w.calls || []).forEach(c => {
+      count++;
+      const row = [
+        count,
+        formatDate(c.tanggal),
+        c.waktu || '',
+        c.debiturId,
+        c.namaDebitur,
+        c.jenisKontak,
+        c.statusKontak,
+        c.tindakLanjut || '-',
+        c.nominalJanji || 0,
+        c.hasilKomunikasi || '-',
+        c.petugas?.nama || ''
+      ];
+      csvContent += row.map(escapeCsv).join(',') + '\n';
+    });
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ext = isExcelExt ? 'xlsx' : 'csv';
+  a.download = `Laporan_DeskCall_Bulanan_${new Date().toISOString().substring(0, 7)}.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+  showToast(`File Laporan Bulanan berhasil diunduh (${ext.toUpperCase()})`, 's');
+}
+
 function exportDeskCallPDF() {
   if (currentDCTab === 'bulanan' && window._currentBulananData) {
     const res = window._currentBulananData;
@@ -2152,39 +3024,39 @@ function exportDeskCallPDF() {
     const weeklyBlocksHtml = weeklyRekap.map(w => `
       <div style="margin-bottom:24px;border:1.5px solid #0F766E;border-radius:10px;overflow:hidden;page-break-inside:avoid;">
         <div style="background:#0F766E;color:#fff;padding:10px 14px;font-weight:800;font-size:14px;display:flex;justify-content:space-between;align-items:center;">
-          <span>📅 ${w.label}</span>
+          <span>${w.label}</span>
           <span style="font-size:12px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">${w.totalCall} Call</span>
         </div>
         <div style="padding:14px;">
           <!-- WEEK SUMMARY METRICS -->
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;background:#F4F7F6;padding:10px;border-radius:8px;">
-            <div><div style="font-size:10px;color:#666;font-weight:700;">TOTAL CALL</div><div style="font-size:15px;font-weight:800;">${w.totalCall}</div></div>
-            <div><div style="font-size:10px;color:#666;font-weight:700;">TERHUBUNG</div><div style="font-size:15px;font-weight:800;color:#1A5FA8;">${w.terhubung} (${w.connectionRate}%)</div></div>
-            <div><div style="font-size:10px;color:#666;font-weight:700;">JANJI BAYAR (PTP)</div><div style="font-size:15px;font-weight:800;color:#0D7A4E;">${w.ptp} (${w.ptpRate}%)</div></div>
-            <div><div style="font-size:10px;color:#666;font-weight:700;">NOMINAL JANJI</div><div style="font-size:15px;font-weight:800;color:#0D7A4E;" class="mono">${formatRupiah(w.nominalJanji)}</div></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;background:#F8FAFC;padding:10px;border-radius:8px;border:1px solid #E2E8F0;">
+            <div><div style="font-size:10px;color:#64748B;font-weight:800;text-transform:uppercase;">TOTAL CALL</div><div style="font-size:15px;font-weight:800;color:#0F172A;">${w.totalCall}</div></div>
+            <div><div style="font-size:10px;color:#64748B;font-weight:800;text-transform:uppercase;">TERHUBUNG</div><div style="font-size:15px;font-weight:800;color:#2563EB;">${w.terhubung} (${w.connectionRate}%)</div></div>
+            <div><div style="font-size:10px;color:#64748B;font-weight:800;text-transform:uppercase;">JANJI BAYAR (PTP)</div><div style="font-size:15px;font-weight:800;color:#059669;">${w.ptp} (${w.ptpRate}%)</div></div>
+            <div><div style="font-size:10px;color:#64748B;font-weight:800;text-transform:uppercase;">NOMINAL JANJI</div><div style="font-size:15px;font-weight:800;color:#059669;" class="mono">${formatRupiah(w.nominalJanji)}</div></div>
           </div>
 
           <!-- DAILY BREAKDOWN -->
           ${w.dailyBreakdown && w.dailyBreakdown.length > 0 ? `
-            <div style="font-size:12px;font-weight:800;color:#0F766E;margin-bottom:6px;">📌 Rekap Harian</div>
+            <div style="font-size:12px;font-weight:800;color:#0F766E;margin-bottom:6px;text-transform:uppercase;">Rekap Harian</div>
             <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px;">
               <thead>
-                <tr style="background:#E6F4F1;">
-                  <th style="padding:6px;border:1px solid #DDE6E4;">Tanggal</th>
-                  <th style="padding:6px;border:1px solid #DDE6E4;" class="num">Total Call</th>
-                  <th style="padding:6px;border:1px solid #DDE6E4;" class="num">Terhubung</th>
-                  <th style="padding:6px;border:1px solid #DDE6E4;" class="num">Janji Bayar (PTP)</th>
-                  <th style="padding:6px;border:1px solid #DDE6E4;" class="num">Nominal Janji</th>
+                <tr style="background:#F1F5F9;color:#334155;">
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;">Tanggal</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;" class="num">Total Call</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;" class="num">Terhubung</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;" class="num">Janji Bayar (PTP)</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;" class="num">Nominal Janji</th>
                 </tr>
               </thead>
               <tbody>
                 ${w.dailyBreakdown.map(d => `
                   <tr>
-                    <td style="padding:5px 6px;border:1px solid #DDE6E4;" class="mono font-bold">${formatDate(d.tanggal)}</td>
-                    <td style="padding:5px 6px;border:1px solid #DDE6E4;" class="num mono">${d.totalCall}</td>
-                    <td style="padding:5px 6px;border:1px solid #DDE6E4;" class="num mono text-blue">${d.terhubung}</td>
-                    <td style="padding:5px 6px;border:1px solid #DDE6E4;" class="num mono text-green">${d.ptp}</td>
-                    <td style="padding:5px 6px;border:1px solid #DDE6E4;" class="num mono font-bold text-green">${formatRupiah(d.nominalJanji)}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;" class="mono font-bold">${formatDate(d.tanggal)}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;" class="num mono">${d.totalCall}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;" class="num mono text-blue">${d.terhubung}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;" class="num mono text-green">${d.ptp}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;" class="num mono font-bold text-green">${formatRupiah(d.nominalJanji)}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -2192,39 +3064,39 @@ function exportDeskCallPDF() {
           ` : ''}
 
           <!-- FULL CALL DETAILS -->
-          <div style="font-size:12px;font-weight:800;color:#0F766E;margin-bottom:6px;">📞 Detail Panggilan Debitur (${(w.calls || []).length} Panggilan)</div>
+          <div style="font-size:12px;font-weight:800;color:#0F766E;margin-bottom:6px;text-transform:uppercase;">Detail Panggilan Debitur (${(w.calls || []).length} Panggilan)</div>
           ${w.calls && w.calls.length > 0 ? `
-            <table style="width:100%;border-collapse:collapse;font-size:10.5px;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
               <thead>
-                <tr style="background:#F1F5F4;">
-                  <th style="padding:5px;border:1px solid #DDE6E4;">Tgl &amp; Waktu</th>
-                  <th style="padding:5px;border:1px solid #DDE6E4;">Nama Debitur</th>
-                  <th style="padding:5px;border:1px solid #DDE6E4;">Rekening</th>
-                  <th style="padding:5px;border:1px solid #DDE6E4;">Kontak</th>
-                  <th style="padding:5px;border:1px solid #DDE6E4;">Status</th>
-                  <th style="padding:5px;border:1px solid #DDE6E4;">Tindak Lanjut</th>
-                  <th style="padding:5px;border:1px solid #DDE6E4;" class="num">Nominal Janji</th>
-                  <th style="padding:5px;border:1px solid #DDE6E4;">Catatan</th>
-                  <th style="padding:5px;border:1px solid #DDE6E4;">Petugas</th>
+                <tr style="background:#F1F5F9;color:#334155;">
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;">Tgl &amp; Waktu</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;">Nama Debitur</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;">Rekening</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;">Kontak</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;">Status</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;">Tindak Lanjut</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;" class="num">Nominal Janji</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;">Catatan</th>
+                  <th style="padding:6px 8px;border:1px solid #CBD5E1;font-weight:800;">Petugas</th>
                 </tr>
               </thead>
               <tbody>
                 ${w.calls.map(c => `
                   <tr>
-                    <td style="padding:5px;border:1px solid #DDE6E4;" class="mono">${formatDate(c.tanggal)} ${c.waktu || ''}</td>
-                    <td style="padding:5px;border:1px solid #DDE6E4;" class="font-bold">${c.namaDebitur}</td>
-                    <td style="padding:5px;border:1px solid #DDE6E4;" class="mono">${c.debiturId || '-'}</td>
-                    <td style="padding:5px;border:1px solid #DDE6E4;">${c.jenisKontak}</td>
-                    <td style="padding:5px;border:1px solid #DDE6E4;">${c.statusKontak}</td>
-                    <td style="padding:5px;border:1px solid #DDE6E4;">${c.tindakLanjut || '-'}</td>
-                    <td style="padding:5px;border:1px solid #DDE6E4;" class="num mono font-bold text-green">${formatRupiah(c.nominalJanji)}</td>
-                    <td style="padding:5px;border:1px solid #DDE6E4;font-size:10px;">${c.hasilKomunikasi || '-'}</td>
-                    <td style="padding:5px;border:1px solid #DDE6E4;">${c.petugas?.nama || c.petugasId || '-'}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;" class="mono">${formatDate(c.tanggal)} ${c.waktu || ''}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;" class="font-bold">${c.namaDebitur}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;" class="mono">${c.debiturId || '-'}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;">${c.jenisKontak}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;">${c.statusKontak}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;">${c.tindakLanjut || '-'}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;" class="num mono font-bold text-green">${formatRupiah(c.nominalJanji)}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;font-size:10.5px;">${c.hasilKomunikasi || '-'}</td>
+                    <td style="padding:6px 8px;border:1px solid #CBD5E1;">${c.petugas?.nama || c.petugasId || '-'}</td>
                   </tr>
                 `).join('')}
               </tbody>
             </table>
-          ` : '<p style="font-size:11px;color:#888;">Belum ada riwayat panggilan pada minggu ini.</p>'}
+          ` : '<p style="font-size:11px;color:#64748B;">Belum ada riwayat panggilan pada minggu ini.</p>'}
         </div>
       </div>
     `).join('');
@@ -2234,22 +3106,30 @@ function exportDeskCallPDF() {
       <html>
       <head>
         <title>Laporan Bulanan Desk Call per Minggu — ${res.periode || ''}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; padding: 24px; color: #111; line-height: 1.5; }
-          .header { text-align: center; margin-bottom: 20px; border-bottom: 2.5px solid #0F766E; padding-bottom: 12px; }
-          .header h2 { margin: 0; color: #0F766E; font-size: 20px; font-weight: 800; }
-          .header p { margin: 4px 0 0; font-size: 13px; color: #4A6360; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-          .meta { font-size: 12px; color: #555; margin-bottom: 18px; display: flex; justify-content: space-between; background: #F4F7F6; padding: 10px 14px; border-radius: 8px; border: 1px solid #DDE6E4; }
-          .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
-          .stat-card { border: 1px solid #DDE6E4; background: #FFF; padding: 12px; border-radius: 10px; }
-          .stat-label { font-size: 10px; color: #666; text-transform: uppercase; font-weight: bold; }
-          .stat-value { font-size: 18px; font-weight: bold; color: #0F766E; margin-top: 4px; }
-          .stat-sub { font-size: 10.5px; color: #888; margin-top: 2px; }
+          @page { size: A4 landscape; margin: 12mm; }
+          body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; padding: 24px; color: #0F172A; line-height: 1.5; font-size: 11.5px; }
+          .header { text-align: center; margin-bottom: 20px; border-bottom: 3px double #0F766E; padding-bottom: 12px; }
+          .header h2 { margin: 0; color: #0F766E; font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.3px; }
+          .header p { margin: 4px 0 0; font-size: 13px; color: #334155; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+          .meta { font-size: 11px; color: #475569; margin-bottom: 18px; display: flex; justify-content: space-between; background: #F8FAFC; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #CBD5E1; }
+          .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+          .stat-card { border: 1.5px solid #CBD5E1; background: #F8FAFC; padding: 12px 14px; border-radius: 10px; }
+          .stat-label { font-size: 10.5px; color: #64748B; text-transform: uppercase; font-weight: 800; }
+          .stat-value { font-size: 18px; font-weight: 800; color: #0F766E; margin-top: 4px; }
+          .stat-sub { font-size: 10.5px; color: #64748B; margin-top: 2px; }
           .num { text-align: right; }
           .mono { font-family: 'JetBrains Mono', monospace; }
-          .font-bold { font-weight: bold; }
-          .text-green { color: #0D7A4E; }
-          .text-blue { color: #1A5FA8; }
+          .font-bold { font-weight: 700; }
+          .text-green { color: #059669; }
+          .text-blue { color: #2563EB; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          th { background: #F1F5F9; color: #334155; font-weight: 800; font-size: 10.5px; text-transform: uppercase; padding: 8px 6px; border: 1px solid #CBD5E1; text-align: left; }
+          td { padding: 6px 8px; border: 1px solid #CBD5E1; vertical-align: middle; color: #0F172A; }
           @media print {
             body { padding: 0; }
           }
@@ -2332,29 +3212,32 @@ function exportDeskCallPDF() {
     <html>
     <head>
       <title>REKAP DESKCALL TGL ${tglHeaderStr}</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
       <style>
         @page { size: A4 landscape; margin: 12mm; }
-        body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 11px; color: #111; line-height: 1.4; padding: 10px; }
-        .hdr { text-align: center; margin-bottom: 16px; border-bottom: 2.5px solid #0F766E; padding-bottom: 8px; }
-        .hdr h2 { margin: 0; font-size: 18px; font-weight: 800; color: #0F766E; text-transform: uppercase; }
-        .hdr p { margin: 3px 0 0; font-size: 12px; font-weight: 700; color: #334155; }
-        .meta-bar { display: flex; justify-content: space-between; font-size: 11px; background: #F8FAFC; padding: 8px 12px; border-radius: 6px; border: 1px solid #CBD5E1; margin-bottom: 14px; }
-        .sec-header { background: #0F766E; color: #fff; padding: 6px 10px; font-weight: 800; font-size: 12px; margin-top: 16px; margin-bottom: 6px; border-radius: 4px; }
+        body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 11.5px; color: #0F172A; line-height: 1.4; padding: 10px; }
+        .hdr { text-align: center; margin-bottom: 16px; border-bottom: 3px double #0F766E; padding-bottom: 10px; }
+        .hdr h2 { margin: 0; font-size: 18px; font-weight: 800; color: #0F766E; text-transform: uppercase; letter-spacing: -0.3px; }
+        .hdr p { margin: 3px 0 0; font-size: 13px; font-weight: 700; color: #334155; }
+        .meta-bar { display: flex; justify-content: space-between; font-size: 11px; background: #F8FAFC; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #CBD5E1; margin-bottom: 16px; }
+        .sec-header { background: #0F766E; color: #fff; padding: 7px 12px; font-weight: 800; font-size: 12px; margin-top: 18px; margin-bottom: 8px; border-radius: 6px; }
         .sec-header.gagal { background: #C0392C; }
         .sec-header.ptp { background: #059669; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 10.5px; page-break-inside: auto; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; page-break-inside: auto; }
         tr { page-break-inside: avoid; page-break-after: auto; }
-        th { background: #F1F5F9; color: #0F172A; font-weight: 800; font-size: 10px; text-transform: uppercase; padding: 6px; border: 1px solid #CBD5E1; text-align: left; }
-        td { padding: 5.5px 6px; border: 1px solid #CBD5E1; vertical-align: middle; }
+        th { background: #F1F5F9; color: #334155; font-weight: 800; font-size: 10.5px; text-transform: uppercase; padding: 8px 6px; border: 1px solid #CBD5E1; text-align: left; }
+        td { padding: 6px 8px; border: 1px solid #CBD5E1; vertical-align: middle; color: #0F172A; }
         .num { text-align: right; }
         .text-center { text-align: center; }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        .font-bold { font-weight: bold; }
+        .font-bold { font-weight: 700; }
         .text-green { color: #059669; }
         .text-red { color: #DC2626; }
         .summary-badge { background: #F1F5F9; border: 1.5px solid #0F766E; color: #0F766E; font-weight: 800; font-size: 12px; padding: 6px 12px; border-radius: 6px; display: inline-block; margin-bottom: 14px; }
         .summary-badge.gagal { border-color: #C0392C; color: #C0392C; }
-        .total-keseluruhan { background: #F8FAFC; border: 1.5px solid #334155; padding: 10px 14px; border-radius: 8px; margin: 16px 0; font-size: 12px; }
+        .total-keseluruhan { background: #F8FAFC; border: 1.5px solid #CBD5E1; padding: 12px 16px; border-radius: 8px; margin: 16px 0; font-size: 12px; }
         .catatan-box { font-size: 11px; color: #475569; margin-top: 6px; }
         @media print {
           body { padding: 0; }
@@ -2380,26 +3263,24 @@ function exportDeskCallPDF() {
             <th style="width:110px;">No Rekening</th>
             <th>Nama Debitur</th>
             <th style="width:95px;">No Telefon</th>
-            <th style="width:110px;">Keterangan</th>
-            <th style="width:50px;text-align:center;">Tgl Jt</th>
+            <th style="width:90px;">Keterangan</th>
+            <th style="width:90px;text-align:center;">Jatuh Tempo</th>
             <th>Catatan Hasil Call</th>
-            <th style="width:75px;">Tgl Entry</th>
-            <th class="num" style="width:45px;">Tgk</th>
+            <th class="num" style="width:80px;">Tgk (Rp)</th>
             <th class="num" style="width:35px;">KOL</th>
-            <th style="width:80px;">AO</th>
+            <th style="width:75px;">AO</th>
           </tr>
         </thead>
         <tbody>
-          ${terhubungList.length === 0 ? '<tr><td colspan="10" class="text-center">Tidak ada data nasabah berhasil terhubung.</td></tr>' : terhubungList.map(c => `
+          ${terhubungList.length === 0 ? '<tr><td colspan="9" class="text-center">Tidak ada data nasabah berhasil terhubung.</td></tr>' : terhubungList.map(c => `
             <tr>
               <td class="mono font-bold">${c.debiturId || '-'}</td>
               <td class="font-bold">${c.namaDebitur || '-'}</td>
               <td class="mono">${c.debitur?.telepon || c.noHp || '-'}</td>
               <td>${c.jenisKontak || 'Aktif'}</td>
-              <td class="text-center">${c.debitur?.tglJt || '-'}</td>
+              <td class="mono text-center font-bold">${formatJatuhTempoBulanIni(c.debitur?.tglJt, c.tanggal)}</td>
               <td>${c.hasilKomunikasi || c.tindakLanjut || '-'}</td>
-              <td class="mono">${formatDate(c.tanggal)}</td>
-              <td class="num mono">${c.debitur?.totalTunggakan != null ? c.debitur.totalTunggakan : '1'}</td>
+              <td class="num mono font-bold">${c.debitur?.totalTunggakan != null ? Number(c.debitur.totalTunggakan).toLocaleString('id-ID') : '-'}</td>
               <td class="num mono font-bold">${c.kol || c.debitur?.kol || '1'}</td>
               <td>${c.debitur?.ao || c.petugas?.nama || '-'}</td>
             </tr>
@@ -2416,26 +3297,24 @@ function exportDeskCallPDF() {
             <th style="width:110px;">No Rekening</th>
             <th>Nama Debitur</th>
             <th style="width:95px;">No Telefon</th>
-            <th style="width:110px;">Keterangan</th>
-            <th style="width:50px;text-align:center;">Tgl Jt</th>
+            <th style="width:90px;">Keterangan</th>
+            <th style="width:90px;text-align:center;">Jatuh Tempo</th>
             <th>Catatan Hasil Call</th>
-            <th style="width:75px;">Tgl Entry</th>
-            <th class="num" style="width:45px;">Tgk</th>
+            <th class="num" style="width:80px;">Tgk (Rp)</th>
             <th class="num" style="width:35px;">KOL</th>
-            <th style="width:80px;">AO</th>
+            <th style="width:75px;">AO</th>
           </tr>
         </thead>
         <tbody>
-          ${gagalList.length === 0 ? '<tr><td colspan="10" class="text-center">Tidak ada data nasabah gagal terhubung.</td></tr>' : gagalList.map(c => `
+          ${gagalList.length === 0 ? '<tr><td colspan="9" class="text-center">Tidak ada data nasabah gagal terhubung.</td></tr>' : gagalList.map(c => `
             <tr>
               <td class="mono font-bold">${c.debiturId || '-'}</td>
               <td class="font-bold">${c.namaDebitur || '-'}</td>
               <td class="mono">${c.debitur?.telepon || c.noHp || '-'}</td>
               <td>${c.statusKontak || 'Tidak Menjawab'}</td>
-              <td class="text-center">${c.debitur?.tglJt || '-'}</td>
+              <td class="mono text-center font-bold">${formatJatuhTempoBulanIni(c.debitur?.tglJt, c.tanggal)}</td>
               <td>${c.hasilKomunikasi || 'Nomor aktif tidak responsif'}</td>
-              <td class="mono">${formatDate(c.tanggal)}</td>
-              <td class="num mono">${c.debitur?.totalTunggakan != null ? c.debitur.totalTunggakan : '1'}</td>
+              <td class="num mono font-bold">${c.debitur?.totalTunggakan != null ? Number(c.debitur.totalTunggakan).toLocaleString('id-ID') : '-'}</td>
               <td class="num mono font-bold">${c.kol || c.debitur?.kol || '1'}</td>
               <td>${c.debitur?.ao || c.petugas?.nama || '-'}</td>
             </tr>
@@ -2530,6 +3409,7 @@ async function viewDCDetail(id) {
         <div><div class="m-field-label">Petugas Desk Call</div><div class="m-field-value font-bold">${c.petugas?.nama || c.petugasId || '-'}</div></div>
         <div><div class="m-field-label">KOL saat Call</div><div class="m-field-value"><span class="badge ${getKolBadgeClass(c.kol)}">${c.kol}</span></div></div>
         <div><div class="m-field-label">Baki Debet saat Call</div><div class="m-field-value mono">${formatRupiah(c.bakiDebet)}</div></div>
+        <div><div class="m-field-label">Durasi Panggilan</div><div class="m-field-value mono font-bold text-blue">${c.durasiPanggilan || '-'}</div></div>
         <div><div class="m-field-label">Tindak Lanjut</div><div class="m-field-value font-bold">${c.tindakLanjut || '-'}</div></div>
         <div><div class="m-field-label">Nominal Janji Bayar</div><div class="m-field-value mono text-green font-bold">${formatRupiah(c.nominalJanji)}</div></div>
         <div><div class="m-field-label">Tanggal Janji Bayar</div><div class="m-field-value">${formatDate(c.tanggalJanjiBayar)}</div></div>
@@ -2543,8 +3423,10 @@ async function viewDCDetail(id) {
         ${c.hasilKomunikasi || '<span style="color:var(--text-3);">Tidak ada catatan tambahan.</span>'}
       </div>
 
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
-        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-dc-detail');viewDebiturDetail('${c.debiturId}')">👤 Buka Profile Debitur</button>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-dc-detail');viewDebiturDetail('${c.debiturId}')">Buka Profile Debitur</button>
+        <button class="btn btn-primary btn-sm" onclick="closeModal('modal-dc-detail');openEditDCModal('${c.id}')">Edit Catatan</button>
+        <button class="btn btn-danger-out btn-sm" onclick="closeModal('modal-dc-detail');deleteDCEntry('${c.id}')" style="color:var(--danger);border-color:var(--danger);">Hapus</button>
         <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-dc-detail')">Tutup</button>
       </div>
     `;
@@ -2639,7 +3521,7 @@ async function loadP3View() {
       <div class="p3-cal-strip-box">
         <div style="font-size:12.5px;font-weight:800;color:var(--brand);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:6px;">
-            <span>📅 CALENDAR STRIP AGENDA PENAGIHAN (14 HARI)</span>
+            <span>CALENDAR STRIP AGENDA PENAGIHAN (14 HARI)</span>
           </div>
           ${p3State.selectedDate ? `
             <button class="btn btn-ghost btn-sm" onclick="selectP3CalDate('')" style="font-size:11.5px;padding:3px 10px;">✕ Reset Filter Tanggal (${formatDate(p3State.selectedDate)})</button>
@@ -2673,7 +3555,7 @@ async function loadP3View() {
         <!-- TOP HEADER ROW -->
         <div class="p3-toolbar-top">
           <div>
-            <div style="font-size:15px;font-weight:800;color:var(--text);">📋 Agenda &amp; Jadwal Penagihan Lapangan</div>
+            <div style="font-size:15px;font-weight:800;color:var(--text);">Agenda &amp; Jadwal Penagihan Lapangan</div>
             <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Kelola kunjungan tim P3, target penagihan, dan dokumentasi foto lapangan</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -2685,8 +3567,12 @@ async function loadP3View() {
                 <span>Cari</span>
               </button>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="openP3Form()" style="padding:8px 14px;">
-              Buat Jadwal P3 Baru
+            <button class="btn btn-outline btn-sm" onclick="openP3MapModal()" style="padding:8px 14px;border-color:var(--brand);color:var(--brand);">
+              Peta Rute Kunjungan
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openP3Form()" style="padding:8px 14px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Buat Jadwal P3 Baru</span>
             </button>
           </div>
         </div>
@@ -2748,11 +3634,11 @@ async function loadP3View() {
                 <tr style="cursor:pointer;" onclick="viewP3Detail('${s.id}')">
                   <td style="white-space:nowrap;padding:12px 14px;">
                     <div class="mono font-bold" style="color:var(--brand);font-size:13px;">${s.nomorJadwal}</div>
-                    <div class="mono" style="font-size:11px;color:var(--text-2);margin-top:2px;">📅 ${formatDate(s.tanggal)} &middot; ${s.waktuMulai || ''}</div>
+                    <div class="mono" style="font-size:11px;color:var(--text-2);margin-top:2px;">${formatDate(s.tanggal)} &middot; ${s.waktuMulai || ''}</div>
                   </td>
                   <td class="tbl-name" style="white-space:nowrap;padding:12px 14px;">
                     <div style="font-size:13.5px;font-weight:700;">${s.namaDebitur}</div>
-                    <div class="mono" style="font-size:11px;color:var(--text-3);margin-top:2px;">Rek: ${s.debiturId} &middot; 📍 ${s.area || '-'}</div>
+                    <div class="mono" style="font-size:11px;color:var(--text-3);margin-top:2px;">Rek: ${s.debiturId} &middot; Area: ${s.area || '-'}</div>
                   </td>
                   <td style="white-space:nowrap;padding:12px 14px;">
                     <span class="badge ${getPrioBadgeClass(s.prioritas)}" style="font-size:11px;padding:4px 9px;">${s.prioritas}</span>
@@ -2775,8 +3661,8 @@ async function loadP3View() {
                   </td>
                   <td style="white-space:nowrap;text-align:center;padding:12px 14px;" onclick="event.stopPropagation()">
                     <div style="display:flex;gap:6px;justify-content:center;">
-                      <button class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:11.5px;" onclick="viewP3Detail('${s.id}')">👁️ Detail</button>
-                      <button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11.5px;" onclick="viewP3Detail('${s.id}')">📷 Foto (${photoCount})</button>
+                      <button class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:11.5px;" onclick="viewP3Detail('${s.id}')">Detail</button>
+                      <button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11.5px;" onclick="viewP3Detail('${s.id}')">Foto (${photoCount})</button>
                     </div>
                   </td>
                 </tr>
@@ -2872,6 +3758,9 @@ async function viewP3Detail(id) {
         <div><div class="m-field-label">Target Tagih (Rp)</div><div class="m-field-value mono font-bold text-green">${formatRupiah(s.targetTagih)}</div></div>
         <div><div class="m-field-label">Alamat Debitur</div><div class="m-field-value">${s.alamat || '-'}</div></div>
         <div><div class="m-field-label">Waktu Dibuat</div><div class="m-field-value mono">${formatDate(s.createdAt)}</div></div>
+        ${s.checkInLat && s.checkInLng ? `
+          <div style="grid-column:span 2;"><div class="m-field-label">GPS Check-in Lapangan</div><div class="m-field-value mono font-bold text-teal">Lat ${s.checkInLat.toFixed(5)}, Lng ${s.checkInLng.toFixed(5)} ${s.checkInTime ? '(' + formatDate(s.checkInTime) + ')' : ''}</div></div>
+        ` : ''}
       </div>
 
       <div class="divider"></div>
@@ -2910,7 +3799,7 @@ async function viewP3Detail(id) {
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
         <div style="font-weight:800;font-size:13.5px;color:var(--brand);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
           <span>📷 Foto Bukti Kunjungan Lapangan (${photos.length}/5 Foto)</span>
-          <span style="font-size:11px;color:var(--text-3);">Maksimal 5 foto per kunjungan</span>
+          <span style="font-size:11px;color:var(--text-3);">Watermark GPS &amp; Timestamp Otomatis</span>
         </div>
 
         ${photos.length < 5 ? `
@@ -2921,7 +3810,7 @@ async function viewP3Detail(id) {
                ondrop="event.preventDefault();this.classList.remove('drag-over');uploadP3PhotosFromDrop('${s.id}', event.dataTransfer.files)">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="margin:0 auto 6px;color:var(--brand);"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <p style="font-size:12.5px;font-weight:700;color:var(--brand);margin:0;">Pilih / Ambil Foto Kunjungan Baru</p>
-            <p style="font-size:11px;color:var(--text-3);margin-top:2px;">Drag &amp; drop atau klik untuk menggunakan Kamera HP / Galeri · Format PNG/JPG/WebP · Maks 8MB</p>
+            <p style="font-size:11px;color:var(--text-3);margin-top:2px;">Otomatis di-watermark GPS, Waktu, &amp; Nama Petugas · Format PNG/JPG/WebP · Maks 8MB</p>
           </div>
           <input type="file" id="p3-photo-file-input" accept="image/*" capture="environment" multiple style="display:none;" onchange="uploadP3PhotosFromDrop('${s.id}', this.files)"/>
         ` : '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:10px;">⚠️ Jumlah foto sudah mencapai batas maksimum (5 foto). Hapus foto lama jika ingin mengganti.</div>'}
@@ -2938,7 +3827,7 @@ async function viewP3Detail(id) {
       </div>
 
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
-        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-p3-detail');viewDebiturDetail('${s.debiturId}')">👤 Buka Profile Debitur</button>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-p3-detail');viewDebiturDetail('${s.debiturId}')">Buka Profile Debitur</button>
         <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-p3-detail')">Tutup</button>
       </div>
     `;
@@ -2947,24 +3836,275 @@ async function viewP3Detail(id) {
   }
 }
 
+// WATERMARK GPS & TIMESTAMP GENERATOR FOR FIELD VISIT PHOTOS
+async function watermarkPhotoWithGPS(file, lat, lng, userName) {
+  return new Promise((resolve) => {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        // Draw original photo
+        ctx.drawImage(img, 0, 0);
+
+        // Watermark Banner Height (14% of image height, min 90px)
+        const bannerHeight = Math.max(90, Math.round(canvas.height * 0.14));
+        const bannerY = canvas.height - bannerHeight;
+
+        // Draw Dark Gradient Banner at bottom
+        const gradient = ctx.createLinearGradient(0, bannerY, 0, canvas.height);
+        gradient.addColorStop(0, 'rgba(15, 23, 42, 0.75)');
+        gradient.addColorStop(1, 'rgba(15, 23, 42, 0.95)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, bannerY, canvas.width, bannerHeight);
+
+        // Accent Brand Line on top of banner
+        ctx.fillStyle = '#2DD4BF';
+        ctx.fillRect(0, bannerY, canvas.width, Math.max(4, Math.round(canvas.height * 0.005)));
+
+        // Text Specs
+        const fontSize = Math.max(14, Math.round(canvas.height * 0.024));
+        ctx.font = `bold ${fontSize}px "Plus Jakarta Sans", sans-serif`;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 4;
+
+        const paddingX = Math.max(16, Math.round(canvas.width * 0.03));
+        let textY = bannerY + fontSize + 10;
+
+        // Line 1: Header / Bank Name
+        ctx.fillText(`🏢 BPRS MITRA HARMONI YOGYAKARTA — PROOF OF VISIT`, paddingX, textY);
+        textY += fontSize + 6;
+
+        // Line 2: GPS & Timestamp
+        const dateStr = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
+        const gpsStr = (lat && lng) ? `📍 GPS: Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}` : '📍 GPS: Geolocation Active';
+        ctx.fillText(`${gpsStr}  •  🕒 ${dateStr}`, paddingX, textY);
+        textY += fontSize + 6;
+
+        // Line 3: Petugas
+        ctx.font = `600 ${fontSize * 0.9}px "Plus Jakarta Sans", sans-serif`;
+        ctx.fillStyle = '#2DD4BF';
+        ctx.fillText(`Petugas P3: ${userName || 'Staff Penagihan'}`, paddingX, textY);
+
+        // Export canvas to JPEG Blob / File
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          const watermarkedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + "_gps.jpg", {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(watermarkedFile);
+        }, 'image/jpeg', 0.90);
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+// LEAFLET MAP & GEOLOCATION RUTE INTEGRATION
+let leafletMap = null;
+let leafletMarkersLayer = null;
+
+async function openP3MapModal() {
+  openModal('modal-map-view');
+  setTimeout(() => {
+    initLeafletMap();
+    renderMapMarkers();
+  }, 200);
+}
+
+function initLeafletMap() {
+  const container = document.getElementById('p3-map-container');
+  if (!container || typeof L === 'undefined') return;
+
+  if (leafletMap) {
+    leafletMap.invalidateSize();
+    return;
+  }
+
+  // Centered at Yogyakarta (-7.7956, 110.3695)
+  leafletMap = L.map('p3-map-container').setView([-7.7956, 110.3695], 11);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap BPRS Mitra Harmoni'
+  }).addTo(leafletMap);
+
+  leafletMarkersLayer = L.layerGroup().addTo(leafletMap);
+}
+
+async function renderMapMarkers() {
+  if (!leafletMap || !leafletMarkersLayer) return;
+  leafletMarkersLayer.clearLayers();
+
+  const filterKol = document.getElementById('map-filter-kol')?.value || 'NPF';
+  const infoEl = document.getElementById('map-info-text');
+
+  try {
+    const res = await apiCall('/debitur?limit=200');
+    let list = res.debiturs || [];
+
+    if (filterKol === 'NPF') {
+      list = list.filter(d => ['3', '4', '5'].includes(String(d.kol)));
+    } else if (filterKol !== 'Semua') {
+      list = list.filter(d => String(d.kol) === filterKol);
+    }
+
+    if (infoEl) infoEl.innerText = `Menampilkan ${list.length} lokasi debitur (${filterKol === 'NPF' ? 'KOL 3-5 NPF' : 'Filter KOL ' + filterKol})`;
+
+    // Base coordinates for Yogyakarta districts
+    const baseCoords = {
+      'Yogyakarta': [-7.7956, 110.3695],
+      'Sleman': [-7.7156, 110.3555],
+      'Bantul': [-7.8886, 110.3295],
+      'Kulon Progo': [-7.8256, 110.1555],
+      'Gunungkidul': [-7.9656, 110.6055]
+    };
+
+    list.forEach((d, idx) => {
+      let lat = d.latitude;
+      let lng = d.longitude;
+
+      if (!lat || !lng) {
+        const base = baseCoords[d.kota] || baseCoords['Yogyakarta'];
+        const hash = (d.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + idx) % 1000;
+        const offsetLat = ((hash % 100) - 50) * 0.0018;
+        const offsetLng = (((hash * 3) % 100) - 50) * 0.0018;
+        lat = base[0] + offsetLat;
+        lng = base[1] + offsetLng;
+      }
+
+      let kolColor = '#10B981'; // Green
+      if (String(d.kol) === '5') kolColor = '#EF4444'; // Red
+      else if (String(d.kol) === '4') kolColor = '#F59E0B'; // Orange
+      else if (String(d.kol) === '3') kolColor = '#D97706'; // Amber
+
+      const markerHtml = `<div style="background:${kolColor};width:16px;height:16px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>`;
+      const customIcon = L.divIcon({
+        html: markerHtml,
+        className: 'custom-map-pin',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
+
+      const googleRouteUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+      const popupContent = `
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;padding:4px;min-width:200px;">
+          <div style="font-weight:800;font-size:14px;color:#0F172A;margin-bottom:2px;">${d.nama}</div>
+          <div style="font-size:11px;color:#64748B;margin-bottom:6px;">Rek: ${d.id} &middot; <span style="font-weight:700;color:${kolColor};">KOL ${d.kol}</span></div>
+          <div style="font-size:12px;color:#334155;margin-bottom:4px;">Tunggakan: <strong style="color:#DC2626;">${formatRupiah(d.totalTunggakan)}</strong></div>
+          <div style="font-size:11.5px;color:#64748B;margin-bottom:10px;">${d.alamat || '-'}, ${d.kota || ''}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <a href="${googleRouteUrl}" target="_blank" class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 10px;text-decoration:none;color:#fff;">
+              🚗 Buka Rute Google Maps
+            </a>
+            <button class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px;" onclick="closeModal('modal-map-view');viewDebiturDetail('${d.id}')">
+              Profile Debitur
+            </button>
+          </div>
+        </div>
+      `;
+
+      L.marker([lat, lng], { icon: customIcon })
+        .addTo(leafletMarkersLayer)
+        .bindPopup(popupContent);
+    });
+  } catch (e) {
+    if (infoEl) infoEl.innerText = `Gagal memuat lokasi: ${e.message}`;
+  }
+}
+
+function locateUserPosition() {
+  if (!navigator.geolocation) {
+    showToast('Browser Anda tidak mendukung GPS Geolocation', 'w');
+    return;
+  }
+
+  showToast('Mendeteksi posisi GPS Anda...', 'i');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      if (leafletMap) {
+        leafletMap.setView([lat, lng], 14);
+        const userMarker = L.marker([lat, lng]).addTo(leafletMarkersLayer);
+        userMarker.bindPopup(`<b>📍 Lokasi Anda Saat Ini (Check-in)</b><br>Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`).openPopup();
+      }
+      showToast(`GPS Terdeteksi: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`, 's');
+    },
+    (err) => {
+      showToast(`Gagal membaca GPS: ${err.message}`, 'w');
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+
 async function saveP3VisitResult(id) {
   const status = document.getElementById('p3d-status')?.value;
   const nominalRealisasi = document.getElementById('p3d-realisasi')?.value;
   const hasil = document.getElementById('p3d-hasil')?.value;
 
+  const payload = {
+    status,
+    nominalRealisasi: nominalRealisasi ? parseFloat(nominalRealisasi) : 0,
+    hasil,
+    catatan: hasil
+  };
+
+  // Geo-Fencing Check-in Location Capture
+  if (navigator.geolocation && (status === 'Selesai' || status === 'Dalam Proses')) {
+    showToast('Mengecek lokasi GPS Check-in...', 'i');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        payload.checkInLat = pos.coords.latitude;
+        payload.checkInLng = pos.coords.longitude;
+        payload.checkInAddress = `Lat ${pos.coords.latitude.toFixed(5)}, Lng ${pos.coords.longitude.toFixed(5)}`;
+
+        await sendP3Update(id, payload);
+      },
+      async (err) => {
+        await sendP3Update(id, payload);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  } else {
+    await sendP3Update(id, payload);
+  }
+}
+
+async function sendP3Update(id, payload) {
   try {
-    showToast('Menyimpan hasil kunjungan...', 'i');
+    showToast('Menyimpan hasil kunjungan & GPS check-in...', 'i');
     await apiCall(`/p3/jadwal/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({
-        status,
-        nominalRealisasi: nominalRealisasi ? parseFloat(nominalRealisasi) : 0,
-        hasil
-      })
+      body: JSON.stringify(payload)
     });
     showToast('Hasil kunjungan P3 berhasil diperbarui', 's');
     viewP3Detail(id);
-    loadP3View();
+    if (typeof loadP3View === 'function') loadP3View();
   } catch (err) {
     showToast(`Gagal memperbarui hasil: ${err.message}`, 'e');
   }
@@ -2972,20 +4112,47 @@ async function saveP3VisitResult(id) {
 
 async function uploadP3PhotosFromDrop(jadwalId, files) {
   if (!files || files.length === 0) return;
-  const fd = new FormData();
-  for (let i = 0; i < files.length; i++) {
-    fd.append('files', files[i]);
+
+  let currentLat = null;
+  let currentLng = null;
+  let userName = state.user?.nama || 'Staff P3';
+
+  // Request GPS position for watermark
+  if (navigator.geolocation) {
+    try {
+      const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 4000 }));
+      currentLat = pos.coords.latitude;
+      currentLng = pos.coords.longitude;
+    } catch (e) {}
   }
 
+  showToast('Memproses & mencetak watermark GPS pada foto...', 'i');
+
+  const formData = new FormData();
+  for (let i = 0; i < files.length; i++) {
+    const originalFile = files[i];
+    const watermarkedFile = await watermarkPhotoWithGPS(originalFile, currentLat, currentLng, userName);
+    formData.append('files', watermarkedFile);
+  }
+
+  if (currentLat) formData.append('latitude', currentLat);
+  if (currentLng) formData.append('longitude', currentLng);
+
   try {
-    showToast('Mengunggah & mengompres foto kunjungan...', 'i');
-    const res = await apiCall(`/p3/jadwal/${jadwalId}/foto`, {
+    const res = await fetch(`/p3/jadwal/${jadwalId}/foto`, {
       method: 'POST',
-      body: fd
+      headers: {
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: formData
     });
-    showToast(res.message || 'Foto berhasil diunggah', 's');
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal mengunggah foto');
+
+    showToast(`Foto bukti kunjungan bertanda GPS berhasil diunggah!`, 's');
     viewP3Detail(jadwalId);
-    loadP3View();
+    if (typeof loadP3View === 'function') loadP3View();
   } catch (err) {
     showToast(`Gagal mengunggah foto: ${err.message}`, 'e');
   }
@@ -3169,7 +4336,8 @@ async function saveP3Form() {
     return;
   }
 
-  if (!p3fTarget || parseFloat(p3fTarget) <= 0) {
+  const targetNum = parseCurrencyInput(p3fTarget);
+  if (!p3fTarget || targetNum <= 0) {
     showToast('Target Tagih harus lebih dari 0', 'w');
     return;
   }
@@ -3183,7 +4351,7 @@ async function saveP3Form() {
     prioritas: p3fPrioritas,
     jenisTagih: p3fJenis,
     metode: p3fMetode,
-    targetTagih: parseFloat(p3fTarget),
+    targetTagih: targetNum,
     catatan: p3fCatatan
   };
 
@@ -3203,24 +4371,33 @@ async function saveP3Form() {
 
 // 5. LEGAL VIEW
 let legalState = {
+  activeSubtab: 'berkas', // 'berkas' | 'surat'
   berkas: [],
+  surat: [],
   filterStatus: 'Semua',
   searchQuery: '',
-  openCardId: null
+  openCardId: null,
+  suratJenisFilter: ''
 };
 
 async function loadLegalView() {
   const container = document.getElementById('legal-content');
   if (!container) return;
 
-  container.innerHTML = `<div class="empty-st"><p>Memuat berkas legal...</p></div>`;
+  container.innerHTML = `<div class="empty-st"><p>Memuat data legal...</p></div>`;
 
   try {
-    const res = await apiCall('/legal/berkas');
-    legalState.berkas = Array.isArray(res) ? res : (res?.berkas || []);
+    const [resBerkas, resSurat] = await Promise.all([
+      apiCall('/legal/berkas').catch(() => []),
+      apiCall('/legal/surat').catch(() => [])
+    ]);
+
+    legalState.berkas = Array.isArray(resBerkas) ? resBerkas : (resBerkas?.berkas || []);
+    legalState.surat = Array.isArray(resSurat) ? resSurat : [];
+
     renderLegalView();
   } catch (err) {
-    container.innerHTML = `<div class="empty-st"><p>Gagal memuat berkas legal: ${err.message}</p></div>`;
+    container.innerHTML = `<div class="empty-st"><p>Gagal memuat data legal: ${err.message}</p></div>`;
   }
 }
 
@@ -3228,84 +4405,217 @@ function renderLegalView() {
   const container = document.getElementById('legal-content');
   if (!container) return;
 
-  const berkas = legalState.berkas;
-  
-  // Calculate summary counts
-  const totalCount = berkas.length;
-  const lengkapCount = berkas.filter(b => b.status === 'Lengkap').length;
-  const prosesCount = berkas.filter(b => b.status === 'Proses').length;
-  const kurangCount = berkas.filter(b => b.status === 'Kurang').length;
+  const isSuratTab = legalState.activeSubtab === 'surat';
 
-  // Filter berkas
-  let filtered = berkas;
-  if (legalState.filterStatus && legalState.filterStatus !== 'Semua') {
-    filtered = filtered.filter(b => b.status === legalState.filterStatus);
-  }
-  if (legalState.searchQuery) {
-    const q = legalState.searchQuery.toLowerCase();
-    filtered = filtered.filter(b => 
-      (b.debitur?.nama || '').toLowerCase().includes(q) ||
-      (b.debiturId || '').toLowerCase().includes(q) ||
-      (b.notaris || '').toLowerCase().includes(q) ||
-      (b.noAkad || '').toLowerCase().includes(q)
-    );
+  // Update header title, sub description & main button
+  const mainBtn = document.getElementById('legal-main-btn');
+  const mainBtnText = document.getElementById('legal-main-btn-text');
+  const pageTitle = document.getElementById('legal-page-title');
+  const pageSub = document.getElementById('legal-page-sub');
+
+  if (isSuratTab) {
+    if (pageTitle) pageTitle.innerHTML = 'Surat Peringatan (SP1, SP2) &amp; Somasi';
+    if (pageSub) pageSub.textContent = 'Pengelolaan penerbitan surat peringatan, somasi legal, dan pemantauan status pengiriman.';
+    if (mainBtnText) mainBtnText.textContent = 'Buat SP / Somasi Baru';
+    if (mainBtn) mainBtn.onclick = () => openSuratForm();
+  } else {
+    if (pageTitle) pageTitle.innerHTML = 'Manajemen Berkas Legal &amp; Agunan';
+    if (pageSub) pageSub.textContent = 'Pengelolaan dokumen hukum, kepemilikan agunan, notaris, dan kelengkapan berkas pembiayaan.';
+    if (mainBtnText) mainBtnText.textContent = 'Tambah Berkas';
+    if (mainBtn) mainBtn.onclick = () => openLegalForm();
   }
 
-  container.innerHTML = `
-    <!-- SUMMARY STATS -->
-    <div class="legal-summary-grid mb-4">
-      <div class="stat-card">
-        <div class="stat-label">Total Berkas Legal</div>
-        <div class="stat-num">${totalCount}</div>
-        <div class="stat-sub">Nasabah terdaftar berkas</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Berkas Lengkap</div>
-        <div class="stat-num text-success">${lengkapCount}</div>
-        <div class="stat-sub">100% Checklist Terpenuhi</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Dalam Proses</div>
-        <div class="stat-num text-warning">${prosesCount}</div>
-        <div class="stat-sub">50% - 99% Checklist</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Berkas Kurang</div>
-        <div class="stat-num text-danger">${kurangCount}</div>
-        <div class="stat-sub">&lt; 50% Checklist</div>
-      </div>
-    </div>
-
-    <!-- SEARCH & FILTER TOOLBAR -->
-    <div class="toolbar-wrap mb-4" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
-      <div class="search-box-group" style="flex:1;min-width:260px;max-width:420px;">
-        <svg class="search-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="legal-search-input" type="text" placeholder="Cari nama, no. rekening, notaris, no. akad..." value="${legalState.searchQuery}" onkeydown="if(event.key==='Enter') executeLegalSearch()"/>
-        <button class="search-box-btn" type="button" onclick="executeLegalSearch()">
-          <span class="material-symbols-outlined" style="font-size:16px;">search</span>
-          <span>Cari</span>
-        </button>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <span style="font-size:12px;font-weight:700;color:var(--text-2);">Status:</span>
-        <select class="form-select" onchange="handleLegalFilter(this.value)" style="width:auto;font-size:12.5px;">
-          <option value="Semua" ${legalState.filterStatus === 'Semua' ? 'selected' : ''}>Semua Status</option>
-          <option value="Lengkap" ${legalState.filterStatus === 'Lengkap' ? 'selected' : ''}>Lengkap (100%)</option>
-          <option value="Proses" ${legalState.filterStatus === 'Proses' ? 'selected' : ''}>Proses (50-99%)</option>
-          <option value="Kurang" ${legalState.filterStatus === 'Kurang' ? 'selected' : ''}>Kurang (&lt;50%)</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- ACCORDION CARDS LIST -->
-    <div class="legal-cards-list">
-      ${filtered.length === 0 ? `
-        <div class="empty-st">
-          <p>Tidak ada berkas legal yang cocok dengan filter</p>
-        </div>
-      ` : filtered.map(b => renderLegalCard(b)).join('')}
+  // Render Subtab Header
+  let html = `
+    <div style="display:flex;gap:12px;border-bottom:2px solid var(--border);margin-bottom:20px;">
+      <button class="setting-subtab ${!isSuratTab ? 'active' : ''}" onclick="switchLegalSubtab('berkas')" style="font-size:14px;padding:10px 18px;border:none;background:none;cursor:pointer;font-weight:${!isSuratTab ? '800' : '600'};color:${!isSuratTab ? 'var(--brand)' : 'var(--text-2)'};border-bottom:3px solid ${!isSuratTab ? 'var(--brand)' : 'transparent'};">
+        Manajemen Berkas Legal &amp; Agunan
+      </button>
+      <button class="setting-subtab ${isSuratTab ? 'active' : ''}" onclick="switchLegalSubtab('surat')" style="font-size:14px;padding:10px 18px;border:none;background:none;cursor:pointer;font-weight:${isSuratTab ? '800' : '600'};color:${isSuratTab ? 'var(--brand)' : 'var(--text-2)'};border-bottom:3px solid ${isSuratTab ? 'var(--brand)' : 'transparent'};">
+        Surat Peringatan &amp; Somasi
+      </button>
     </div>
   `;
+
+  if (isSuratTab) {
+    // SUBTAB SP1, SP2, & SOMASI
+    const suratList = legalState.surat || [];
+    const totalSurat = suratList.length;
+    const sp1Count = suratList.filter(s => s.jenisSurat === 'SP1').length;
+    const sp2Count = suratList.filter(s => s.jenisSurat === 'SP2').length;
+    const somasiCount = suratList.filter(s => s.jenisSurat.includes('Somasi') || s.jenisSurat.includes('Eksekusi')).length;
+
+    let filteredSurat = suratList;
+    if (legalState.suratJenisFilter) {
+      filteredSurat = filteredSurat.filter(s => s.jenisSurat === legalState.suratJenisFilter);
+    }
+    if (legalState.searchQuery) {
+      const q = legalState.searchQuery.toLowerCase();
+      filteredSurat = filteredSurat.filter(s =>
+        (s.nomorSurat || '').toLowerCase().includes(q) ||
+        (s.namaDebitur || '').toLowerCase().includes(q) ||
+        (s.debiturId || '').toLowerCase().includes(q)
+      );
+    }
+
+    html += `
+      <!-- SUMMARY STATS SP/SOMASI -->
+      <div class="legal-summary-grid mb-4">
+        <div class="stat-card">
+          <div class="stat-label">Total Surat Diterbitkan</div>
+          <div class="stat-num">${totalSurat}</div>
+          <div class="stat-sub">SP1, SP2, &amp; Somasi</div>
+        </div>
+        <div class="stat-card info">
+          <div class="stat-label">Surat Peringatan 1 (SP1)</div>
+          <div class="stat-num text-blue">${sp1Count}</div>
+          <div class="stat-sub">Peringatan Awal</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-label">Surat Peringatan 2 (SP2)</div>
+          <div class="stat-num text-warning">${sp2Count}</div>
+          <div class="stat-sub">Peringatan Lanjutan</div>
+        </div>
+        <div class="stat-card dang">
+          <div class="stat-label">Somasi &amp; Eksekusi</div>
+          <div class="stat-num text-danger">${somasiCount}</div>
+          <div class="stat-sub">Tindakan Hukum Formal</div>
+        </div>
+      </div>
+
+      <!-- TOOLBAR SP/SOMASI -->
+      <div class="toolbar-wrap mb-4" style="display:flex;gap:10px;align-items:center;flex-wrap:nowrap;">
+        <input type="text" class="form-input" placeholder="Cari no. surat, nama debitur..." value="${legalState.searchQuery}" onkeydown="if(event.key==='Enter') executeSuratSearch(this.value)" style="width:280px;max-width:100%;font-size:13.5px;"/>
+        <select class="form-select form-select-auto" onchange="filterSuratJenis(this.value)" style="width:auto;min-width:180px;font-size:13.5px;white-space:nowrap;">
+          <option value="">Semua Jenis Surat</option>
+          <option value="SP1" ${legalState.suratJenisFilter==='SP1'?'selected':''}>SP1</option>
+          <option value="SP2" ${legalState.suratJenisFilter==='SP2'?'selected':''}>SP2</option>
+          <option value="Somasi 1" ${legalState.suratJenisFilter==='Somasi 1'?'selected':''}>Somasi 1</option>
+          <option value="Somasi 2" ${legalState.suratJenisFilter==='Somasi 2'?'selected':''}>Somasi 2</option>
+          <option value="Eksekusi Jaminan" ${legalState.suratJenisFilter==='Eksekusi Jaminan'?'selected':''}>Eksekusi Jaminan</option>
+        </select>
+      </div>
+
+      <!-- SURAT TABLE -->
+      <div class="tbl-wrap">
+        <table class="tbl" style="min-width:920px;">
+          <thead>
+            <tr>
+              <th>No. Surat</th>
+              <th>Jenis Surat</th>
+              <th>Nama Debitur</th>
+              <th>Tgl Surat</th>
+              <th>Batas Waktu</th>
+              <th class="num">Total Tunggakan</th>
+              <th>Status</th>
+              <th>Petugas</th>
+              <th style="text-align:center;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredSurat.length === 0 ? '<tr><td colspan="9" class="empty-st">Belum ada dokumen SP / Somasi diterbitkan</td></tr>' : filteredSurat.map(s => `
+              <tr>
+                <td class="mono font-bold" style="white-space:nowrap;">${s.nomorSurat}</td>
+                <td><span class="badge ${s.jenisSurat.startsWith('SP') ? 'badge-blue' : 'badge-red'}">${s.jenisSurat}</span></td>
+                <td class="font-bold">${s.namaDebitur}<br><span class="mono text-muted" style="font-size:11px;">Rek: ${s.debiturId}</span></td>
+                <td class="mono">${formatDate(s.tanggalSurat)}</td>
+                <td class="mono">${formatDate(s.tglJatuhTempo)}</td>
+                <td class="num mono font-bold text-danger">${formatRupiah(s.totalTunggakan)}</td>
+                <td><span class="badge ${s.status==='Selesai'?'badge-green':s.status==='Diterima'?'badge-teal':s.status==='Terkirim'?'badge-yellow':'badge-gray'}">${s.status}</span></td>
+                <td>${s.petugas}</td>
+                <td style="text-align:center;">
+                  <div style="display:flex;gap:4px;justify-content:center;">
+                    <button class="btn btn-ghost btn-sm" onclick="exportSuratPDF('${s.id}')" title="Cetak Surat PDF / Print" style="padding:2px 6px;font-size:11px;">Cetak</button>
+                    <button class="btn btn-ghost btn-sm" onclick="openSuratStatusModal('${s.id}')" title="Update Status Surat" style="padding:2px 6px;font-size:11px;">Status</button>
+                    <button class="btn btn-ghost btn-sm" onclick="deleteSuratLegal('${s.id}')" title="Hapus Surat" style="padding:2px 6px;font-size:11px;color:var(--danger);">Hapus</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    // SUBTAB BERKAS LEGAL & AGUNAN
+    const berkas = legalState.berkas;
+    const totalCount = berkas.length;
+    const lengkapCount = berkas.filter(b => b.status === 'Lengkap').length;
+    const prosesCount = berkas.filter(b => b.status === 'Proses').length;
+    const kurangCount = berkas.filter(b => b.status === 'Kurang').length;
+
+    let filtered = berkas;
+    if (legalState.filterStatus && legalState.filterStatus !== 'Semua') {
+      filtered = filtered.filter(b => b.status === legalState.filterStatus);
+    }
+    if (legalState.searchQuery) {
+      const q = legalState.searchQuery.toLowerCase();
+      filtered = filtered.filter(b => 
+        (b.debitur?.nama || '').toLowerCase().includes(q) ||
+        (b.debiturId || '').toLowerCase().includes(q) ||
+        (b.notaris || '').toLowerCase().includes(q) ||
+        (b.noAkad || '').toLowerCase().includes(q)
+      );
+    }
+
+    html += `
+      <!-- SUMMARY STATS BERKAS -->
+      <div class="legal-summary-grid mb-4">
+        <div class="stat-card">
+          <div class="stat-label">Total Berkas Legal</div>
+          <div class="stat-num">${totalCount}</div>
+          <div class="stat-sub">Nasabah terdaftar berkas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Berkas Lengkap</div>
+          <div class="stat-num text-success">${lengkapCount}</div>
+          <div class="stat-sub">100% Checklist Terpenuhi</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Dalam Proses</div>
+          <div class="stat-num text-warning">${prosesCount}</div>
+          <div class="stat-sub">50% - 99% Checklist</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Berkas Kurang</div>
+          <div class="stat-num text-danger">${kurangCount}</div>
+          <div class="stat-sub">&lt; 50% Checklist</div>
+        </div>
+      </div>
+
+      <!-- SEARCH & FILTER TOOLBAR -->
+      <div class="toolbar-wrap mb-4" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+        <div class="search-box-group" style="flex:1;min-width:260px;max-width:420px;">
+          <svg class="search-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="legal-search-input" type="text" placeholder="Cari nama, no. rekening, notaris, no. akad..." value="${legalState.searchQuery}" onkeydown="if(event.key==='Enter') executeLegalSearch()"/>
+          <button class="search-box-btn" type="button" onclick="executeLegalSearch()">
+            <span class="material-symbols-outlined" style="font-size:16px;">search</span>
+            <span>Cari</span>
+          </button>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:12px;font-weight:700;color:var(--text-2);">Status:</span>
+          <select class="form-select" onchange="handleLegalFilter(this.value)" style="width:auto;font-size:12.5px;">
+            <option value="Semua" ${legalState.filterStatus === 'Semua' ? 'selected' : ''}>Semua Status</option>
+            <option value="Lengkap" ${legalState.filterStatus === 'Lengkap' ? 'selected' : ''}>Lengkap (100%)</option>
+            <option value="Proses" ${legalState.filterStatus === 'Proses' ? 'selected' : ''}>Proses (50-99%)</option>
+            <option value="Kurang" ${legalState.filterStatus === 'Kurang' ? 'selected' : ''}>Kurang (&lt;50%)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ACCORDION CARDS LIST -->
+      <div class="legal-cards-list">
+        ${filtered.length === 0 ? `
+          <div class="empty-st">
+            <p>Tidak ada berkas legal yang cocok dengan filter</p>
+          </div>
+        ` : filtered.map(b => renderLegalCard(b)).join('')}
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
 }
 
 function renderLegalCard(b) {
@@ -3335,6 +4645,9 @@ function renderLegalCard(b) {
         <div class="legal-card-badges">
           <span class="badge ${statusClass}">${b.status}</span>
           <span class="badge badge-teal">${pct}% (${checkedCount}/${totalCount})</span>
+          ${['admin', 'legal', 'kabid_p3', 'staff_p3', 'desk_call'].includes(state.user?.posisi) ? `
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deleteLegalBerkas('${b.id}')" title="Hapus Berkas Legal" style="color:var(--danger);padding:2px 8px;font-size:11.5px;margin-left:4px;border:1px solid rgba(192,57,44,0.2);">Hapus</button>
+          ` : ''}
           <div class="legal-card-chevron">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
@@ -3374,7 +4687,7 @@ function renderLegalCard(b) {
         </div>
 
         <!-- 4 CATEGORY CHECKLIST GRID -->
-        <div style="margin-bottom:8px;font-size:12px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;">📋 Checklist Kelengkapan Dokumen:</div>
+        <div style="margin-bottom:8px;font-size:12px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;">Checklist Kelengkapan Dokumen:</div>
         <div class="legal-checklist-grid">
           ${categories.map(cat => {
             const items = checklistsByCat[cat] || [];
@@ -3399,7 +4712,7 @@ function renderLegalCard(b) {
         <!-- FILE ATTACHMENTS & UPLOAD ZONE -->
         <div class="legal-files-box">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div style="font-size:12px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;">📎 Dokumen Terlampir:</div>
+            <div style="font-size:12px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;">Dokumen Terlampir:</div>
             <button class="btn btn-outline btn-sm" onclick="document.getElementById('legal-file-input-${b.id}').click()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Upload Dokumen
@@ -3623,6 +4936,171 @@ async function saveLegalForm() {
   }
 }
 
+// SURAT PERINGATAN / SOMASI FORM HANDLERS (LIVE AUTOCOMPLETE SEARCH)
+let selectedSuratDebiturId = '';
+let suratAcDebounce = null;
+
+async function openSuratForm(debiturId) {
+  selectedSuratDebiturId = debiturId || '';
+  const inputEl = document.getElementById('suratf-debitur-input');
+  const idEl = document.getElementById('suratf-debitur-id');
+  const infoEl = document.getElementById('suratf-info');
+  const jenisEl = document.getElementById('suratf-jenis');
+  const halEl = document.getElementById('suratf-hal');
+  const tglEl = document.getElementById('suratf-tanggal');
+  const tglJtEl = document.getElementById('suratf-tgljt');
+  const catEl = document.getElementById('suratf-catatan');
+  const acEl = document.getElementById('suratf-ac');
+
+  if (acEl) acEl.style.display = 'none';
+
+  const todayStr = new Date().toISOString().substring(0, 10);
+  const jtDate = new Date();
+  jtDate.setDate(jtDate.getDate() + 7);
+  const jtStr = jtDate.toISOString().substring(0, 10);
+
+  if (tglEl) tglEl.value = todayStr;
+  if (tglJtEl) tglJtEl.value = jtStr;
+  if (jenisEl) jenisEl.value = 'SP1';
+  if (halEl) halEl.value = 'Surat Peringatan atas Tunggakan Pembiayaan';
+  if (catEl) catEl.value = '';
+
+  if (debiturId) {
+    try {
+      const d = await apiCall(`/debitur/${debiturId}`);
+      if (inputEl) inputEl.value = `${d.nama} (${d.id})`;
+      if (idEl) idEl.value = d.id;
+      showSuratDebiturInfo(d);
+    } catch (err) {
+      if (inputEl) inputEl.value = debiturId;
+      if (idEl) idEl.value = debiturId;
+    }
+  } else {
+    if (inputEl) inputEl.value = '';
+    if (idEl) idEl.value = '';
+    if (infoEl) infoEl.classList.add('hidden');
+  }
+
+  openModal('modal-surat-form');
+}
+
+function suratDebiturAutocomplete(val) {
+  const ac = document.getElementById('suratf-ac');
+  if (!ac) return;
+
+  if (!val || val.trim().length < 2) {
+    ac.style.display = 'none';
+    return;
+  }
+
+  if (suratAcDebounce) clearTimeout(suratAcDebounce);
+  suratAcDebounce = setTimeout(async () => {
+    try {
+      const res = await apiCall(`/debitur?q=${encodeURIComponent(val.trim())}&limit=6`);
+      const list = res.debiturs || [];
+
+      if (list.length === 0) {
+        ac.innerHTML = `<div style="padding:10px 14px;font-size:12px;color:var(--text-3);">Tidak ada debitur ditemukan</div>`;
+      } else {
+        ac.innerHTML = list.map(d => `
+          <div style="padding:10px 14px;font-size:12.5px;cursor:pointer;border-bottom:1px solid var(--border);" 
+               onmouseover="this.style.background='var(--bg-hover)'" 
+               onmouseout="this.style.background='none'" 
+               onclick="selectSuratDebitur('${d.id}', '${d.nama.replace(/'/g, "\\'")}', ${d.totalTunggakan}, ${d.bakiDebet})">
+            <div style="font-weight:700;color:var(--text);">${d.nama}</div>
+            <div class="mono" style="font-size:11px;color:var(--text-3);margin-top:2px;">
+              Rek: ${d.id} &middot; Tunggakan: ${formatRupiah(d.totalTunggakan)} &middot; KOL ${d.kol}
+            </div>
+          </div>
+        `).join('');
+      }
+      ac.style.display = 'block';
+    } catch (err) {
+      ac.style.display = 'none';
+    }
+  }, 250);
+}
+
+function selectSuratDebitur(id, nama, tunggakan, bakiDebet) {
+  selectedSuratDebiturId = id;
+  const inputEl = document.getElementById('suratf-debitur-input');
+  const idEl = document.getElementById('suratf-debitur-id');
+  const ac = document.getElementById('suratf-ac');
+
+  if (inputEl) inputEl.value = `${nama} (${id})`;
+  if (idEl) idEl.value = id;
+  if (ac) ac.style.display = 'none';
+
+  showSuratDebiturInfo({ nama, id, totalTunggakan: tunggakan, bakiDebet });
+}
+
+function showSuratDebiturInfo(d) {
+  const infoEl = document.getElementById('suratf-info');
+  const namaEl = document.getElementById('suratf-nama');
+  const tunggakanEl = document.getElementById('suratf-tunggakan');
+  const bakiEl = document.getElementById('suratf-baki');
+
+  if (namaEl) namaEl.innerText = `${d.nama} (${d.id})`;
+  if (tunggakanEl) tunggakanEl.innerText = formatRupiah(d.totalTunggakan);
+  if (bakiEl) bakiEl.innerText = formatRupiah(d.bakiDebet);
+  if (infoEl) infoEl.classList.remove('hidden');
+}
+
+async function submitSuratForm(e) {
+  if (e) e.preventDefault();
+
+  const inputVal = document.getElementById('suratf-debitur-input')?.value || '';
+  let debiturId = document.getElementById('suratf-debitur-id')?.value || selectedSuratDebiturId;
+
+  if (!debiturId && inputVal.includes('(') && inputVal.includes(')')) {
+    const matches = inputVal.match(/\(([^)]+)\)/);
+    if (matches && matches[1]) debiturId = matches[1].trim();
+  }
+
+  // Fallback search if user typed name/no directly without clicking autocomplete
+  if (!debiturId && inputVal.trim()) {
+    try {
+      const qRes = await apiCall(`/debitur?q=${encodeURIComponent(inputVal.trim())}&limit=1`);
+      if (qRes.debiturs && qRes.debiturs.length > 0) {
+        debiturId = qRes.debiturs[0].id;
+      }
+    } catch (err) {}
+  }
+
+  if (!debiturId) {
+    showToast('Debitur wajib dipilih dari hasil pencarian autocomplete', 'w');
+    return;
+  }
+
+  const jenisSurat = document.getElementById('suratf-jenis')?.value || 'SP1';
+  const halSurat = document.getElementById('suratf-hal')?.value || 'Surat Peringatan atas Tunggakan Pembiayaan';
+  const tanggalSurat = document.getElementById('suratf-tanggal')?.value || new Date().toISOString().substring(0, 10);
+  const tglJatuhTempo = document.getElementById('suratf-tgljt')?.value || null;
+  const catatan = document.getElementById('suratf-catatan')?.value || '';
+
+  const payload = {
+    debiturId,
+    jenisSurat,
+    halSurat,
+    tanggalSurat,
+    tglJatuhTempo,
+    catatan
+  };
+
+  try {
+    showToast('Menerbitkan surat peringatan...', 'i');
+    await apiCall('/legal/surat', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    showToast(`${jenisSurat} berhasil diterbitkan`, 's');
+    closeModal('modal-surat-form');
+    if (typeof loadLegalView === 'function') loadLegalView();
+  } catch (err) {
+    showToast(`Gagal menerbitkan surat: ${err.message}`, 'e');
+  }
+}
+
 // 6. RIWAYAT BAYAR VIEW & PDF EXPORT
 let bayarSelectedDate = new Date().toISOString().substring(0, 10);
 
@@ -3649,7 +5127,7 @@ async function loadBayarView() {
         <div class="stat-card">
           <div class="stat-card-top">
             <span class="stat-label">TOTAL TRANSAKSI</span>
-            <span class="stat-pill stat-pill-green">💳 Transaksi</span>
+            <span class="stat-pill stat-pill-green">Transaksi</span>
           </div>
           <div class="stat-value">${stats.totalTransaksi || payments.length || 0} Transaksi</div>
           <div class="stat-sub">Bulan Ini</div>
@@ -3667,7 +5145,7 @@ async function loadBayarView() {
         <div class="stat-card">
           <div class="stat-card-top">
             <span class="stat-label">TRANSFER BANK</span>
-            <span class="stat-pill stat-pill-blue">🏦 Non-Tunai</span>
+            <span class="stat-pill stat-pill-blue">Non-Tunai</span>
           </div>
           <div class="stat-value text-blue" style="font-size:24px;">${formatRupiah(stats.totalTransfer || 0)}</div>
           <div class="stat-sub">Metode Non-Tunai</div>
@@ -3676,7 +5154,7 @@ async function loadBayarView() {
         <div class="stat-card">
           <div class="stat-card-top">
             <span class="stat-label">PEMBAYARAN TUNAI</span>
-            <span class="stat-pill stat-pill-yellow">💵 Tunai</span>
+            <span class="stat-pill stat-pill-yellow">Tunai</span>
           </div>
           <div class="stat-value text-warning" style="font-size:24px;">${formatRupiah(stats.totalTunai || 0)}</div>
           <div class="stat-sub">Teller / Direct Cash</div>
@@ -3744,9 +5222,9 @@ function changeBayarDate(dateStr) {
 function exportPembayaranPdfHarian(filterTanggalStr = null) {
   const targetDateStr = filterTanggalStr || bayarSelectedDate || new Date().toISOString().substring(0, 10);
   
-  showToast('Menyiapkan laporan PDF harian...', 'i');
+  showToast('Menyiapkan Laporan PDF Harian...', 'i');
 
-  apiCall('/pembayaran').then(res => {
+  apiCall('/pembayaran').then(async res => {
     const allPayments = Array.isArray(res) ? res : (res?.pembayaran || []);
     
     // Filter payments for target date (YYYY-MM-DD) if targetDateStr is set
@@ -3761,15 +5239,11 @@ function exportPembayaranPdfHarian(filterTanggalStr = null) {
     const totalTunai = dayPayments.filter(p => (p.metode || '').toLowerCase().includes('tunai')).reduce((sum, p) => sum + (p.nominal || 0), 0);
     const totalTransfer = totalSetoran - totalTunai;
 
-    const printWindow = window.open('', '_blank', 'width=1100,height=850');
-    if (!printWindow) {
-      showToast('Gagal membuka jendela cetak. Izinkan pop-up di browser.', 'w');
-      return;
-    }
+    const filename = `Rekap_Pembayaran_${targetDateStr || 'All'}.pdf`;
 
     const rowsHtml = dayPayments.length === 0 ? `
       <tr>
-        <td colspan="7" style="text-align:center;padding:28px;color:#64748B;font-style:italic;">
+        <td colspan="7" style="text-align:center;padding:24px;color:#64748B;font-style:italic;">
           Tidak ada data pembayaran nasabah yang dicatat pada tanggal ${targetDateStr ? formatDate(targetDateStr) : 'pilihan'}.
         </td>
       </tr>
@@ -3778,100 +5252,56 @@ function exportPembayaranPdfHarian(filterTanggalStr = null) {
         <td style="text-align:center;font-weight:bold;">${idx + 1}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-weight:bold;">${p.debiturId || '-'}</td>
         <td style="font-weight:bold;color:#0F172A;">${p.nama || '-'}</td>
-        <td style="text-align:center;"><span class="badge-pdf">${p.kol ? 'KOL ' + p.kol : '-'}</span></td>
+        <td style="text-align:center;"><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:#CCFBF1;color:#0F766E;">${p.kol ? 'KOL ' + p.kol : '-'}</span></td>
         <td style="text-align:center;font-weight:600;">${p.metode || '-'}</td>
         <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:bold;color:#059669;">${formatRupiah(p.nominal || 0)}</td>
         <td style="font-size:12px;color:#475569;">${p.petugas || '-'}</td>
       </tr>
     `).join('');
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html lang="id">
-      <head>
-        <meta charset="UTF-8">
-        <title>Laporan Rekapitulasi Pembayaran Harian — ${targetDateStr || 'Semua Tanggal'}</title>
-        <style>
-          @page { size: A4 portrait; margin: 15mm 15mm 15mm 15mm; }
-          body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; color: #0F172A; margin: 0; padding: 24px; font-size: 13px; line-height: 1.5; }
-          .hdr-kop { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #0F766E; padding-bottom: 12px; margin-bottom: 20px; }
-          .kop-brand { font-size: 18px; font-weight: 800; color: #0F766E; letter-spacing: -0.3px; text-transform: uppercase; }
-          .kop-sub { font-size: 13px; font-weight: 700; color: #334155; margin-top: 2px; }
-          .kop-meta { text-align: right; font-size: 11px; color: #64748B; }
-          
-          .report-title { text-align: center; margin-bottom: 22px; }
-          .report-title h2 { font-size: 17px; font-weight: 800; color: #0F172A; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px; }
-          .report-title p { font-size: 13px; font-weight: 600; color: #0F766E; margin: 0; }
-
-          .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; }
-          .meta-item label { display: block; font-size: 10.5px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
-          .meta-item val { font-size: 15px; font-weight: 800; color: #0F172A; }
-
-          table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 12.5px; }
-          th { background: #F1F5F9; color: #334155; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 12px; border: 1px solid #CBD5E1; text-align: left; }
-          td { padding: 9px 12px; border: 1px solid #E2E8F0; vertical-align: middle; }
-          tr:nth-child(even) td { background: #FAFCFB; }
-
-          .badge-pdf { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: #CCFBF1; color: #0F766E; border: 1px solid #99F6E4; }
-          
-          .summary-box { background: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: 12px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-          .summary-title { font-size: 13px; font-weight: 800; color: #065F46; text-transform: uppercase; }
-          .summary-val { font-size: 18px; font-weight: 800; color: #047857; font-family: 'JetBrains Mono', monospace; }
-
-          .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; page-break-inside: avoid; }
-          .sig-box { text-align: center; }
-          .sig-title { font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 60px; }
-          .sig-name { font-size: 13px; font-weight: 800; color: #0F172A; text-decoration: underline; }
-          .sig-role { font-size: 11px; color: #64748B; margin-top: 2px; }
-
-          @media print {
-            body { padding: 0; }
-            .no-print { display: none !important; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="hdr-kop">
+    const fullHtml = `
+      <div id="pdf-report-content" style="font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#0F172A;padding:24px;background:#fff;max-width:900px;margin:0 auto;font-size:12.5px;line-height:1.5;">
+        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px double #0F766E;padding-bottom:12px;margin-bottom:20px;">
           <div>
-            <div class="kop-brand">${ptName}</div>
-            <div class="kop-sub">Sistem Informasi Penagihan Terpadu AO, P3 &amp; Desk Call</div>
+            <div style="font-size:18px;font-weight:800;color:#0F766E;letter-spacing:-0.3px;text-transform:uppercase;">${ptName}</div>
+            <div style="font-size:13px;font-weight:700;color:#334155;margin-top:2px;">Sistem Informasi Penagihan Terpadu AO, P3 &amp; Desk Call</div>
           </div>
-          <div class="kop-meta">
+          <div style="text-align:right;font-size:11px;color:#64748B;">
             <div>Tanggal Cetak: <strong>${formatDate(new Date())}</strong></div>
             <div>Waktu: <strong>${new Date().toLocaleTimeString('id-ID')} WIB</strong></div>
           </div>
         </div>
 
-        <div class="report-title">
-          <h2>Laporan Rekapitulasi Pembayaran Nasabah Harian</h2>
-          <p>Tanggal Transaksi: ${targetDateStr ? formatDate(targetDateStr) : 'Semua Tanggal Transaksi'}</p>
+        <div style="text-align:center;margin-bottom:22px;">
+          <h2 style="font-size:17px;font-weight:800;color:#0F172A;margin:0 0 4px 0;text-transform:uppercase;letter-spacing:0.5px;">Laporan Rekapitulasi Pembayaran Nasabah Harian</h2>
+          <p style="font-size:13px;font-weight:600;color:#0F766E;margin:0;">Tanggal Transaksi: ${targetDateStr ? formatDate(targetDateStr) : 'Semua Tanggal Transaksi'}</p>
         </div>
 
-        <div class="meta-grid">
-          <div class="meta-item">
-            <label>Total Transaksi Harian</label>
-            <val>${dayPayments.length} Transaksi</val>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
+          <div>
+            <span style="display:block;font-size:10.5px;font-weight:800;color:#64748B;text-transform:uppercase;">Total Transaksi Harian</span>
+            <strong style="font-size:15px;color:#0F172A;">${dayPayments.length} Transaksi</strong>
           </div>
-          <div class="meta-item">
-            <label>Setoran Tunai</label>
-            <val style="color:#2563EB;">${formatRupiah(totalTunai)}</val>
+          <div>
+            <span style="display:block;font-size:10.5px;font-weight:800;color:#64748B;text-transform:uppercase;">Setoran Tunai</span>
+            <strong style="font-size:15px;color:#2563EB;">${formatRupiah(totalTunai)}</strong>
           </div>
-          <div class="meta-item">
-            <label>Transfer Bank Non-Tunai</label>
-            <val style="color:#7C3AED;">${formatRupiah(totalTransfer)}</val>
+          <div>
+            <span style="display:block;font-size:10.5px;font-weight:800;color:#64748B;text-transform:uppercase;">Transfer Bank Non-Tunai</span>
+            <strong style="font-size:15px;color:#7C3AED;">${formatRupiah(totalTransfer)}</strong>
           </div>
         </div>
 
-        <table>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:24px;font-size:12.5px;">
           <thead>
-            <tr>
-              <th style="width:35px;text-align:center;">No.</th>
-              <th style="width:140px;">No. Rekening</th>
-              <th>Nama Debitur</th>
-              <th style="width:90px;text-align:center;">KOL</th>
-              <th style="width:110px;text-align:center;">Metode</th>
-              <th style="width:150px;text-align:right;">Nominal Setoran</th>
-              <th style="width:130px;">Petugas Input</th>
+            <tr style="background:#F1F5F9;color:#334155;font-size:11px;font-weight:800;text-transform:uppercase;">
+              <th style="width:35px;text-align:center;padding:10px;border:1px solid #CBD5E1;">No.</th>
+              <th style="width:130px;padding:10px;border:1px solid #CBD5E1;">No. Rekening</th>
+              <th style="padding:10px;border:1px solid #CBD5E1;">Nama Debitur</th>
+              <th style="width:80px;text-align:center;padding:10px;border:1px solid #CBD5E1;">KOL</th>
+              <th style="width:100px;text-align:center;padding:10px;border:1px solid #CBD5E1;">Metode</th>
+              <th style="width:140px;text-align:right;padding:10px;border:1px solid #CBD5E1;">Nominal Setoran</th>
+              <th style="width:120px;padding:10px;border:1px solid #CBD5E1;">Petugas Input</th>
             </tr>
           </thead>
           <tbody>
@@ -3879,37 +5309,52 @@ function exportPembayaranPdfHarian(filterTanggalStr = null) {
           </tbody>
         </table>
 
-        <div class="summary-box">
-          <div class="summary-title">Grand Total Setoran Masuk (${targetDateStr ? formatDate(targetDateStr) : 'Hari Ini'}):</div>
-          <div class="summary-val">${formatRupiah(totalSetoran)}</div>
+        <div style="background:#ECFDF5;border:1.5px solid #A7F3D0;border-radius:12px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;">
+          <div style="font-size:13px;font-weight:800;color:#065F46;text-transform:uppercase;">Grand Total Setoran Masuk (${targetDateStr ? formatDate(targetDateStr) : 'Hari Ini'}):</div>
+          <div style="font-size:18px;font-weight:800;color:#047857;font-family:'JetBrains Mono',monospace;">${formatRupiah(totalSetoran)}</div>
         </div>
 
-        <div class="signature-section">
-          <div class="sig-box">
-            <div class="sig-title">Dibuat Oleh (Petugas Operasional / Kasir)</div>
-            <div class="sig-name">${state.user?.nama || 'Petugas Administrasi'}</div>
-            <div class="sig-role">${state.user?.posisi || 'Staff Operasional'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;page-break-inside:avoid;">
+          <div style="text-align:center;">
+            <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:60px;">Dibuat Oleh (Petugas Operasional / Kasir)</div>
+            <div style="font-size:13px;font-weight:800;color:#0F172A;text-decoration:underline;">${state.user?.nama || 'Petugas Administrasi'}</div>
+            <div style="font-size:11px;color:#64748B;margin-top:2px;">${state.user?.posisi || 'Staff Operasional'}</div>
           </div>
-          <div class="sig-box">
-            <div class="sig-title">Disetujui Oleh (Kabid / Head Officer)</div>
-            <div class="sig-name">Kabid P3 &amp; Restrukturisasi</div>
-            <div class="sig-role">PT BPRS Mitra Harmoni Yogyakarta</div>
+          <div style="text-align:center;">
+            <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:60px;">Disetujui Oleh (Kabid / Head Officer)</div>
+            <div style="font-size:13px;font-weight:800;color:#0F172A;text-decoration:underline;">Kabid P3 &amp; Restrukturisasi</div>
+            <div style="font-size:11px;color:#64748B;margin-top:2px;">PT BPRS Mitra Harmoni Yogyakarta</div>
           </div>
         </div>
+      </div>
+    `;
 
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-            }, 400);
-          }
-        </script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+    // Direct html2pdf download trigger
+    if (typeof html2pdf !== 'undefined') {
+      const containerEl = document.createElement('div');
+      containerEl.innerHTML = fullHtml;
+      document.body.appendChild(containerEl);
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(containerEl).save();
+      document.body.removeChild(containerEl);
+      showToast(`Laporan PDF (${filename}) berhasil di-download!`, 's');
+    } else {
+      const printWindow = window.open('', '_blank', 'width=1100,height=850');
+      if (printWindow) {
+        printWindow.document.write(`<html><head><title>${filename}</title></head><body>${fullHtml}<script>window.onload=function(){window.print();}</script></body></html>`);
+        printWindow.document.close();
+      }
+    }
   }).catch(err => {
-    showToast(`Gagal mengeksport PDF: ${err.message}`, 'e');
+    showToast(`Gagal mencetak laporan PDF: ${err.message}`, 'e');
   });
 }
 
@@ -3954,7 +5399,7 @@ async function viewPayDetail(id) {
       </div>
 
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
-        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-pay-detail');viewDebiturDetail('${p.debiturId}')">👤 Buka Profile Debitur</button>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-pay-detail');viewDebiturDetail('${p.debiturId}')">Buka Profile Debitur</button>
         <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-pay-detail')">Tutup</button>
       </div>
     `;
@@ -4037,7 +5482,7 @@ async function loadKpiView() {
       <!-- SECTION A: TARGET RBB BULAN INI -->
       <div class="card kpi-group mb-4">
         <div class="kpi-group-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <h3 style="font-size:15px;font-weight:800;color:var(--text);">🎯 Target RBB Bulan Ini</h3>
+          <h3 style="font-size:15px;font-weight:800;color:var(--text);">Target RBB Bulan Ini</h3>
           ${!editable ? '<span class="badge badge-gray">Lihat Saja</span>' : ''}
         </div>
         <div class="rbb-target-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px;">
@@ -4054,8 +5499,8 @@ async function loadKpiView() {
         </div>
         ${editable ? `
           <div style="display:flex;gap:10px;">
-            <button class="btn btn-primary btn-sm" onclick="saveRBBTargets()">💾 Simpan Target RBB</button>
-            <button class="btn btn-ghost btn-sm" onclick="resetRBBTargets()">🔄 Reset ke Default</button>
+            <button class="btn btn-primary btn-sm" onclick="saveRBBTargets()">Simpan Target RBB</button>
+            <button class="btn btn-ghost btn-sm" onclick="resetRBBTargets()">Reset ke Default</button>
           </div>
         ` : ''}
       </div>
@@ -4065,7 +5510,7 @@ async function loadKpiView() {
       <div class="kpi-group mb-4">
         <div class="kpi-group-title mb-2"><span class="kpi-group-dot" style="background:var(--success);"></span><h3>Indikator Kualitas Pembiayaan</h3></div>
         <div class="kpi-ind-grid">
-          ${kpiIndCard('NPF Gross', stats.npfGross ?? 0, '%', target.npfGross ?? 5.0, true)}
+          ${kpiIndCard('NPF Gross', stats.npfGross ?? 0, '%', target.npfGross ?? 7.0, true)}
           ${kpiIndCard('PPAP Coverage', stats.ppapCoverage ?? 100, '%', target.ppapCoverage ?? 100, false)}
           ${kpiIndCard('Recovery Rate', stats.recoveryRate ?? 0, '%', target.recoveryRate ?? 40.0, false)}
           ${kpiIndCard('Cure Rate', stats.cureRate ?? 0, '%', target.cureRate ?? 20.0, false)}
@@ -4119,7 +5564,7 @@ async function loadKpiView() {
 
       <!-- SECTION C: KINERJA PER PETUGAS (RANKING) -->
       <div class="card kpi-group mb-4">
-        <div class="kpi-group-title" style="margin-bottom:12px;"><h3>🏆 Kinerja Per Petugas (Ranking RBB)</h3></div>
+        <div class="kpi-group-title" style="margin-bottom:12px;"><h3>Kinerja Per Petugas (Ranking RBB)</h3></div>
         <div class="tbl-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M9 18l6-6-6-6"/></svg>Geser untuk semua kolom</div>
         <div class="table-scroll"><table style="min-width:820px;">
           <thead>
@@ -4141,7 +5586,7 @@ async function loadKpiView() {
           <tbody>
             ${_kpiOfficersData.length === 0 ? '<tr><td colspan="12" class="empty-st">Belum ada data kinerja petugas P3</td></tr>' : _kpiOfficersData.map((p, i) => `
               <tr>
-                <td class="petugas-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
+                <td class="petugas-rank">${i + 1}</td>
                 <td class="tbl-name">${p.nama}</td>
                 <td class="num">${p.totalJadwal}</td>
                 <td class="num">${p.selesai}</td>
@@ -4173,7 +5618,7 @@ async function loadKpiView() {
 
       <!-- SECTION E: ROLL RATE & CURE RATE PER KOL (DUA METODE) -->
       <div class="card kpi-group mb-4">
-        <div class="kpi-group-title" style="margin-bottom:12px;"><h3>📊 Roll Rate & Cure Rate per KOL</h3></div>
+        <div class="kpi-group-title" style="margin-bottom:12px;"><h3>Roll Rate &amp; Cure Rate per KOL</h3></div>
         <div class="rollcure-method-tabs" style="margin-bottom:14px;">
           <div class="rollcure-method-tab ${!_kpiRollcureMethod || _kpiRollcureMethod === 'p3' ? 'active' : ''}" id="rc-tab-p3" onclick="switchRollcureMethod('p3')">Berbasis Kunjungan P3</div>
           <div class="rollcure-method-tab ${_kpiRollcureMethod === 'deb' ? 'active' : ''}" id="rc-tab-deb" onclick="switchRollcureMethod('deb')">Berbasis Riwayat KOL Debitur</div>
@@ -4183,7 +5628,7 @@ async function loadKpiView() {
 
       <!-- SECTION F: DAFTAR JADWAL P3 -->
       <div class="card kpi-group mb-4">
-        <div class="kpi-group-title" style="margin-bottom:12px;"><h3>📋 Daftar Jadwal Penagihan P3</h3></div>
+        <div class="kpi-group-title" style="margin-bottom:12px;"><h3>Daftar Jadwal Penagihan P3</h3></div>
         <div class="filter-bar" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
           <select class="form-select" style="width:auto;min-width:160px;" id="kpi-filter-petugas" onchange="renderKpiJadwalTable()">
             <option value="">Semua Petugas</option>
@@ -4221,15 +5666,15 @@ async function loadKpiView() {
 
       <!-- SECTION G: KEPATUHAN & REGULASI -->
       <div class="kpi-group mb-4">
-        <div class="kpi-group-title" style="margin-bottom:12px;"><h3>⚖️ Kepatuhan & Regulasi OJK / DSN-MUI</h3></div>
+        <div class="kpi-group-title" style="margin-bottom:12px;"><h3>Kepatuhan &amp; Regulasi OJK / DSN-MUI</h3></div>
         <div class="compliance-grid">
           <div class="compliance-card">
             <div class="compliance-card-hdr">
               <div class="compliance-card-title">POJK No.3/2022</div>
-              ${(stats.npfGross ?? 0) <= (target.npfGross ?? 5.0) ? '<span class="badge badge-green">Sesuai</span>' : '<span class="badge badge-red">Perlu Perhatian</span>'}
+              ${(stats.npfGross ?? 0) <= (target.npfGross ?? 7.0) ? '<span class="badge badge-green">Sesuai</span>' : '<span class="badge badge-red">Perlu Perhatian</span>'}
             </div>
             <div class="compliance-card-sub">Kualitas Aset BPR/BPRS</div>
-            <div class="compliance-check-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>NPF Gross saat ini ${(stats.npfGross ?? 0).toFixed(1)}%, ambang batas ${target.npfGross ?? 5.0}%</div>
+            <div class="compliance-check-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>NPF Gross saat ini ${(stats.npfGross ?? 0).toFixed(1)}%, ambang batas ${target.npfGross ?? 7.0}%</div>
             <div class="compliance-check-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Klasifikasi kolektibilitas mengikuti 5 kategori standar OJK</div>
           </div>
           <div class="compliance-card">
@@ -4295,7 +5740,7 @@ async function resetRBBTargets() {
   if (!canEditRBB()) return;
   const payload = {
     periode: new Date().toISOString().substring(0, 7),
-    npfGross: 5.0, collectionRate: 70.0, recoveryRate: 40.0, cureRate: 20.0,
+    npfGross: 7.0, collectionRate: 70.0, recoveryRate: 40.0, cureRate: 20.0,
     ptpRate: 40.0, promiseKept: 60.0, coverageRatio: 80.0, kunjunganPerPetugas: 15,
     restrukSuccess: 50.0, ppapCoverage: 100.0
   };
@@ -4685,11 +6130,11 @@ async function loadAppMgmtView() {
         <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <div style="font-size:13px; font-weight:700; color:var(--text);">🌙 Mode Tampilan Aplikasi (Dark Mode)</div>
+              <div style="font-size:13px; font-weight:700; color:var(--text);">Mode Tampilan Aplikasi (Dark Mode)</div>
               <div style="font-size:11.5px; color:var(--text-3); margin-top:2px;">Beralih antara tema terang (Light) dan tema gelap (Dark)</div>
             </div>
             <button class="btn btn-outline btn-sm" onclick="toggleTheme()" style="padding:6px 14px; font-size:12.5px;">
-              ${state.theme === 'dark' ? '☀️ Aktifkan Light Mode' : '🌙 Aktifkan Dark Mode'}
+              ${state.theme === 'dark' ? 'Aktifkan Light Mode' : 'Aktifkan Dark Mode'}
             </button>
           </div>
         </div>
@@ -4718,7 +6163,7 @@ async function loadAppMgmtView() {
 
         <!-- SUB-SECTION LOGO PERUSAHAAN -->
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">🏢 Logo Perusahaan</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">Logo Perusahaan</div>
           <div style="font-size:11.5px;color:var(--text-3);margin-bottom:12px;">Tampil pada header aplikasi, sidebar drawer, dan halaman login.</div>
           <div class="logo-upload-zone" onclick="document.getElementById('logo-file-input').click()">
             <div class="logo-preview-box">
@@ -4734,11 +6179,11 @@ async function loadAppMgmtView() {
 
         <!-- SUB-SECTION FAVICON WEBSITE -->
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;">
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">🌐 Favicon Website</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">Favicon Website</div>
           <div style="font-size:11.5px;color:var(--text-3);margin-bottom:12px;">Ikon tab browser yang tampil di samping judul halaman web.</div>
           <div class="logo-upload-zone" onclick="document.getElementById('favicon-file-input').click()">
             <div class="logo-preview-box" style="width:48px;height:48px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;">
-              ${state.settings.favicon_url ? `<img src="${state.settings.favicon_url}" alt="Favicon" style="width:100%;height:100%;object-fit:contain;"/>` : '🌐'}
+              ${state.settings.favicon_url ? `<img src="${state.settings.favicon_url}" alt="Favicon" style="width:100%;height:100%;object-fit:contain;"/>` : 'BM'}
             </div>
             <div>
               <div style="font-weight:700;font-size:13px;">Klik untuk Upload Favicon Baru</div>
@@ -4764,6 +6209,7 @@ async function saveAppSettings() {
     });
     state.settings = { ...state.settings, ...res };
     showToast('Pengaturan aplikasi berhasil disimpan', 'success');
+    await loadAppSettings();
   } catch (err) {}
 }
 
@@ -4833,7 +6279,7 @@ async function loadImportCbsView() {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
           <div>
             <h3 style="margin:0;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;">
-              📊 Log History Import &amp; Staging CBS
+              Log History Import &amp; Staging CBS
             </h3>
             <p class="text-muted" style="font-size:12px;margin-top:2px;margin-bottom:0;">Riwayat perubahan kolektibilitas, debitur baru, dan status upload staging ke database.</p>
           </div>
@@ -4905,7 +6351,7 @@ async function loadCbsImportHistory() {
                     <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Snapshot Cutoff: ${formattedCutoff}</div>
                   </td>
                   <td>
-                    <span style="font-weight:600;font-size:12px;">👤 ${item.uploadedBy || 'System'}</span>
+                    <span style="font-weight:600;font-size:12px;">${item.uploadedBy || 'System'}</span>
                   </td>
                   <td style="text-align:center;" class="mono font-bold">
                     ${(item.totalRowsParsed || 0).toLocaleString('id-ID')}
@@ -5000,12 +6446,104 @@ async function commitCbsImport(batchId) {
 let selectedDCDebiturId = '';
 let dcAcDebounce = null;
 
+// CLICK-TO-DIALER & LIVE CALL TIMER
+let dialerTimerInterval = null;
+let dialerSeconds = 0;
+let dialerDebiturId = null;
+let dialerDebiturNama = '';
+let dialerPhone = '';
+
+function openCallDialer(debiturId, nama, phone) {
+  dialerDebiturId = debiturId;
+  dialerDebiturNama = nama;
+  const formatted = formatPhoneForCall(phone);
+  dialerPhone = formatted || '';
+
+  const namaEl = document.getElementById('dialer-debitur-nama');
+  const phoneEl = document.getElementById('dialer-debitur-phone');
+  const timerEl = document.getElementById('dialer-timer');
+  const statusEl = document.getElementById('dialer-status-text');
+  const startBtn = document.getElementById('dialer-start-btn');
+  const endBtn = document.getElementById('dialer-end-btn');
+
+  if (namaEl) namaEl.innerText = `${nama} (${debiturId})`;
+  if (phoneEl) phoneEl.innerText = dialerPhone ? `No. HP: ${dialerPhone}` : 'No. Telepon Tidak Tersedia';
+  if (timerEl) timerEl.innerText = '00:00';
+  if (statusEl) statusEl.innerText = 'Siap melakukan panggilan...';
+  if (startBtn) startBtn.style.display = 'block';
+  if (endBtn) endBtn.style.display = 'none';
+
+  stopCallTimer();
+  openModal('modal-click-dialer');
+}
+
+function startCallDialerProcess() {
+  if (dialerPhone) {
+    const p = formatPhoneForCall(dialerPhone);
+    window.open(`tel:${p}`);
+  }
+
+  const startBtn = document.getElementById('dialer-start-btn');
+  const endBtn = document.getElementById('dialer-end-btn');
+  const statusEl = document.getElementById('dialer-status-text');
+
+  if (startBtn) startBtn.style.display = 'none';
+  if (endBtn) endBtn.style.display = 'block';
+  if (statusEl) statusEl.innerText = 'Panggilan berlangsung... Timer berjalan ⏱️';
+
+  dialerSeconds = 0;
+  stopCallTimer();
+  dialerTimerInterval = setInterval(() => {
+    dialerSeconds++;
+    const mins = String(Math.floor(dialerSeconds / 60)).padStart(2, '0');
+    const secs = String(dialerSeconds % 60).padStart(2, '0');
+    const timerEl = document.getElementById('dialer-timer');
+    if (timerEl) timerEl.innerText = `${mins}:${secs}`;
+  }, 1000);
+}
+
+function stopCallTimer() {
+  if (dialerTimerInterval) {
+    clearInterval(dialerTimerInterval);
+    dialerTimerInterval = null;
+  }
+}
+
+function endCallDialerProcess() {
+  stopCallTimer();
+
+  const mins = Math.floor(dialerSeconds / 60);
+  const secs = dialerSeconds % 60;
+  let formattedDuration = '';
+  if (mins > 0) {
+    formattedDuration = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  } else {
+    formattedDuration = `${secs} dtk`;
+  }
+
+  closeModal('modal-click-dialer');
+
+  // Open DC Modal with duration and telepon pre-filled!
+  openDCModal(dialerDebiturId);
+  setTimeout(() => {
+    const durasiInput = document.getElementById('dcf-durasi');
+    const jenisSelect = document.getElementById('dcf-jenis');
+    const statusSelect = document.getElementById('dcf-status');
+
+    if (durasiInput) durasiInput.value = formattedDuration;
+    if (jenisSelect) jenisSelect.value = 'Telepon';
+    if (statusSelect && dialerSeconds > 3) statusSelect.value = 'Terhubung';
+    showToast(`Panggilan diakhiri. Durasi (${formattedDuration}) dicatat otomatis`, 's');
+  }, 150);
+}
+
 async function openDCModal(debiturId) {
   selectedDCDebiturId = debiturId || '';
   const dcfDeb = document.getElementById('dcf-debitur');
   const dcfTgl = document.getElementById('dcf-tgl');
   const dcfJenis = document.getElementById('dcf-jenis');
   const dcfStatus = document.getElementById('dcf-status');
+  const dcfDurasi = document.getElementById('dcf-durasi');
   const dcfPrio = document.getElementById('dcf-prioritas');
   const dcfTindak = document.getElementById('dcf-tindak');
   const dcfNominal = document.getElementById('dcf-nominal');
@@ -5026,6 +6564,7 @@ async function openDCModal(debiturId) {
 
   if (dcfJenis) dcfJenis.value = 'Telepon';
   if (dcfStatus) dcfStatus.value = 'Terhubung';
+  if (dcfDurasi) dcfDurasi.value = '';
   if (dcfPrio) dcfPrio.value = 'Sedang';
   if (dcfTindak) dcfTindak.value = '';
   if (dcfNominal) dcfNominal.value = '';
@@ -5098,6 +6637,7 @@ async function saveDC() {
   const dcfTgl = document.getElementById('dcf-tgl')?.value || '';
   const dcfJenis = document.getElementById('dcf-jenis')?.value || 'Telepon';
   const dcfStatus = document.getElementById('dcf-status')?.value || 'Terhubung';
+  const dcfDurasi = document.getElementById('dcf-durasi')?.value || '';
   const dcfPrio = document.getElementById('dcf-prioritas')?.value || 'Sedang';
   const dcfTindak = document.getElementById('dcf-tindak')?.value || '';
   const dcfNominal = document.getElementById('dcf-nominal')?.value || '';
@@ -5129,15 +6669,17 @@ async function saveDC() {
   let [tanggal, waktu] = dcfTgl ? dcfTgl.split('T') : [nowStr.substring(0, 10), '10:00'];
   if (!waktu) waktu = '10:00';
 
+  const nominalVal = parseCurrencyInput(dcfNominal);
   const payload = {
     debiturId,
     tanggal,
     waktu,
     jenisKontak: dcfJenis,
     statusKontak: dcfStatus,
+    durasiPanggilan: dcfDurasi,
     prioritas: dcfPrio,
     tindakLanjut: dcfTindak || 'Tidak Ada',
-    nominalJanji: dcfNominal ? parseFloat(dcfNominal) : null,
+    nominalJanji: nominalVal > 0 ? nominalVal : null,
     tanggalJanjiBayar: dcfTglJanji || null,
     hasilKomunikasi: dcfCatatan
   };
@@ -5152,6 +6694,7 @@ async function saveDC() {
     closeModal('modal-dc-form');
     if (typeof loadDeskCallView === 'function') loadDeskCallView();
     if (typeof loadDashboardView === 'function') loadDashboardView();
+    if (typeof loadNotifications === 'function') loadNotifications();
   } catch (err) {
     showToast(`Gagal menyimpan Desk Call: ${err.message}`, 'e');
   }
@@ -5272,7 +6815,8 @@ async function savePayForm() {
 
   const tanggal = payfTgl || new Date().toISOString().substring(0, 10);
 
-  if (!payfJml || parseFloat(payfJml) <= 0) {
+  const jmlVal = parseCurrencyInput(payfJml);
+  if (!payfJml || jmlVal <= 0) {
     showToast('Jumlah Bayar harus lebih dari 0', 'w');
     return;
   }
@@ -5280,7 +6824,7 @@ async function savePayForm() {
   const payload = {
     debiturId,
     tanggal,
-    nominal: parseFloat(payfJml),
+    nominal: jmlVal,
     kol: payfKol,
     metode: payfMetode,
     keterangan: payfKet
@@ -5301,6 +6845,349 @@ async function savePayForm() {
     showToast(`Gagal mencatat pembayaran: ${err.message}`, 'e');
   }
 }
+
+// ==========================================
+// DESK CALL EDIT & DELETE HANDLERS
+// ==========================================
+
+async function openEditDCModal(callId) {
+  try {
+    const c = await apiCall(`/deskcall/${callId}`);
+    document.getElementById('dce-id').value = c.id;
+    
+    const dDate = new Date(c.tanggal);
+    const dDateStr = dDate.toISOString().substring(0, 10);
+    document.getElementById('dce-tanggal').value = dDateStr;
+    document.getElementById('dce-waktu').value = c.waktu || '09:00';
+    document.getElementById('dce-jenis').value = c.jenisKontak || 'Telepon';
+    document.getElementById('dce-status').value = c.statusKontak || 'Terhubung';
+    document.getElementById('dce-tindak').value = c.tindakLanjut || 'Tidak Ada';
+    document.getElementById('dce-prioritas').value = c.prioritas || 'Sedang';
+    document.getElementById('dce-nominal').value = c.nominalJanji ? c.nominalJanji.toLocaleString('en-US') : '';
+    
+    if (c.tanggalJanjiBayar) {
+      const pDate = new Date(c.tanggalJanjiBayar);
+      document.getElementById('dce-tgljanji').value = pDate.toISOString().substring(0, 10);
+    } else {
+      document.getElementById('dce-tgljanji').value = '';
+    }
+
+    document.getElementById('dce-catatan').value = c.hasilKomunikasi || '';
+    if (document.getElementById('dce-title')) {
+      document.getElementById('dce-title').innerText = `Edit Desk Call — ${c.namaDebitur}`;
+    }
+
+    openModal('modal-dc-edit');
+  } catch (err) {
+    showToast(`Gagal memuat data call: ${err.message}`, 'e');
+  }
+}
+
+async function submitDCEdit(e) {
+  e.preventDefault();
+  const id = document.getElementById('dce-id').value;
+  const nomVal = parseCurrencyInput(document.getElementById('dce-nominal').value);
+  const payload = {
+    tanggal: document.getElementById('dce-tanggal').value,
+    waktu: document.getElementById('dce-waktu').value,
+    jenisKontak: document.getElementById('dce-jenis').value,
+    statusKontak: document.getElementById('dce-status').value,
+    tindakLanjut: document.getElementById('dce-tindak').value,
+    prioritas: document.getElementById('dce-prioritas').value,
+    nominalJanji: nomVal > 0 ? nomVal : null,
+    tanggalJanjiBayar: document.getElementById('dce-tgljanji').value || null,
+    hasilKomunikasi: document.getElementById('dce-catatan').value
+  };
+
+  try {
+    await apiCall(`/deskcall/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+    showToast('Data Desk Call berhasil diperbarui', 's');
+    closeModal('modal-dc-edit');
+    if (typeof loadDeskCallView === 'function') loadDeskCallView();
+  } catch (err) {
+    showToast(`Gagal memperbarui Desk Call: ${err.message}`, 'e');
+  }
+}
+
+async function deleteDCEntry(callId) {
+  if (!confirm('Apakah Anda yakin ingin menghapus catatan Desk Call ini?')) return;
+  try {
+    await apiCall(`/deskcall/${callId}`, { method: 'DELETE' });
+    showToast('Entri Desk Call berhasil dihapus', 's');
+    if (typeof loadDeskCallView === 'function') loadDeskCallView();
+  } catch (err) {
+    showToast(`Gagal menghapus Desk Call: ${err.message}`, 'e');
+  }
+}
+
+
+// ==========================================
+// LEGAL BERKAS DELETION HANDLER
+// ==========================================
+
+async function deleteLegalBerkas(berkasId) {
+  if (!confirm(`Apakah Anda yakin ingin menghapus Berkas Legal (${berkasId}) beserta seluruh file & checklist dokumennya?`)) return;
+  try {
+    await apiCall(`/legal/berkas/${berkasId}`, { method: 'DELETE' });
+    showToast('Berkas legal berhasil dihapus', 's');
+    if (typeof loadLegalView === 'function') loadLegalView();
+  } catch (err) {
+    showToast(`Gagal menghapus berkas legal: ${err.message}`, 'e');
+  }
+}
+
+
+// ==========================================
+// SP1, SP2, & SOMASI MODULE HANDLERS
+// ==========================================
+
+function switchLegalSubtab(subtab) {
+  legalState.activeSubtab = subtab;
+  renderLegalView();
+}
+
+function filterSuratJenis(jenis) {
+  legalState.suratJenisFilter = jenis;
+  renderLegalView();
+}
+
+function executeSuratSearch(q) {
+  legalState.searchQuery = q || '';
+  renderLegalView();
+}
+
+
+
+async function openSuratStatusModal(suratId) {
+  try {
+    const s = await apiCall(`/legal/surat/${suratId}`);
+    document.getElementById('surats-id').value = s.id;
+    document.getElementById('surats-status').value = s.status || 'Diterbitkan';
+    document.getElementById('surats-penerima').value = s.penerima || '';
+    if (s.tglDiterima) {
+      document.getElementById('surats-tglditerima').value = new Date(s.tglDiterima).toISOString().substring(0, 10);
+    } else {
+      document.getElementById('surats-tglditerima').value = '';
+    }
+    document.getElementById('surats-catatan').value = s.catatan || '';
+    openModal('modal-surat-status');
+  } catch (err) {
+    showToast(`Gagal memuat surat: ${err.message}`, 'e');
+  }
+}
+
+async function submitSuratStatus(e) {
+  e.preventDefault();
+  const id = document.getElementById('surats-id').value;
+  const payload = {
+    status: document.getElementById('surats-status').value,
+    penerima: document.getElementById('surats-penerima').value,
+    tglDiterima: document.getElementById('surats-tglditerima').value || null,
+    catatan: document.getElementById('surats-catatan').value
+  };
+
+  try {
+    await apiCall(`/legal/surat/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+    showToast('Status pengiriman surat berhasil diperbarui', 's');
+    closeModal('modal-surat-status');
+    if (typeof loadLegalView === 'function') loadLegalView();
+  } catch (err) {
+    showToast(`Gagal mengupdate status: ${err.message}`, 'e');
+  }
+}
+
+async function deleteSuratLegal(suratId) {
+  if (!confirm('Apakah Anda yakin ingin menghapus surat legal ini dari sistem?')) return;
+  try {
+    await apiCall(`/legal/surat/${suratId}`, { method: 'DELETE' });
+    showToast('Surat legal berhasil dihapus', 's');
+    if (typeof loadLegalView === 'function') loadLegalView();
+  } catch (err) {
+    showToast(`Gagal menghapus surat: ${err.message}`, 'e');
+  }
+}
+
+async function exportSuratPDF(suratId) {
+  try {
+    const s = await apiCall(`/legal/surat/${suratId}`);
+    const d = s.debitur || {};
+    const ptName = state.settings?.pt_name || 'PT BPRS MITRA HARMONI YOGYAKARTA';
+
+    const printWindow = window.open('', '_blank', 'width=850,height=900');
+    if (!printWindow) {
+      showToast('Gagal membuka jendela cetak. Izinkan pop-up di browser.', 'w');
+      return;
+    }
+
+    const tglSuratStr = formatDate(s.tanggalSurat);
+    const tglJtStr = s.tglJatuhTempo ? formatDate(s.tglJatuhTempo) : '7 Hari sejak penerimaan surat ini';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="UTF-8">
+        <title>${s.jenisSurat} — ${s.namaDebitur}</title>
+        <style>
+          body { font-family: 'Times New Roman', Times, serif; font-size: 14px; line-height: 1.5; color: #111; margin: 0; padding: 40px 50px; }
+          .kop-header { text-align: center; border-bottom: 3px double #005c55; padding-bottom: 12px; margin-bottom: 24px; }
+          .kop-title { font-size: 18px; font-weight: bold; color: #005c55; text-transform: uppercase; letter-spacing: 1px; }
+          .kop-sub { font-size: 11px; color: #444; margin-top: 4px; }
+          .meta-table { width: 100%; margin-bottom: 20px; font-size: 13px; }
+          .meta-table td { padding: 3px 0; vertical-align: top; }
+          .doc-title { text-align: center; font-size: 16px; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin: 20px 0 5px 0; }
+          .doc-num { text-align: center; font-size: 12px; font-weight: bold; margin-bottom: 24px; color: #333; }
+          .content-p { text-align: justify; margin-bottom: 14px; text-indent: 30px; }
+          .details-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+          .details-table th, .details-table td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
+          .details-table th { background: #f2f4f6; }
+          .sign-grid { width: 100%; margin-top: 50px; display: table; }
+          .sign-col { display: table-cell; width: 50%; text-align: center; vertical-align: top; }
+          .sign-space { height: 70px; }
+          @media print {
+            body { padding: 20px; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 20px; text-align: right;">
+          <button onclick="window.print()" style="background:#0F766E;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:bold;">🖨️ Cetak / Simpan PDF</button>
+        </div>
+
+        <div class="kop-header">
+          <div class="kop-title">${ptName}</div>
+          <div class="kop-sub">Kantor Pusat / Cabang Sleman — DI Yogyakarta &middot; Telp: (0274) 888xxx &middot; Email: legal@bprsmitraharmoni.co.id</div>
+        </div>
+
+        <table class="meta-table">
+          <tr>
+            <td style="width:100px;">Nomor</td>
+            <td style="width:15px;">:</td>
+            <td><strong>${s.nomorSurat}</strong></td>
+            <td style="text-align:right;">Sleman, ${tglSuratStr}</td>
+          </tr>
+          <tr>
+            <td>Sifat</td>
+            <td>:</td>
+            <td>Penting / Peringatan Resmi</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Hal</td>
+            <td>:</td>
+            <td><strong>${s.hal}</strong></td>
+            <td></td>
+          </tr>
+        </table>
+
+        <div style="margin-bottom:20px;">
+          Kepada Yth.<br>
+          <strong>Bapak/Ibu ${s.namaDebitur}</strong><br>
+          ${d.alamat || 'Alamat Terdaftar di BPRS'}<br>
+          ${d.kota || 'Yogyakarta'}
+        </div>
+
+        <p style="margin-bottom:12px;">Assalamu’alaikum Warahmatullahi Wabarakatuh,</p>
+
+        <p class="content-p">
+          Sehubungan dengan pelaksanaan Akad Pembiayaan <strong>${d.jenisMargin || 'Syariah'}</strong> No. Rekening <strong>${s.debiturId}</strong> pada ${ptName}, melalui surat ini kami sampaikan bahwa berdasarkan pencatatan data administrasi pembiayaan, Saudara/i memiliki kewajiban pembayaran yang telah melampaui jatuh tempo (tunggakan).
+        </p>
+
+        <p class="content-p">Rincian kewajiban tunggakan pembiayaan Saudara/i per tanggal diterbitkannya surat ini adalah sebagai berikut:</p>
+
+        <table class="details-table">
+          <tr>
+            <th>Deskripsi Rincian</th>
+            <th style="text-align:right;">Jumlah (Rp)</th>
+          </tr>
+          <tr>
+            <td>Tunggakan Pokok Pembiayaan</td>
+            <td style="text-align:right;font-family:monospace;">${formatRupiah(s.tPokok)}</td>
+          </tr>
+          <tr>
+            <td>Tunggakan Margin / Bagi Hasil</td>
+            <td style="text-align:right;font-family:monospace;">${formatRupiah(s.tMargin)}</td>
+          </tr>
+          <tr style="background:#f9f9f9;font-weight:bold;">
+            <td>TOTAL TUNGGAKAN WAJIB DIBAYAR</td>
+            <td style="text-align:right;font-family:monospace;color:#c0392b;">${formatRupiah(s.totalTunggakan)}</td>
+          </tr>
+          <tr>
+            <td>Sisa Baki Debet Pembiayaan</td>
+            <td style="text-align:right;font-family:monospace;">${formatRupiah(s.bakiDebet)}</td>
+          </tr>
+        </table>
+
+        <p class="content-p">
+          Mengingat pentingnya penyelesaian kewajiban pembiayaan ini agar tidak menimbulkan dampak risiko hukum dan penalti administrasi lebih lanjut, kami mengharapkan kedatangan Saudara/i ke Kantor BPRS Mitra Harmoni Yogyakarta atau melakukan pembayaran penuh tunggakan tersebut selambat-lambatnya pada tanggal <strong>${tglJtStr}</strong>.
+        </p>
+
+        <p class="content-p">
+          Apabila sampai dengan batas waktu di atas Saudara/i belum melakukan pembayaran atau konfirmasi penyelesaian, maka pihak Bank akan mengambil langkah lanjutan sesuai ketentuan hukum dan akad pembiayaan yang berlaku.
+        </p>
+
+        <p style="margin-top:20px;margin-bottom:20px;">
+          Demikian surat ini kami sampaikan untuk menjadi perhatian dan iktikad baik Saudara/i. Atas perhatian dan kerja samanya, kami ucapkan terima kasih.
+        </p>
+
+        <p style="margin-bottom:30px;">Wassalamu’alaikum Warahmatullahi Wabarakatuh,</p>
+
+        <div class="sign-grid">
+          <div class="sign-col">
+            <div>Mengetahui,</div>
+            <div style="font-weight:bold;">PT BPRS MITRA HARMONI YOGYAKARTA</div>
+            <div class="sign-space"></div>
+            <div style="font-weight:bold;text-decoration:underline;">Kabid Penagihan &amp; P3</div>
+          </div>
+          <div class="sign-col">
+            <div>Petugas / Legal Officer,</div>
+            <div style="font-weight:bold;">PT BPRS MITRA HARMONI YOGYAKARTA</div>
+            <div class="sign-space"></div>
+            <div style="font-weight:bold;text-decoration:underline;">${s.petugas || 'Legal Department'}</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  } catch (err) {
+    showToast(`Gagal menyiapkan cetak surat: ${err.message}`, 'e');
+  }
+}
+
+function applyBrandingUI() {
+  const ptName = state.settings?.pt_name || 'PT BPRS Mitra Harmoni Yogyakarta';
+
+  // 1. Update Document Title
+  document.title = `${ptName} — Sistem Informasi Penagihan Terpadu AO, P3 & Desk Call`;
+
+  // 2. Update Auth Overlay Left Hero Span
+  const authPtSpan = document.getElementById('auth-pt-name');
+  if (authPtSpan) authPtSpan.innerText = ptName;
+
+  // 3. Update Footer Copyright
+  const footerCopy = document.getElementById('footer-copy');
+  if (footerCopy) {
+    footerCopy.innerHTML = `&copy; ${new Date().getFullYear()} ${ptName}. Hak Cipta Dilindungi.`;
+  }
+
+  // 4. Update Header & Drawer PT Name
+  const hdrPt = document.getElementById('hdr-pt-name');
+  const drPt = document.getElementById('dr-pt');
+  if (hdrPt) hdrPt.innerText = ptName;
+  if (drPt) drPt.innerText = ptName;
+}
+
+
 
 // Initializer on Page Load
 window.addEventListener('DOMContentLoaded', async () => {

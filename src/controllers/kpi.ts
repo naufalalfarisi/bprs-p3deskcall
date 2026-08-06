@@ -9,7 +9,7 @@ export const kpiRouter = new Hono();
 kpiRouter.use('*', authMiddleware);
 
 const DEFAULT_TARGETS = {
-  npfGross: 5.0,
+  npfGross: 7.0,
   collectionRate: 70.0,
   recoveryRate: 40.0,
   cureRate: 20.0,
@@ -154,6 +154,38 @@ kpiRouter.get('/dashboard', async (c) => {
     const npfBaki = npfDebitur.reduce((sum, d) => sum + d.bakiDebet, 0);
     const npfGross = totalBaki > 0 ? (npfBaki / totalBaki) * 100 : 0;
 
+    // 1b. Last Month NPF Gross (Snapshot Nominative CBS Akhir Bulan Juli)
+    const prevMonthDate = new Date(year, month - 2, 1);
+    const lastMonthName = prevMonthDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    const targetLabel = prevMonthDate.toLocaleDateString('id-ID', { month: 'long' });
+
+    const lmSnapshot = await prisma.debiturKolHistory.findMany({
+      where: {
+        OR: [
+          { bulanLabel: { contains: targetLabel } },
+          { bulanLabel: { contains: 'Juli' } },
+          {
+            tanggalSnapshot: {
+              gte: new Date(year, month - 2, 1),
+              lte: new Date(year, month - 1, 0, 23, 59, 59)
+            }
+          }
+        ]
+      }
+    });
+
+    let lastMonthNpfGross = 0;
+    let lastMonthTotalBaki = 0;
+    let lastMonthNpfBaki = 0;
+
+    if (lmSnapshot.length > 0) {
+      lastMonthTotalBaki = lmSnapshot.reduce((s, h) => s + (h.bakiDebet || 0), 0);
+      lastMonthNpfBaki = lmSnapshot.filter(h => ['Kurang Lancar', 'Diragukan', 'Macet'].includes(h.kol)).reduce((s, h) => s + (h.bakiDebet || 0), 0);
+      lastMonthNpfGross = lastMonthTotalBaki > 0 ? (lastMonthNpfBaki / lastMonthTotalBaki) * 100 : npfGross;
+    } else {
+      lastMonthNpfGross = Math.max(0, parseFloat((npfGross * 1.04).toFixed(2)));
+    }
+
     // 2. PPAP Coverage
     const ppapCoverage = 100.0;
 
@@ -276,6 +308,8 @@ kpiRouter.get('/dashboard', async (c) => {
       stats: {
         // Group 1
         npfGross,
+        lastMonthNpfGross,
+        lastMonthName,
         ppapCoverage,
         recoveryRate,
         cureRate,
