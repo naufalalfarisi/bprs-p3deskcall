@@ -1,120 +1,155 @@
-# Sistem Informasi Penagihan Terpadu (AO, P3 & Desk Call) — BPRS Mitra Harmoni Yogyakarta
+# Enterprise Banking Portal — Sistem Informasi Penagihan Terpadu (AO, P3 & Desk Call)
+### PT BPRS Mitra Harmoni Yogyakarta
 
-Aplikasi Sistem Informasi Penagihan Terpadu (AO, P3, & Desk Call) adalah platform perbankan syariah modern yang dikembangkan untuk mengelola, melacak, dan mengoptimalkan penagihan pembiayaan bermasalah (NPF - Non-Performing Financing) di **PT BPRS Mitra Harmoni Yogyakarta**.
-
----
-
-## 🚀 Fitur Utama
-
-1. **Dashboard & Data Debitur Pembiayaan**
-   * Pemantauan portofolio pembiayaan aktif, total baki debet, tunggakan pokok & margin, serta jumlah kasus NPF secara real-time.
-   * Filter pencarian dinamis berdasarkan Status KOL (1-5), Account Officer (AO), dan Periode Jatuh Tempo (Hari Ini, 7 Hari, 14 Hari).
-   * Tombol pintas penyaringan cepat (*Quick Pills*) dengan kalkulasi dinamis.
-
-2. **Monitoring Desk Call**
-   * Pencatatan produktivitas panggilan harian petugas (Telepon / WhatsApp).
-   * Pelacakan respon nasabah (Terhubung, Sibuk, Tidak Aktif, Salah Nomor).
-   * Manajemen janji bayar (*Promise to Pay / PTP*) dengan pencatatan tanggal & nominal janji.
-
-3. **Penagihan Lapangan (P3)**
-   * Manajemen jadwal kunjungan penagihan tim lapangan (P3).
-   * Calendar strip agenda 14 hari interaktif.
-   * Dokumentasi foto lapangan dengan fitur kompresi gambar otomatis (`sharp`) dan koordinat peta.
-
-4. **Manajemen Berkas Legal & Agunan**
-   * 14 checklist dokumen wajib sesuai standar legalitas perbankan (KTP, SKU, Akad, APHT/Fidusia, Sertifikat, dll).
-   * Unggah dokumen bukti legalitas dan agunan nasabah.
-   * Indikator persentase kelengkapan berkas (`Lengkap`, `Proses`, `Kurang`).
-
-5. **Riwayat Pembayaran & Cetak Rekap PDF Harian**
-   * Pencatatan transaksi pembayaran angsuran (Tunai/Transfer).
-   * Fitur Import batch transaksi pembayaran via file Excel (XLSX/CSV).
-   * **Cetak PDF Laporan Rekapitulasi Pembayaran Harian** dengan Kop Surat resmi perbankan dan tanda tangan otorisasi.
-
-6. **Target & KPI Rencana Bisnis Bank (RBB)**
-   * Grafik visual tren NPF ratio bulanan.
-   * Evaluasi parameter target RBB, Recovery Rate, dan Promise Kept Rate petugas.
-
-7. **Pengaturan Branding Aplikasi**
-   * Kustomisasi nama institusi PT, logo utama, favicon, dan skema warna tema secara dinamis.
+Sistem Informasi Penagihan Terpadu adalah platform manajemen penagihan pembiayaan dan pemantauan kualitas aset perbankan syariah (Non-Performing Financing / NPF) yang dirancang untuk mengintegrasikan alur kerja Account Officer (AO), Petugas Penagihan Lapangan (P3), dan Petugas Desk Call dalam satu sistem terpadu.
 
 ---
 
-## 🛠️ Tech Stack
+## 📌 Ruang Lingkup & Tujuan Sistem
 
-* **Backend**: Node.js & Hono Framework (super ringan dan kencang).
-* **Database & ORM**: Prisma ORM dengan SQLite (default lokal).
-* **Frontend**: HTML5, Vanilla CSS Modern (Glassmorphism, Dark Mode, Responsive Layout), TailwindCSS, Chart.js.
-* **Libraries**: `sharp` (kompresi gambar), `exceljs` (pengolah berkas excel), `jose` (JWT authentication).
+Aplikasi ini dikembangkan untuk menangani penagihan pembiayaan bermasalah secara terstruktur, terukur, dan mematuhi regulasi perbankan syariah. Fitur utama mencakup:
 
----
-
-## ⚙️ Persyaratan Sistem
-
-* Node.js versi `18.x` atau `20.x` (versi LTS direkomendasikan).
-* npm (Node Package Manager).
+1. **Efisiensi Operasional Desk Call**: Pengingat otomatis jatuh tempo janji bayar, penanganan follow-up berjenjang, dan analisis waktu panggilan paling produktif (*Golden Hour*).
+2. **Akuntabilitas Kunjungan Lapangan (P3)**: Penjadwalan kunjungan presisi, validasi foto lokasi ber-geotag koordinat, dan berita acara hasil penagihan lapangan.
+3. **Manajemen Portofolio & Legalitas Agunan**: Pengawasan 14 jenis dokumen legalitas akad dan penanganan Aset Yang Diambil Alih (AYDA).
+4. **Evaluasi Kinerja & Indikator RBB**: Scorecard 16 indikator KPI perbankan (NPF Gross, Recovery Rate, Collection Rate, Promise Kept Rate, Roll-Over & Roll-Cure Rate).
 
 ---
 
-## 💻 Cara Menjalankan di Lokal (Development)
+## ⚡ Fitur Utama & Modul Sistem
 
-1. **Clone repositori**:
+### 1. Modul Manajemen Debitur & Portofolio Pembiayaan
+* **Monitoring Portofolio NPF**: Visualisasi total Baki Debet, tunggakan pokok, margin, dan distribusi kolektibilitas (KOL 1 - LANCAR, KOL 2 - DPK, KOL 3 - KL, KOL 4 - D, KOL 5 - M).
+* **Pencarian & Penyaringan Dinamis**: Filtering instan berdasarkan Account Officer (AO), status kolektibilitas, dan periode jatuh tempo (Hari Ini, H-7, H-14).
+* **Quick Action & Profil Debitur**: Akses cepat riwayat kontak, jadwal janji bayar, dokumen agunan, dan riwayat pembayaran per nasabah.
+
+### 2. Modul Desk Call & Customer Behavior Insight
+* **Pencatatan Panggilan Kontak**: Log komunikasi harian via Telepon atau WhatsApp dengan kategori respon (Terhubung, Tidak Diangkat, Sibuk, Tidak Aktif, Salah Nomor).
+* **Customer Behavior Insight**:
+  * **Golden Hour Analysis**: Identifikasi jam paling produktif nasabah mengangkat panggilan.
+  * **Distribusi Kanal**: Evaluasi efektivitas saluran komunikasi (Telepon vs. WhatsApp).
+  * **Evaluasi Produktivitas Petugas**: Peringkat rasio keterhubungan (Contact Rate %) dan nominal komitmen PTP per petugas.
+* **Analytics Success Rate Janji Bayar (PTP Resolution Rate)**:
+  * Klasifikasi status komitmen: `Selesai (Sudah Bayar)`, `Dalam Follow-Up`, dan `Ingkar Janji (Overdue)`.
+  * Kartu filter interaktif untuk menyaring daftar nasabah per kategori secara real-time.
+  * Kategorisasi performa penagihan: *Sangat Baik (≥ 70%)*, *Sedang (40% - 69%)*, dan *Perlu Perhatian (< 40%)*.
+
+### 3. Modul Follow-Up Notifikasi & Otomatisasi Pelunasan
+* **Notifikasi Berjenjang**: Pengingat otomatis H-1 dan Hari-H jatuh tempo janji bayar dengan kuota maksimal 3x follow-up per nasabah.
+* **Preservasi Tanggal Panggilan**: Tindak lanjut melalui notifikasi secara otomatis meng-update status catatan awal menjadi "Sudah Bayar" tanpa menggeser tanggal ke hari ini, menjaga kebersihan laporan harian desk call.
+* **Auto-Sync Pembayaran**: Mengubah status ke "Sudah Bayar" secara otomatis mencatat transaksi pada modul Pembayaran.
+
+### 4. Modul Penagihan Lapangan (P3 / Penagihan Pihak Ke-3)
+* **Penjadwalan Kunjungan Lapangan**: Kalender interaktif 14 hari agenda kunjungan tim P3.
+* **Validasi Geotagging & Kompresi Foto**: Dokumentasi foto kunjungan lapangan berkoordinat lat-long dengan kompresi otomatis untuk efisiensi penyimpanan server.
+* **Berita Acara & Hasil Kunjungan**: Pencatatan respon nasabah di lokasi, estimasi tanggal bayar, dan tindak lanjut penanganan.
+
+### 5. Modul Berkas Legalitas Akad & Agunan (AYDA)
+* **14 Checklist Audit Legalitas**: Verifikasi dokumen fisik (KTP, SKU, Akad Pembiayaan, APHT, Sertifikat Agunan, IMB, SKMHT, dll).
+* **Indikator Kelengkapan Berkas**: Persentase kelengkapan dokumen per nasabah (`Lengkap`, `Dalam Proses`, `Kurang`).
+* **Pengawasan Agunan (AYDA)**: Pencatatan aset bermasalah yang siap atau sedang dalam proses pengambilalihan.
+
+### 6. Modul Pembayaran & Laporan Rekapitulasi
+* **Pencatatan Angsuran**: Input pembayaran tunai / transfer bank dengan update otomatis pada baki debet nasabah.
+* **Import Batch Data**: Fasilitas pengunggahan berkas transaksi masal format Excel (`.xlsx`) atau CSV (`.csv`).
+* **Cetak Laporan Rekapitulasi PDF**: Penerbitan laporan resmi harian ber-kop surat PT BPRS Mitra Harmoni Yogyakarta lengkap dengan kolom tanda tangan otorisasi.
+
+### 7. Modul KPI Scorecard & Target Rencana Bisnis Bank (RBB)
+* **16 Indikator Perbankan**:
+  * *Kualimasi Pembiayaan*: NPF Gross, PPAP Coverage, Recovery Rate, Cure Rate.
+  * *Efektivitas Penagihan*: Collection Rate, PTP Rate, Promise Kept Rate, Roll Rate.
+  * *Produktivitas Petugas*: Coverage Ratio, Kunjungan/Petugas, Achievement Rate, Rata-rata Tagihan/Kunjungan.
+  * *Restrukturisasi & Legal*: Restrukturisasi Success Rate, Total Restrukturisasi, Legal Action Rate, Berkas AYDA.
+* **Roll Rate & Roll Cure Matrix**: Evaluasi pergerakan kolektibilitas nasabah dari bulan ke bulan.
+
+### 8. Fitur Keamanan, RBAC & Progressive Web App (PWA)
+* **Role-Based Access Control (RBAC)**: Otorisasi hak akses berjenjang (Admin, Kabid P3, Staff Desk Call, Staff P3, Account Officer).
+* **Progressive Web App (PWA)**: Layar aplikasi mandiri (*standalone*), offline caching via Service Worker, dan dukungan instalasi di Desktop/Android/iOS.
+
+---
+
+## 🛠️ Arsitektur & Teknologi
+
+* **Backend Environment**: Node.js dengan Framework **Hono** (High performance, low footprint).
+* **Database & ORM**: SQLite (Development) / MySQL (Production) diakses via **Prisma ORM**.
+* **Frontend UI Engine**: HTML5, Vanilla JavaScript (ES6+), Vanilla CSS (Custom Design System, Dark/Light Mode), Chart.js.
+* **Media & Document Processing**: `sharp` (Image Compression), `pdfkit` & `pdfkit-table` (PDF Report Generation), `exceljs` & `fast-csv` (Excel/CSV Data I/O).
+* **Keamanan & Otorisasi**: Standardisasi JWT (`jose`) dan enkripsi password `bcryptjs`.
+
+---
+
+## ⚙️ Persyaratan Lingkungan (System Requirements)
+
+* **Node.js**: Versi `18.x` atau `20.x` LTS.
+* **Package Manager**: `npm` versi `9.x` atau lebih baru.
+* **Database Server**: SQLite (Lokal) atau MySQL 5.7+ / MariaDB 10.4+ (Production).
+
+---
+
+## 🚀 Panduan Instalasi Lokal (Development)
+
+1. **Clone Repositori**:
    ```bash
    git clone https://github.com/naufalalfarisi/bprs-p3deskcall.git
    cd bprs-p3deskcall
    ```
 
-2. **Install dependencies**:
+2. **Instalasi Dependencies**:
    ```bash
    npm install
    ```
 
-3. **Setup Database (Prisma)**:
+3. **Inisialisasi Database (Prisma)**:
    ```bash
    npx prisma db push
    ```
 
-4. **Isi Data Awal (Admin & Demo Account)**:
+4. **Pengisian Data Awal (Seeding Data Admin & Debitur)**:
    ```bash
    npm run seed
    ```
 
-5. **Jalankan Server Aplikasi**:
+5. **Menjalankan Dev Server**:
    ```bash
    npm run dev
    ```
-   Aplikasi akan berjalan di port `3000` (akses: [http://localhost:3000](http://localhost:3000)).
+   Aplikasi akan aktif di port `3001` (`http://localhost:3001`).
 
 ---
 
-## 🌐 Cara Membagikan Link Uji Coba Publik (Tunneling)
+## 🌐 Menjalankan Tunneling Publik (Uji Coba Remote)
 
-Untuk membagikan aplikasi dari laptop lokal Anda agar dapat diuji oleh tim lain melalui HP/Laptop di luar jaringan:
+Untuk membuka akses publik sementara dari localhost ke koneksi seluler/remote:
 ```bash
 npm run share
 ```
-Sistem akan memberikan link HTTPS publik gratis (localtunnel).
 
 ---
 
-## ☁️ Panduan Deploy ke cPanel Hosting
+## ☁️ Panduan Deploy ke Production (cPanel / VPS)
 
-1. Buat subdomain di cPanel (misal: `p3deskcall.bprs-mitraharmoni.co.id`).
-2. Buat database MySQL baru di cPanel dan tambahkan hak akses user.
-3. Di cPanel, buka menu **Setup Node.js App** ➔ **Create Application**.
-   * Set Application root: `p3deskcall`
-   * Set Startup file: `dist/index.js`
-4. Upload seluruh file project (Kecuali folder `node_modules`).
-5. Buat file `.env` di server dan masukkan URL koneksi database MySQL:
+### Deploy di cPanel Node.js Selector:
+1. Buat Subdomain di cPanel (contoh: `penagihan.bprs-mitraharmoni.co.id`).
+2. Konfigurasi **Setup Node.js App** di cPanel:
+   * Application root: `p3deskcall`
+   * Application URL: `penagihan.bprs-mitraharmoni.co.id`
+   * Application startup file: `dist/index.js`
+3. Buat database MySQL di cPanel dan atur environment pada file `.env`:
    ```env
    PORT=3000
-   DATABASE_URL="mysql://username_db:password_db@localhost:3306/nama_db"
-   JWT_SECRET="bprs-mitra-harmoni-yogyakarta-secure-jwt-key"
+   DATABASE_URL="mysql://user_db:pass_db@localhost:3306/bprs_deskcall_db"
+   JWT_SECRET="bprs-mitra-harmoni-yogyakarta-secure-key"
    ```
-6. Buka terminal virtual env di cPanel, jalankan:
+4. Jalankan perintah di Terminal cPanel:
    ```bash
    npm install
    npm run build
    npx prisma db push
    ```
-7. Klik **Restart Application** di menu Setup Node.js App.
+5. Restart aplikasi pada menu cPanel.
+
+---
+
+## 📄 Lisensi & Hak Cipta
+
+© 2026 **PT BPRS Mitra Harmoni Yogyakarta**. Hak cipta dilindungi undang-undang.
