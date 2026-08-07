@@ -432,6 +432,23 @@ importRouter.post('/cbs/:batchId/commit', async (c) => {
             }
           }
 
+          // Reconcile aoId with active User where posisi === 'ao' and aoNameRef === parsed.ao
+          if (parsed.ao) {
+            const matchingAoUser = await tx.user.findFirst({
+              where: {
+                posisi: 'ao',
+                aoNameRef: parsed.ao,
+                status: 'active'
+              }
+            });
+            if (matchingAoUser) {
+              await tx.debitur.update({
+                where: { id: parsed.id },
+                data: { aoId: matchingAoUser.id }
+              });
+            }
+          }
+
           // Insert or Update KOL History Snapshot (Prevents duplicates when importing multiple times in the same snapshot period)
           const existingHistory = await tx.debiturKolHistory.findFirst({
             where: {

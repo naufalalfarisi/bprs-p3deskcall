@@ -14,7 +14,8 @@ model User {
   nama                    String
   email                   String
   tglLahir                DateTime
-  posisi                  String         // admin, kabid_p3, staff_p3, desk_call, legal
+  posisi                  String         // admin, kabid_p3, staff_p3, desk_call, legal, ao, kabid_ao
+  aoNameRef               String?
   status                  String         // pending, active, rejected, inactive
   avatarUrl               String?
   registerAttemptCount    Int            @default(0)
@@ -29,6 +30,10 @@ model User {
   legalBerkasChecklist   LegalBerkasChecklist[]
   legalFiles              LegalFile[]
   auditLogs               AuditLog[]
+  aoDebiturs              Debitur[]              @relation("AoDebiturRelation")
+  aoCollectionLogs        AoCollectionLog[]
+  createdAoLogs           AoCollectionLog[]      @relation("CreatedByAoLog")
+  aoReminderEmailLogs     AoReminderEmailLog[]
 }
 
 model RefreshToken {
@@ -63,6 +68,8 @@ model Debitur {
   tglJt                DateTime
   tglAngsuranTerakhir  DateTime?
   ao                   String
+  aoId                 String?
+  aoUser               User?                @relation("AoDebiturRelation", fields: [aoId], references: [id])
   plafon               Float
   bakiDebet            Float
   angsPrincipal        Float
@@ -98,6 +105,8 @@ model Debitur {
   legalBerkas          LegalBerkas[]
   pembayaran           Pembayaran[]
   suratLegal           SuratLegal[]
+  aoCollectionLogs     AoCollectionLog[]
+  aoReminderEmailLogs  AoReminderEmailLog[]
 }
 
 model DebiturKolHistory {
@@ -333,3 +342,41 @@ model PembayaranImportBatch {
   totalAmbiguous Int
   totalFailed   Int
 }
+
+model AoCollectionLog {
+  id                 String   @id @default(uuid())
+  debiturId          String
+  debitur            Debitur  @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+  namaDebitur        String
+  aoId               String
+  aoUser             User     @relation(fields: [aoId], references: [id])
+  tanggal            DateTime @default(now())
+  waktu              String?
+  kol                String
+  bakiDebet          Float
+  jenisAktivitas     String   // Telepon, WhatsApp, Kunjungan Langsung, Email
+  statusTindakLanjut String   // Sudah Dihubungi, Janji Bayar pada Tanggal Tertentu, Perlu Kunjungan Lapangan, Menunggu Konfirmasi, Selesai Ditindaklanjuti
+  tanggalJanji       DateTime?
+  catatan            String?
+  createdAt          DateTime @default(now())
+  createdBy          String
+  createdByUser      User     @relation("CreatedByAoLog", fields: [createdBy], references: [id])
+
+  @@index([debiturId])
+  @@index([aoId])
+}
+
+model AoReminderEmailLog {
+  id        String   @id @default(uuid())
+  debiturId String
+  debitur   Debitur  @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+  aoId      String
+  aoUser    User     @relation(fields: [aoId], references: [id])
+  periode   String   // format "YYYY-MM" (contoh: "2026-07")
+  sentAt    DateTime @default(now())
+
+  @@unique([debiturId, aoId, periode])
+  @@index([debiturId])
+  @@index([aoId])
+}
+

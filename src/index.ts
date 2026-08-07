@@ -19,6 +19,7 @@ import { appSettingsRouter } from './controllers/appsettings.js';
 import { importRouter } from './controllers/import.js';
 import { notificationsRouter } from './controllers/notifications.js';
 import { userRouter } from './controllers/user.js';
+import { ewsRouter } from './controllers/ews.js';
 
 const app = new Hono();
 
@@ -58,6 +59,7 @@ app.route('/api/kpi', kpiRouter);
 app.route('/api/app-settings', appSettingsRouter);
 app.route('/api/import', importRouter);
 app.route('/api/notifications', notificationsRouter);
+app.route('/api/ews', ewsRouter);
 
 // Global Error Handler
 app.onError((err, c) => {

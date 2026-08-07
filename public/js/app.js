@@ -389,12 +389,38 @@ async function forceLogin() {
   }
 }
 
+async function toggleRegisterAoGroup(posisi) {
+  const group = document.getElementById('r-ao-group');
+  const select = document.getElementById('r-ao-name');
+  if (!group || !select) return;
+
+  if (posisi === 'ao') {
+    group.classList.remove('hidden');
+    group.style.display = 'block';
+    select.innerHTML = '<option value="">— Memuat daftar nama AO dari CBS... —</option>';
+    try {
+      const list = await apiCall('/auth/ao-list');
+      if (list && Array.isArray(list) && list.length > 0) {
+        select.innerHTML = '<option value="">— Pilih Nama AO Anda —</option>' + list.map(a => `<option value="${a}">${a}</option>`).join('');
+      } else {
+        select.innerHTML = '<option value="">(Belum ada data AO di CBS, silakan atur manual nanti)</option>';
+      }
+    } catch (e) {
+      select.innerHTML = '<option value="">(Gagal memuat daftar AO)</option>';
+    }
+  } else {
+    group.classList.add('hidden');
+    group.style.display = 'none';
+  }
+}
+
 async function handleRegister() {
   const nama = document.getElementById('r-nama')?.value.trim();
   const username = document.getElementById('r-user')?.value.trim();
   const email = document.getElementById('r-email')?.value.trim();
   const tgl_lahir = document.getElementById('r-ttl')?.value;
   const posisi = document.getElementById('r-posisi')?.value;
+  const ao_name_ref = document.getElementById('r-ao-name')?.value;
   const password = document.getElementById('r-pass')?.value;
   const confirm = document.getElementById('r-conf')?.value;
   const errEl = document.getElementById('r-err');
@@ -408,6 +434,11 @@ async function handleRegister() {
     return;
   }
 
+  if (posisi === 'ao' && !ao_name_ref) {
+    if (errEl) errEl.innerText = 'Pilihan nama AO wajib diisi untuk posisi Account Officer';
+    return;
+  }
+
   if (password !== confirm) {
     if (errEl) errEl.innerText = 'Konfirmasi password tidak cocok';
     return;
@@ -416,7 +447,7 @@ async function handleRegister() {
   try {
     const res = await apiCall('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ nama, username, email, tgl_lahir, posisi, password })
+      body: JSON.stringify({ nama, username, email, tgl_lahir, posisi, ao_name_ref: posisi === 'ao' ? ao_name_ref : undefined, password })
     });
 
     if (okEl) {
@@ -444,6 +475,7 @@ async function demoLogin(role) {
   await handleLogin(true);
 }
 
+window.toggleRegisterAoGroup = toggleRegisterAoGroup;
 window.demoLogin = demoLogin;
 window.handleLogin = handleLogin;
 window.forceLogin = forceLogin;
@@ -738,7 +770,9 @@ function setupAppShell() {
     kabid_p3: 'Pembinaan Pengawasan & Pembiayaan',
     staff_p3: 'Pembinaan Pengawasan & Pembiayaan',
     desk_call: 'Desk Call',
-    legal: 'Pembinaan Pengawasan & Pembiayaan · Legal'
+    legal: 'Pembinaan Pengawasan & Pembiayaan · Legal',
+    ao: 'Account Officer',
+    kabid_ao: 'Pembinaan Account Officer'
   };
 
   const roleTitle = roles[user.posisi] || 'Pembinaan Pengawasan & Pembiayaan';
@@ -757,14 +791,15 @@ function renderNavMenu(role) {
   if (!container) return;
 
   const menu = [
-    { id: 'dashboard', label: 'Dashboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal'] },
-    { id: 'debitur', label: 'Data Debitur', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal'] },
+    { id: 'dashboard', label: 'Dashboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
+    { id: 'ews', label: 'EWS (Early Warning)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>', roles: ['admin', 'ao', 'kabid_ao'] },
+    { id: 'debitur', label: 'Data Debitur', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
     { id: 'deskcall', label: 'Desk Call', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>', roles: ['admin', 'desk_call'] },
     { id: 'p3', label: 'P3 (Lapangan)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal'] },
     { id: 'legal', label: 'Dokumen dan Arsip', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', roles: ['admin', 'kabid_p3', 'legal'] },
-    { id: 'bayar', label: 'Riwayat Bayar', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal'] },
-    { id: 'kpi', label: 'KPI & Scorecard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal'] },
-    { id: 'settings', label: 'Pengaturan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal'] }
+    { id: 'bayar', label: 'Riwayat Bayar', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
+    { id: 'kpi', label: 'KPI & Scorecard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal', 'ao', 'kabid_ao'] },
+    { id: 'settings', label: 'Pengaturan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] }
   ];
 
   container.innerHTML = menu.filter(item => item.id === 'settings' || item.roles.includes(role)).map(item => `
@@ -827,6 +862,7 @@ function switchPane(paneId, subId = null) {
 
   // Load view contents dynamically
   if (paneId === 'dashboard') loadDashboardView();
+  if (paneId === 'ews') loadEwsView();
   if (paneId === 'debitur') loadDebiturView();
   if (paneId === 'deskcall') loadDeskCallView();
   if (paneId === 'p3') loadP3View();
@@ -7736,3 +7772,380 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('app-shell').style.display = 'none';
   }
 });
+
+// ==========================================
+// MODUL EARLY WARNING SYSTEM (EWS) AO & KABID AO
+// ==========================================
+
+let ewsState = {
+  q: '',
+  kol: '',
+  ewsStatus: '',
+  ao: ''
+};
+
+async function loadEwsView() {
+  const container = document.getElementById('ews-content');
+  if (!container) return;
+
+  container.innerHTML = '<div class="empty-st"><p>Memuat data Early Warning System (EWS)...</p></div>';
+
+  try {
+    const summary = await apiCall(`/ews/summary?ao=${encodeURIComponent(ewsState.ao)}`);
+    const watchlist = await apiCall(`/ews/watchlist?q=${encodeURIComponent(ewsState.q)}&kol=${encodeURIComponent(ewsState.kol)}&ewsStatus=${encodeURIComponent(ewsState.ewsStatus)}&ao=${encodeURIComponent(ewsState.ao)}`);
+
+    const isKabidOrAdmin = state.user?.posisi === 'kabid_ao' || state.user?.posisi === 'admin';
+    let leaderboard = null;
+    let aoList = [];
+
+    if (isKabidOrAdmin) {
+      try {
+        leaderboard = await apiCall('/ews/leaderboard');
+        aoList = await apiCall('/auth/ao-list');
+      } catch (e) {}
+    }
+
+    renderEwsUI(container, summary, watchlist, leaderboard, aoList);
+  } catch (err) {
+    container.innerHTML = `<div class="empty-st text-danger"><p>Gagal memuat data EWS: ${err.message}</p></div>`;
+  }
+}
+
+function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
+  const isKabidOrAdmin = state.user?.posisi === 'kabid_ao' || state.user?.posisi === 'admin';
+
+  let html = `
+    <!-- EWS SUMMARY STAT CARDS -->
+    <div class="legal-summary-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+      <div class="stat-card">
+        <div class="stat-label">Total Nasabah Portofolio</div>
+        <div class="stat-num">${summary.totalDebitur || 0}</div>
+        <div class="stat-sub">Nasabah binaan AO</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Baki Debet Berisiko (DPK &amp; NPF)</div>
+        <div class="stat-num text-danger" style="font-size:20px;">${fmtRp(summary.totalBakiDebetBerisiko || 0)}</div>
+        <div class="stat-sub">Total kewajiban berpotensi macet</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Watchlist NPF (KOL 3-5)</div>
+        <div class="stat-num text-danger">${summary.npfWatchlistCount || 0}</div>
+        <div class="stat-sub">Nasabah pembiayaan bermasalah</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Jatuh Tempo (H-7 s.d. Hari Ini)</div>
+        <div class="stat-num text-warning">${(summary.ewsStatusCounts?.['Reminder'] || 0) + (summary.ewsStatusCounts?.['Jatuh Tempo Hari Ini'] || 0)}</div>
+        <div class="stat-sub">Memerlukan reminder presif</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">DPD 1 (1-30 Hari Tunggak)</div>
+        <div class="stat-num text-warning">${summary.ewsStatusCounts?.['DPD 1 / Dalam Perhatian'] || 0}</div>
+        <div class="stat-sub">Dalam perhatian khusus</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">DPD 2+ (&gt;30 Hari Tunggak)</div>
+        <div class="stat-num text-danger">${summary.ewsStatusCounts?.['DPD 2+ / Bermasalah'] || 0}</div>
+        <div class="stat-sub">Penanganan khusus AO</div>
+      </div>
+    </div>
+
+    <!-- FILTER TOOLBAR -->
+    <div class="toolbar-wrap mb-4" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+      <div class="search-box-group" style="flex:1;min-width:240px;max-width:380px;">
+        <svg class="search-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="ews-search-input" type="text" placeholder="Cari nama, no. rekening, AO..." value="${ewsState.q}" onkeydown="if(event.key==='Enter') executeEwsSearch()"/>
+        <button class="search-box-btn" type="button" onclick="executeEwsSearch()">Cari</button>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        ${isKabidOrAdmin && Array.isArray(aoList) ? `
+          <select class="form-select" onchange="filterEwsAo(this.value)" style="width:auto;font-size:12.5px;">
+            <option value="">Semua Portofolio AO</option>
+            ${aoList.map(a => `<option value="${a}" ${ewsState.ao === a ? 'selected' : ''}>AO: ${a}</option>`).join('')}
+          </select>
+        ` : ''}
+
+        <select class="form-select" onchange="filterEwsStatus(this.value)" style="width:auto;font-size:12.5px;">
+          <option value="" ${ewsState.ewsStatus === '' ? 'selected' : ''}>Semua Status EWS</option>
+          <option value="Reminder" ${ewsState.ewsStatus === 'Reminder' ? 'selected' : ''}>🟡 Reminder (H-7 s.d H-1)</option>
+          <option value="Jatuh Tempo Hari Ini" ${ewsState.ewsStatus === 'Jatuh Tempo Hari Ini' ? 'selected' : ''}>🟡 Jatuh Tempo Hari Ini</option>
+          <option value="DPD 1 / Dalam Perhatian" ${ewsState.ewsStatus === 'DPD 1 / Dalam Perhatian' ? 'selected' : ''}>🟠 DPD 1 (1-30 Hari)</option>
+          <option value="DPD 2+ / Bermasalah" ${ewsState.ewsStatus === 'DPD 2+ / Bermasalah' ? 'selected' : ''}>🔴 DPD 2+ (&gt;30 Hari)</option>
+          <option value="Lancar / Normal" ${ewsState.ewsStatus === 'Lancar / Normal' ? 'selected' : ''}>🟢 Lancar / Normal</option>
+        </select>
+
+        <select class="form-select" onchange="filterEwsKol(this.value)" style="width:auto;font-size:12.5px;">
+          <option value="" ${ewsState.kol === '' ? 'selected' : ''}>Semua KOL</option>
+          <option value="Lancar" ${ewsState.kol === 'Lancar' ? 'selected' : ''}>Lancar</option>
+          <option value="DPK" ${ewsState.kol === 'DPK' ? 'selected' : ''}>DPK</option>
+          <option value="Kurang Lancar" ${ewsState.kol === 'Kurang Lancar' ? 'selected' : ''}>Kurang Lancar</option>
+          <option value="Diragukan" ${ewsState.kol === 'Diragukan' ? 'selected' : ''}>Diragukan</option>
+          <option value="Macet" ${ewsState.kol === 'Macet' ? 'selected' : ''}>Macet</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- EWS WATCHLIST TABLE -->
+    <div class="tbl-wrap mb-4">
+      <table class="tbl" style="min-width:1050px;">
+        <thead>
+          <tr>
+            <th>Nama Debitur</th>
+            <th>AO Pengampu</th>
+            <th>Akad</th>
+            <th class="num">Baki Debet</th>
+            <th class="num">Angsuran / Bln</th>
+            <th>Tgl Jatuh Tempo</th>
+            <th style="text-align:center;">DPD</th>
+            <th>KOL</th>
+            <th>Status EWS</th>
+            <th>Log Terakhir AO</th>
+            <th style="text-align:center;">Aksi AO</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${watchlist.length === 0 ? '<tr><td colspan="11" class="empty-st">Tidak ada debitur sesuai kriteria EWS.</td></tr>' : watchlist.map(d => {
+            const ews = d.ewsStatusInfo;
+            const canEdit = d.isOwnedByMe;
+            const lastLog = d.lastAoLog;
+
+            let badgeStyle = 'background:var(--success-bg);color:var(--success);border:1px solid var(--success);';
+            if (ews.code === 'YELLOW') badgeStyle = 'background:rgba(234,179,8,0.12);color:#B45309;border:1px solid rgba(234,179,8,0.3);';
+            if (ews.code === 'ORANGE') badgeStyle = 'background:rgba(249,115,22,0.12);color:#C2410C;border:1px solid rgba(249,115,22,0.3);';
+            if (ews.code === 'RED') badgeStyle = 'background:rgba(239,68,68,0.12);color:#EF4444;border:1px solid rgba(239,68,68,0.3);';
+
+            return `
+              <tr>
+                <td class="font-bold">
+                  ${d.nama}
+                  <br><span class="mono text-muted" style="font-size:11px;">Rek: ${d.id}</span>
+                </td>
+                <td style="font-size:12.5px;">${d.ao || '-'}</td>
+                <td style="font-size:12px;">${d.jenisMargin || '-'}</td>
+                <td class="num mono font-bold">${fmtRp(d.bakiDebet)}</td>
+                <td class="num mono" style="font-size:12px;">${fmtRp((d.angsPrincipal || 0) + (d.angsMargin || 0))}</td>
+                <td class="mono" style="font-size:12px;">${formatDate(d.tglJt)}</td>
+                <td style="text-align:center;" class="mono font-bold ${d.frhPokok > 30 ? 'text-danger' : d.frhPokok > 0 ? 'text-warning' : ''}">${d.frhPokok} hr</td>
+                <td><span class="badge ${d.kol==='Lancar'?'badge-green':d.kol==='DPK'?'badge-yellow':'badge-red'}">${d.kol}</span></td>
+                <td>
+                  <span class="badge" style="font-size:10.5px;padding:3px 9px;border-radius:6px;font-weight:700;${badgeStyle}">
+                    ${ews.label}
+                  </span>
+                </td>
+                <td style="font-size:11.5px;max-width:180px;">
+                  ${lastLog ? `
+                    <div style="font-weight:700;color:var(--text);">${lastLog.statusTindakLanjut}</div>
+                    <div class="text-muted" style="font-size:10.5px;">${formatDate(lastLog.tanggal)} · ${lastLog.jenisAktivitas}</div>
+                  ` : '<span class="text-muted">— Belum ada log —</span>'}
+                </td>
+                <td style="text-align:center;">
+                  <div style="display:flex;gap:4px;justify-content:center;flex-wrap:nowrap;">
+                    ${canEdit ? `
+                      <button class="btn btn-primary btn-sm" onclick="openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "\\'")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "\\'")}')" style="font-size:11px;padding:4px 9px;" title="Catat Tindak Lanjut AO">
+                        Catat Log
+                      </button>
+                    ` : `
+                      <button class="btn btn-ghost btn-sm" onclick="openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "\\'")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "\\'")}')" style="font-size:11px;padding:4px 9px;opacity:0.75;" title="Lihat Riwayat Log AO (Read-Only)">
+                        Lihat Log
+                      </button>
+                    `}
+                    <button class="btn btn-outline btn-sm" onclick="sendEwsWaReminder('${d.id}', '${d.nama.replace(/'/g, "\\'")}', '${d.telepon}', ${d.totalTunggakan}, '${d.tglJt}')" style="font-size:11px;padding:4px 8px;border-color:#25D366;color:#25D366;" title="Kirim Reminder WA Temp">
+                      WA
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // LEADERBOARD AO SECTION (for Kabid AO & Admin)
+  if (isKabidOrAdmin && Array.isArray(leaderboard) && leaderboard.length > 0) {
+    html += `
+      <div style="margin-top:28px;">
+        <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;">Leaderboard &amp; Evaluasi Kinerja Account Officer</div>
+        <div style="font-size:12.5px;color:var(--text-2);margin-bottom:14px;">Pemantauan NPF Ratio per AO, total pembiayaan yang dikelola, dan keberhasilan tindak lanjut.</div>
+
+        <div class="tbl-wrap">
+          <table class="tbl" style="min-width:750px;">
+            <thead>
+              <tr>
+                <th style="width:50px;text-align:center;">Rank</th>
+                <th>Nama Account Officer</th>
+                <th class="num">Total Nasabah</th>
+                <th class="num">Total Baki Debet</th>
+                <th class="num">Baki Debet NPF</th>
+                <th class="num">NPF Ratio</th>
+                <th class="num">Log Dikerjakan</th>
+                <th class="num">% Selesai</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${leaderboard.map((ao, idx) => {
+                const rankMedal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                return `
+                  <tr>
+                    <td style="text-align:center;font-weight:800;font-size:14px;">${rankMedal}</td>
+                    <td class="font-bold">${ao.nama} <span class="mono text-muted" style="font-size:11px;">(${ao.aoNameRef || 'AO'})</span></td>
+                    <td class="num font-bold">${ao.totalDebitur}</td>
+                    <td class="num mono">${fmtRp(ao.totalBakiDebet)}</td>
+                    <td class="num mono text-danger font-bold">${fmtRp(ao.npfBakiDebet)}</td>
+                    <td class="num mono font-bold ${ao.npfRatio > 5 ? 'text-danger' : 'text-success'}">${ao.npfRatio}%</td>
+                    <td class="num mono">${ao.totalLogs}</td>
+                    <td class="num mono font-bold text-teal">${ao.successRate}%</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+function executeEwsSearch() {
+  const input = document.getElementById('ews-search-input');
+  if (input) {
+    ewsState.q = input.value.trim();
+    loadEwsView();
+  }
+}
+
+function filterEwsKol(kol) {
+  ewsState.kol = kol;
+  loadEwsView();
+}
+
+function filterEwsStatus(st) {
+  ewsState.ewsStatus = st;
+  loadEwsView();
+}
+
+function filterEwsAo(ao) {
+  ewsState.ao = ao;
+  loadEwsView();
+}
+
+async function openAoLogModal(debiturId, nama, kol, bakiDebet, aoName) {
+  document.getElementById('aolog-debitur-id').value = debiturId;
+  document.getElementById('aolog-debitur-nama').innerText = nama;
+  document.getElementById('aolog-debitur-kol').innerText = kol;
+  document.getElementById('aolog-debitur-bakidebet').innerText = fmtRp(bakiDebet);
+  document.getElementById('aolog-debitur-ao').innerText = aoName || '-';
+
+  document.getElementById('aolog-jenis').value = 'Telepon';
+  document.getElementById('aolog-status').value = 'Sudah Dihubungi';
+  document.getElementById('aolog-catatan').value = '';
+  toggleAoLogTglJanji('Sudah Dihubungi');
+
+  // Check read-only state
+  const isKabidOrAdmin = state.user?.posisi === 'kabid_ao';
+  const submitBtn = document.getElementById('aolog-submit-btn');
+  if (submitBtn) {
+    if (isKabidOrAdmin) {
+      submitBtn.style.display = 'none';
+    } else {
+      submitBtn.style.display = 'inline-block';
+    }
+  }
+
+  // Fetch history list
+  const historyContainer = document.getElementById('aolog-history-list');
+  historyContainer.innerHTML = '<p style="color:var(--text-3);text-align:center;">Memuat riwayat log...</p>';
+
+  openModal('modal-ao-log');
+
+  try {
+    const logs = await apiCall(`/ews/collection-log/${debiturId}`);
+    if (!logs || logs.length === 0) {
+      historyContainer.innerHTML = '<p style="color:var(--text-3);text-align:center;padding:10px 0;">Belum ada catatan tindak lanjut AO sebelumnya.</p>';
+    } else {
+      historyContainer.innerHTML = logs.map(l => `
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong style="color:var(--text);">${l.statusTindakLanjut}</strong>
+            <span class="mono text-muted" style="font-size:10.5px;">${formatDate(l.tanggal)} ${l.waktu || ''}</span>
+          </div>
+          <div style="color:var(--text-2);margin-top:2px;">Aktivitas: <strong>${l.jenisAktivitas}</strong> ${l.tanggalJanji ? `· Janji: <strong style="color:var(--brand);">${formatDate(l.tanggalJanji)}</strong>` : ''}</div>
+          ${l.catatan ? `<div style="font-style:italic;color:var(--text-3);margin-top:2px;">"${l.catatan}"</div>` : ''}
+          <div style="font-size:10px;color:var(--text-3);margin-top:2px;">Oleh: ${l.createdByUser?.nama || 'AO'}</div>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    historyContainer.innerHTML = `<p style="color:var(--danger);text-align:center;">Gagal memuat riwayat log: ${e.message}</p>`;
+  }
+}
+
+function toggleAoLogTglJanji(val) {
+  const group = document.getElementById('aolog-tgljanji-group');
+  if (group) {
+    if (val === 'Janji Bayar pada Tanggal Tertentu') {
+      group.classList.remove('hidden');
+      group.style.display = 'block';
+    } else {
+      group.classList.add('hidden');
+      group.style.display = 'none';
+    }
+  }
+}
+
+async function saveAoLog(e) {
+  e.preventDefault();
+  const debiturId = document.getElementById('aolog-debitur-id').value;
+  const jenisAktivitas = document.getElementById('aolog-jenis').value;
+  const statusTindakLanjut = document.getElementById('aolog-status').value;
+  const tanggalJanji = document.getElementById('aolog-tgljanji').value;
+  const catatan = document.getElementById('aolog-catatan').value;
+
+  try {
+    await apiCall('/ews/collection-log', {
+      method: 'POST',
+      body: JSON.stringify({
+        debiturId,
+        jenisAktivitas,
+        statusTindakLanjut,
+        tanggalJanji: statusTindakLanjut === 'Janji Bayar pada Tanggal Tertentu' ? tanggalJanji : undefined,
+        catatan
+      })
+    });
+
+    showToast('Berhasil menyimpan catatan tindak lanjut AO', 'success');
+    closeModal('modal-ao-log');
+    loadEwsView();
+  } catch (err) {
+    showToast(`Gagal menyimpan log AO: ${err.message}`, 'danger');
+  }
+}
+
+function sendEwsWaReminder(debiturId, nama, telp, totalTunggakan, tglJt) {
+  let cleanTelp = (telp || '').replace(/\D/g, '');
+  if (cleanTelp.startsWith('0')) {
+    cleanTelp = '62' + cleanTelp.substring(1);
+  }
+
+  const ptName = state.settings?.pt_name || 'PT BPRS Mitra Harmoni Yogyakarta';
+  const formattedTunggakan = fmtRp(totalTunggakan);
+  const formattedJt = formatDate(tglJt);
+
+  const message = `Assalamu'alaikum Wr. Wb.\n\nYth. Bapak/Ibu *${nama}*,\nNasabah ${ptName}.\n\nKami mengingatkan kembali terkait kewajiban angsuran pembiayaan Bapak/Ibu dengan rincian berikut:\n- Nominal Tunggakan: *${formattedTunggakan}*\n- Tanggal Jatuh Tempo: *${formattedJt}*\n\nMohon berkenan untuk melakukan pembayaran tepat waktu demi kenyamanan kelancaran pembiayaan Bapak/Ibu.\n\nTerima kasih.\nWassalamu'alaikum Wr. Wb.\n_Account Officer ${ptName}_`;
+
+  const waUrl = `https://wa.me/${cleanTelp}?text=${encodeURIComponent(message)}`;
+  window.open(waUrl, '_blank');
+}
+
+window.loadEwsView = loadEwsView;
+window.executeEwsSearch = executeEwsSearch;
+window.filterEwsKol = filterEwsKol;
+window.filterEwsStatus = filterEwsStatus;
+window.filterEwsAo = filterEwsAo;
+window.openAoLogModal = openAoLogModal;
+window.toggleAoLogTglJanji = toggleAoLogTglJanji;
+window.saveAoLog = saveAoLog;
+window.sendEwsWaReminder = sendEwsWaReminder;

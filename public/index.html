@@ -433,12 +433,20 @@
 
                 <div>
                   <label class="form-label" for="r-posisi">Jabatan / Peran</label>
-                  <select id="r-posisi" class="form-select">
+                  <select id="r-posisi" class="form-select" onchange="toggleRegisterAoGroup(this.value)">
                     <option value="">— Pilih —</option>
+                    <option value="ao">Account Officer (AO)</option>
+                    <option value="kabid_ao">Kepala Bidang AO (Kabid AO)</option>
                     <option value="staff_p3">Staff P3</option>
                     <option value="desk_call">Staff Desk Call</option>
                     <option value="kabid_p3">Kabid P3</option>
                     <option value="legal">Staff Legal</option>
+                  </select>
+                </div>
+                <div id="r-ao-group" class="col-span-2 hidden" style="margin-top:2px;">
+                  <label class="form-label" for="r-ao-name" style="color:var(--brand);font-weight:700;">Pilih Anda AO Yang Mana? (Sesuai CBS) <span style="color:#EF4444;">*</span></label>
+                  <select id="r-ao-name" class="form-select">
+                    <option value="">— Memuat daftar nama AO dari CBS... —</option>
                   </select>
                 </div>
                 <div>
@@ -474,6 +482,8 @@
           </p>
           <div class="flex flex-wrap gap-1.5">
             <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('admin')">Administrator</button>
+            <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('ao')">Account Officer</button>
+            <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('kabid_ao')">Kabid AO</button>
             <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('kabid_p3')">Kabid P3</button>
             <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('staff_p3')">Staff P3</button>
             <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer" onclick="demoLogin('desk_call')">Desk Call</button>
@@ -1337,6 +1347,18 @@
           <div id="kpi-content"></div>
         </div>
 
+        <div class="tab-pane" id="pane-ews">
+          <div class="page-hd">
+            <div class="page-hd-row">
+              <div>
+                <div class="page-title">Dashboard Early Warning System (EWS) Account Officer</div>
+                <div class="page-sub">Pemantauan risiko pembiayaan dini, estimasi jatuh tempo angsuran bulanan, dan pencatatan tindak lanjut AO.</div>
+              </div>
+            </div>
+          </div>
+          <div id="ews-content"></div>
+        </div>
+
         <div class="tab-pane" id="pane-settings">
           <div class="page-hd">
             <div class="page-title">Pengaturan Aplikasi &amp; Sistem</div>
@@ -1412,6 +1434,74 @@
   document.addEventListener('gesturechange', (e) => e.preventDefault());
   document.addEventListener('gestureend', (e) => e.preventDefault());
 </script>
+<!-- AO COLLECTION LOG MODAL -->
+<div class="modal-overlay" id="modal-ao-log">
+  <div class="modal-box" style="max-width:540px;">
+    <div class="modal-hdr">
+      <div class="modal-title" id="aolog-title">Catat Tindak Lanjut AO</div>
+      <button class="modal-close" onclick="closeModal('modal-ao-log')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <form id="form-ao-log" onsubmit="saveAoLog(event)">
+      <div class="modal-body">
+        <input type="hidden" id="aolog-debitur-id" />
+        
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+          <div style="font-size:14px;font-weight:800;color:var(--text);" id="aolog-debitur-nama">-</div>
+          <div style="display:flex;gap:12px;font-size:12px;color:var(--text-2);margin-top:4px;flex-wrap:wrap;">
+            <span>KOL: <strong id="aolog-debitur-kol">-</strong></span>
+            <span>Baki Debet: <strong id="aolog-debitur-bakidebet">-</strong></span>
+            <span>AO: <strong id="aolog-debitur-ao">-</strong></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Jenis Aktivitas <span style="color:#EF4444;">*</span></label>
+            <select id="aolog-jenis" class="form-select" required>
+              <option value="Telepon">📞 Telepon</option>
+              <option value="WhatsApp">💬 WhatsApp</option>
+              <option value="Kunjungan Langsung">🚗 Kunjungan Langsung</option>
+              <option value="Email">✉️ Email / Surat</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status Tindak Lanjut <span style="color:#EF4444;">*</span></label>
+            <select id="aolog-status" class="form-select" onchange="toggleAoLogTglJanji(this.value)" required>
+              <option value="Sudah Dihubungi">Sudah Dihubungi</option>
+              <option value="Janji Bayar pada Tanggal Tertentu">Janji Bayar pada Tanggal Tertentu</option>
+              <option value="Perlu Kunjungan Lapangan">Perlu Kunjungan Lapangan</option>
+              <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
+              <option value="Selesai Ditindaklanjuti">Selesai Ditindaklanjuti</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group hidden" id="aolog-tgljanji-group">
+          <label class="form-label">Tanggal Janji Bayar</label>
+          <input type="date" id="aolog-tgljanji" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Hasil Komunikasi / Kunjungan</label>
+          <textarea id="aolog-catatan" class="form-input" rows="3" placeholder="Tuliskan catatan hasil interaksi dengan nasabah..."></textarea>
+        </div>
+
+        <!-- RIWAYAT LOG SEBELUMNYA -->
+        <div style="margin-top:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">Riwayat Collection Log AO</div>
+          <div id="aolog-history-list" style="max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;">
+            <p style="color:var(--text-3);text-align:center;">Memuat riwayat...</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('modal-ao-log')">Batal</button>
+        <button type="submit" class="btn btn-primary btn-sm" id="aolog-submit-btn">Simpan Log AO</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 </body>
 </html>
 

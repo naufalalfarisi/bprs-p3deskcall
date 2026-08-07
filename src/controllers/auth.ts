@@ -16,14 +16,34 @@ function isToday(date: Date): boolean {
   return todayStr === dateStr;
 }
 
+// GET /ao-list - Get unique list of AO names from CBS debitur data
+authRouter.get('/ao-list', async (c) => {
+  try {
+    const rawAos = await prisma.debitur.findMany({
+      select: { ao: true },
+      where: { ao: { not: '' } },
+      distinct: ['ao'],
+      orderBy: { ao: 'asc' }
+    });
+    const list = rawAos.map((r) => r.ao).filter(Boolean);
+    return c.json(list);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
 // POST /register
 authRouter.post('/register', async (c) => {
   try {
     const body = await c.req.json();
-    const { username, password, nama, email, tgl_lahir, posisi } = body;
+    const { username, password, nama, email, tgl_lahir, posisi, ao_name_ref } = body;
 
     if (!username || !password || !nama || !email || !tgl_lahir || !posisi) {
       return c.json({ error: 'Semua field wajib diisi' }, 400);
+    }
+
+    if (posisi === 'ao' && !ao_name_ref) {
+      return c.json({ error: 'Pilihan nama AO wajib diisi untuk posisi Account Officer' }, 400);
     }
 
     if (password.length < 8) {
@@ -67,6 +87,7 @@ authRouter.post('/register', async (c) => {
             tglLahir: tglLahirDate,
             passwordHash,
             posisi,
+            aoNameRef: posisi === 'ao' ? (ao_name_ref || null) : null,
             status: 'pending',
             registerAttemptCount: attemptCount,
             lastRegisterAttemptAt: new Date()
@@ -80,7 +101,7 @@ authRouter.post('/register', async (c) => {
             action: 'register_retry',
             tableName: 'users',
             recordId: updated.id,
-            newValue: JSON.stringify({ username, posisi }),
+            newValue: JSON.stringify({ username, posisi, aoNameRef: updated.aoNameRef }),
             ipAddress: c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1'
           }
         });
@@ -100,6 +121,7 @@ authRouter.post('/register', async (c) => {
         email,
         tglLahir: tglLahirDate,
         posisi,
+        aoNameRef: posisi === 'ao' ? (ao_name_ref || null) : null,
         status: 'pending',
         registerAttemptCount: 1,
         lastRegisterAttemptAt: new Date()
@@ -113,7 +135,7 @@ authRouter.post('/register', async (c) => {
         action: 'register',
         tableName: 'users',
         recordId: newUser.id,
-        newValue: JSON.stringify({ username, posisi }),
+        newValue: JSON.stringify({ username, posisi, aoNameRef: newUser.aoNameRef }),
         ipAddress: c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1'
       }
     });
