@@ -415,6 +415,23 @@ importRouter.post('/cbs/:batchId/commit', async (c) => {
             }
           });
 
+          // Early Warning Red-Alert Audit Logging if KOL degraded to NPF
+          if (existing && existing.kol !== parsed.kol) {
+            if (
+              (existing.kol === 'DPK' || existing.kol === 'Lancar') &&
+              (parsed.kol === 'Kurang Lancar' || parsed.kol === 'Diragukan' || parsed.kol === 'Macet')
+            ) {
+              await logAudit(
+                c,
+                'RED_ALERT_KOL_DEGRADATION',
+                'Debitur',
+                parsed.id,
+                { kol: existing.kol, bakiDebet: existing.bakiDebet },
+                { kol: parsed.kol, bakiDebet: parsed.bakiDebet }
+              );
+            }
+          }
+
           // Insert or Update KOL History Snapshot (Prevents duplicates when importing multiple times in the same snapshot period)
           const existingHistory = await tx.debiturKolHistory.findFirst({
             where: {

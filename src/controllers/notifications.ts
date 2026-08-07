@@ -194,6 +194,52 @@ notificationsRouter.get('/', async (c) => {
       }
     }
 
+    // 6. Early Warning Red-Alert System: Pergeseran Kolektibilitas (KOL 2 DPK -> KOL 3/4/5 NPF)
+    if (role === 'desk_call' || role === 'admin' || role === 'staff_p3' || role === 'kabid_p3') {
+      const npfDebiturs = await prisma.debitur.findMany({
+        where: {
+          statusDebitur: 'Aktif',
+          kol: { in: ['Kurang Lancar', 'Diragukan', 'Macet'] }
+        },
+        select: {
+          id: true,
+          nama: true,
+          kol: true,
+          bakiDebet: true,
+          kolHistory: {
+            orderBy: { tanggalSnapshot: 'desc' },
+            take: 2
+          }
+        }
+      });
+
+      for (const deb of npfDebiturs) {
+        if (deb.kolHistory.length >= 2) {
+          const latestSnap = deb.kolHistory[0];
+          const prevSnap = deb.kolHistory[1];
+
+          if (
+            (prevSnap.kol === 'DPK' || prevSnap.kol === 'Lancar') &&
+            (latestSnap.kol === 'Kurang Lancar' || latestSnap.kol === 'Diragukan' || latestSnap.kol === 'Macet')
+          ) {
+            const bakiText = `Rp ${new Intl.NumberFormat('id-ID').format(deb.bakiDebet)}`;
+            notifications.push({
+              id: `red_alert_kol_${deb.id}_${latestSnap.id}`,
+              type: 'danger',
+              title: `RED-ALERT: Pergeseran Kolektibilitas (${prevSnap.kol} → ${latestSnap.kol})`,
+              message: `Debitur ${deb.nama} (${deb.id}) bergeser dari ${prevSnap.kol} menjadi ${latestSnap.kol}. Baki Debet: ${bakiText}. Prioritaskan penagihan Desk Call & P3!`,
+              link: `#/debitur?q=${deb.id}`,
+              debiturId: deb.id,
+              debiturNama: deb.nama,
+              isRedAlert: true,
+              prevKol: prevSnap.kol,
+              newKol: latestSnap.kol
+            });
+          }
+        }
+      }
+    }
+
     return c.json(notifications);
   } catch (err: any) {
     return c.json({ error: err.message }, 500);

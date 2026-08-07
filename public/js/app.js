@@ -889,7 +889,9 @@ async function openNotifPanel() {
       const canAct = (n.canFollowUp !== undefined) ? n.canFollowUp : (cnt < maxCnt);
 
       let badgeHtml = '';
-      if (isPromise) {
+      if (n.isRedAlert) {
+        badgeHtml = `<span class="badge" style="font-size:10px;padding:2px 8px;border-radius:6px;font-weight:800;background:rgba(239,68,68,0.12);color:#EF4444;border:1px solid rgba(239,68,68,0.3);display:inline-flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:50%;background:#EF4444;display:inline-block;"></span>EARLY WARNING RED-ALERT</span>`;
+      } else if (isPromise) {
         if (cnt >= maxCnt) {
           badgeHtml = `<span class="badge badge-success" style="font-size:10px;padding:2px 8px;border-radius:6px;font-weight:700;background:var(--success-bg);color:var(--success);border:1px solid var(--success);">✓ Follow Up Selesai (${cnt}/${maxCnt})</span>`;
         } else {
@@ -909,7 +911,11 @@ async function openNotifPanel() {
             </div>
           </div>
           <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;flex-wrap:wrap;">
-            ${isPromise ? `
+            ${n.isRedAlert ? `
+              <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');openDCModalFromRedAlert('${n.debiturId}', '${(n.debiturNama || '').replace(/'/g, "\\'")}', '${n.prevKol || 'DPK'}', '${n.newKol || 'Kurang Lancar'}')" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;background:#EF4444;color:#ffffff;border:none;box-shadow:0 2px 6px rgba(239,68,68,0.3);">
+                Prioritaskan Desk Call
+              </button>
+            ` : isPromise ? `
               ${canAct ? `
                 <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');openDCModalFromNotif('${n.debiturId}', '${(n.debiturNama || '').replace(/'/g, "\\'")}', ${cnt + 1}, '${n.deskCallId || ''}')" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#ffffff;box-shadow:var(--sh-sm);border:none;">
                   <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;">
@@ -943,6 +949,20 @@ async function openDCModalFromNotif(debiturId, debiturNama, nextNumber, deskCall
     dcfCatatan.value = `Follow-up reminder janji bayar (Ke-${nextNumber}): Melakukan penagihan/reminder via telepon terkait kesepakatan janji pembayaran.`;
   }
   showToast(`Mencatat Follow-Up ke-${nextNumber} untuk ${debiturNama}`, 'i');
+}
+
+async function openDCModalFromRedAlert(debiturId, debiturNama, prevKol, newKol) {
+  await openDCModal(debiturId);
+  const dcfPrioritas = document.getElementById('dcf-prioritas');
+  const dcfTindak = document.getElementById('dcf-tindak');
+  const dcfCatatan = document.getElementById('dcf-catatan');
+  
+  if (dcfPrioritas) dcfPrioritas.value = 'Kritis';
+  if (dcfTindak) dcfTindak.value = 'Janji Bayar';
+  if (dcfCatatan) {
+    dcfCatatan.value = `[EARLY WARNING RED-ALERT] Pergeseran Kolektibilitas dari ${prevKol} ke ${newKol}. Membutuhkan penagihan prioritas kritis sebelum memasuki kategori NPF berat.`;
+  }
+  showToast(`Membuka Form Desk Call Prioritas Kritis untuk ${debiturNama}`, 'warning');
 }
 
 function applyLogo(logoUrl) {
