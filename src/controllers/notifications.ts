@@ -80,16 +80,31 @@ notificationsRouter.get('/', async (c) => {
       for (const call of callsWithJanji) {
         if (!call.tanggalJanjiBayar) continue;
 
-        // Check if debitur has paid after promise call date
+        // Check if debitur has paid or has any DeskCall marked as 'Sudah Bayar' / 'Lunas'
+        const callDateStart = new Date(call.tanggal);
+        callDateStart.setHours(0, 0, 0, 0);
+        callDateStart.setDate(callDateStart.getDate() - 1); // 1 day buffer for date/timezone differences
+
         const paidAfterCount = await prisma.pembayaran.count({
           where: {
             debiturId: call.debiturId,
-            tanggal: { gte: call.tanggal }
+            tanggal: { gte: callDateStart }
           }
         });
 
-        // Skip if debitur has already paid
-        if (paidAfterCount > 0) continue;
+        const sudahBayarDeskCallCount = await prisma.deskCall.count({
+          where: {
+            debiturId: call.debiturId,
+            OR: [
+              { tindakLanjut: 'Sudah Bayar' },
+              { tindakLanjut: { contains: 'Sudah Bayar' } },
+              { tindakLanjut: { contains: 'Lunas' } }
+            ]
+          }
+        });
+
+        // Skip if debitur has already paid or any desk call is marked as 'Sudah Bayar'
+        if (paidAfterCount > 0 || sudahBayarDeskCallCount > 0) continue;
 
         // Count follow-up Desk Calls recorded after this promise call date
         const followUpCount = await prisma.deskCall.count({
@@ -110,6 +125,7 @@ notificationsRouter.get('/', async (c) => {
         if (isTomorrow) {
           notifications.push({
             id: `promise_h1_${call.id}`,
+            deskCallId: call.id,
             type: 'warning',
             title: 'Pengingat H-1 Janji Bayar',
             message: `Nasabah ${call.namaDebitur} dijadwalkan bayar BESOK (${promiseDateStr}) sebesar ${nominalText}`,
@@ -123,6 +139,7 @@ notificationsRouter.get('/', async (c) => {
         } else {
           notifications.push({
             id: `promise_${call.id}`,
+            deskCallId: call.id,
             type: 'danger',
             title: 'Janji Bayar Jatuh Tempo',
             message: `Nasabah ${call.namaDebitur} menjanjikan bayar (${promiseDateStr}) sebesar ${nominalText}`,

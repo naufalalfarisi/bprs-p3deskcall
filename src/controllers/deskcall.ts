@@ -59,6 +59,34 @@ deskcallRouter.post('/', async (c) => {
       }
     });
 
+    if (tindakLanjut && (tindakLanjut === 'Sudah Bayar' || tindakLanjut.includes('Sudah Bayar') || tindakLanjut.includes('Lunas'))) {
+      const paymentNominal = nominalJanji ? parseFloat(nominalJanji) : (debitur.totalTunggakan || 0);
+      await prisma.pembayaran.create({
+        data: {
+          debiturId,
+          nama: debitur.nama,
+          tanggal: new Date(tanggal),
+          nominal: paymentNominal,
+          kol: debitur.kol,
+          metode: jenisKontak === 'WhatsApp' ? 'Transfer' : 'Tunai',
+          petugas: user.nama || user.username || 'Desk Call',
+          keterangan: hasilKomunikasi || 'Pembayaran dicatat via Desk Call (Sudah Bayar)'
+        }
+      });
+
+      // Clear pending promise dates on previous DeskCalls for this debitur
+      await prisma.deskCall.updateMany({
+        where: {
+          debiturId,
+          tindakLanjut: 'Janji Bayar',
+          id: { not: newCall.id }
+        },
+        data: {
+          tanggalJanjiBayar: null
+        }
+      });
+    }
+
     await logAudit(c, 'create_desk_call', 'desk_call', newCall.id, null, newCall);
 
     return c.json(newCall, 201);
@@ -388,6 +416,82 @@ deskcallRouter.get('/insight', roleMiddleware(['admin', 'desk_call', 'kabid_p3',
       }));
     }
 
+    // 8. Success Rate & Klasifikasi Penyelesaian Nasabah Janji Bayar
+    const promiseCalls = await prisma.deskCall.findMany({
+      where: {
+        tanggal: { gte: startOfMonth, lte: endOfMonth },
+        OR: [
+          { tindakLanjut: 'Janji Bayar' },
+          { tindakLanjut: 'Sudah Bayar' },
+          { tindakLanjut: { contains: 'Sudah Bayar' } },
+          { tanggalJanjiBayar: { not: null } }
+        ]
+      },
+      include: { debitur: true },
+      orderBy: { tanggalJanjiBayar: 'asc' }
+    });
+
+    const promiseDebtorMap: { [debiturId: string]: any } = {};
+
+    for (const pCall of promiseCalls) {
+      if (!promiseDebtorMap[pCall.debiturId]) {
+        const hasPayment = await prisma.pembayaran.count({
+          where: { debiturId: pCall.debiturId }
+        }) > 0;
+
+        const hasSudahBayarCall = await prisma.deskCall.count({
+          where: {
+            debiturId: pCall.debiturId,
+            OR: [
+              { tindakLanjut: 'Sudah Bayar' },
+              { tindakLanjut: { contains: 'Sudah Bayar' } },
+              { tindakLanjut: { contains: 'Lunas' } }
+            ]
+          }
+        }) > 0;
+
+        const isResolved = hasPayment || hasSudahBayarCall || (pCall.tindakLanjut && (pCall.tindakLanjut.includes('Sudah Bayar') || pCall.tindakLanjut.includes('Lunas')));
+
+        let statusCategory = 'Dalam Follow-Up';
+        if (isResolved) {
+          statusCategory = 'Selesai (Sudah Bayar)';
+        } else if (pCall.tanggalJanjiBayar && new Date(pCall.tanggalJanjiBayar) < new Date()) {
+          statusCategory = 'Ingkar Janji (Overdue)';
+        }
+
+        promiseDebtorMap[pCall.debiturId] = {
+          debiturId: pCall.debiturId,
+          namaDebitur: pCall.namaDebitur,
+          tanggalJanjiBayar: pCall.tanggalJanjiBayar,
+          nominalJanji: pCall.nominalJanji || 0,
+          isResolved,
+          statusCategory
+        };
+      }
+    }
+
+    const debtorList = Object.values(promiseDebtorMap);
+    const totalPromiseDebtors = debtorList.length;
+    const resolvedCount = debtorList.filter(d => d.isResolved).length;
+    const pendingCount = debtorList.filter(d => d.statusCategory === 'Dalam Follow-Up').length;
+    const brokenCount = debtorList.filter(d => d.statusCategory === 'Ingkar Janji (Overdue)').length;
+
+    const promiseSuccessRate = totalPromiseDebtors > 0 ? parseFloat(((resolvedCount / totalPromiseDebtors) * 100).toFixed(1)) : 0;
+    
+    let promisePerformanceCategory = 'Perlu Perhatian';
+    if (promiseSuccessRate >= 70) promisePerformanceCategory = 'Sangat Baik';
+    else if (promiseSuccessRate >= 40) promisePerformanceCategory = 'Sedang';
+
+    const ptpSuccessMetrics = {
+      totalPromiseDebtors,
+      resolvedCount,
+      pendingCount,
+      brokenCount,
+      promiseSuccessRate,
+      promisePerformanceCategory,
+      debtorList
+    };
+
     return c.json({
       stats: {
         totalCall,
@@ -402,7 +506,8 @@ deskcallRouter.get('/insight', roleMiddleware(['admin', 'desk_call', 'kabid_p3',
       kolDistribution,
       hourlyDistribution,
       trenCall,
-      officerPerformance
+      officerPerformance,
+      ptpSuccessMetrics
     });
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
@@ -762,6 +867,38 @@ deskcallRouter.put('/:id', roleMiddleware(['admin', 'desk_call', 'kabid_p3']), a
         tanggalJanjiBayar: tanggalJanjiBayar !== undefined ? (tanggalJanjiBayar ? new Date(tanggalJanjiBayar) : null) : existing.tanggalJanjiBayar
       }
     });
+
+    if (tindakLanjut && (tindakLanjut === 'Sudah Bayar' || tindakLanjut.includes('Sudah Bayar') || tindakLanjut.includes('Lunas'))) {
+      const paymentNominal = nominalJanji !== undefined && nominalJanji !== null && nominalJanji !== '' 
+        ? parseFloat(nominalJanji) 
+        : (existing.nominalJanji || 0);
+      const debitur = await prisma.debitur.findUnique({ where: { id: existing.debiturId } });
+      if (debitur) {
+        await prisma.pembayaran.create({
+          data: {
+            debiturId: existing.debiturId,
+            nama: debitur.nama,
+            tanggal: tanggal ? new Date(tanggal) : new Date(),
+            nominal: paymentNominal > 0 ? paymentNominal : (debitur.totalTunggakan || 0),
+            kol: debitur.kol,
+            metode: 'Transfer',
+            petugas: (c as any).get('user')?.nama || 'Desk Call',
+            keterangan: hasilKomunikasi || 'Pembayaran dicatat via Desk Call (Sudah Bayar)'
+          }
+        });
+      }
+
+      await prisma.deskCall.updateMany({
+        where: {
+          debiturId: existing.debiturId,
+          tindakLanjut: 'Janji Bayar',
+          id: { not: id }
+        },
+        data: {
+          tanggalJanjiBayar: null
+        }
+      });
+    }
 
     await logAudit(c, 'update_desk_call', 'desk_call', id, existing, updated);
 

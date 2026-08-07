@@ -241,25 +241,24 @@ kpiRouter.get('/dashboard', async (c) => {
     const callsPtp = monthlyCalls.filter(c => c.tindakLanjut === 'Janji Bayar').length;
     const ptpRate = callsConnected > 0 ? (callsPtp / callsConnected) * 100 : 0;
 
-    // 7. Promise Kept Rate: % janji bayar yang disusul oleh pembayaran
+    // 7. Promise Kept Rate: % janji bayar yang disusul oleh pembayaran / status Sudah Bayar
     const keptCount = await prisma.deskCall.count({
       where: {
         tanggal: { gte: startOfMonth, lte: endOfMonth },
         tindakLanjut: 'Janji Bayar',
         tanggalJanjiBayar: { not: null },
         debitur: {
-          pembayaran: {
-            some: {
-              tanggal: {
-                gte: startOfMonth,
-                lte: endOfMonth
-              }
-            }
-          }
+          OR: [
+            { pembayaran: { some: {} } },
+            { deskCalls: { some: { OR: [{ tindakLanjut: 'Sudah Bayar' }, { tindakLanjut: { contains: 'Sudah Bayar' } }] } } }
+          ]
         }
       }
     });
-    const promiseKeptRate = callsPtp > 0 ? (keptCount / callsPtp) * 100 : 0;
+    const promiseKeptRate = callsPtp > 0 ? parseFloat(((keptCount / callsPtp) * 100).toFixed(1)) : 0;
+    let promiseKeptCategory = 'Perlu Perhatian';
+    if (promiseKeptRate >= 70) promiseKeptCategory = 'Sangat Baik';
+    else if (promiseKeptRate >= 40) promiseKeptCategory = 'Sedang';
 
     // 8. Roll Rate (P3) = Lewat Jatuh Tempo / Total Jadwal * 100
     const schedulesOverdue = monthlySchedules.filter(s => s.status === 'Lewat Jatuh Tempo').length;
@@ -317,6 +316,7 @@ kpiRouter.get('/dashboard', async (c) => {
         collectionRate,
         ptpRate,
         promiseKeptRate,
+        promiseKeptCategory,
         rollRate,
         // Group 3
         coverageRatio,

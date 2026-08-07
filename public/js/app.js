@@ -901,7 +901,7 @@ async function openNotifPanel() {
           <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;flex-wrap:wrap;">
             ${isPromise ? `
               ${canAct ? `
-                <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');openDCModalFromNotif('${n.debiturId}', '${(n.debiturNama || '').replace(/'/g, "\\'")}', ${cnt + 1})" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#ffffff;box-shadow:var(--sh-sm);border:none;">
+                <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');openDCModalFromNotif('${n.debiturId}', '${(n.debiturNama || '').replace(/'/g, "\\'")}', ${cnt + 1}, '${n.deskCallId || ''}')" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#ffffff;box-shadow:var(--sh-sm);border:none;">
                   <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                   </svg>
@@ -922,8 +922,9 @@ async function openNotifPanel() {
   openModal('modal-notif');
 }
 
-async function openDCModalFromNotif(debiturId, debiturNama, nextNumber) {
+async function openDCModalFromNotif(debiturId, debiturNama, nextNumber, deskCallId) {
   await openDCModal(debiturId);
+  if (deskCallId) selectedDCEditId = deskCallId;
   const dcfTindak = document.getElementById('dcf-tindak');
   const dcfCatatan = document.getElementById('dcf-catatan');
   
@@ -2273,6 +2274,103 @@ async function changeInsightPeriode(periode) {
   }
 }
 
+window._ptpActiveFilter = 'all';
+
+function filterPtpTable(filterType) {
+  window._ptpActiveFilter = filterType || 'all';
+  const metrics = window._ptpMetricsData || {};
+  const allList = metrics.debtorList || [];
+
+  let filtered = allList;
+  let titleText = `Semua Nasabah Janji Bayar (${allList.length} Nasabah)`;
+  let dotColor = '#475569';
+
+  if (filterType === 'selesai') {
+    filtered = allList.filter(d => d.isResolved || d.statusCategory.includes('Selesai'));
+    titleText = `Status Selesai / Sudah Bayar (${filtered.length} Nasabah)`;
+    dotColor = '#10B981';
+  } else if (filterType === 'followup') {
+    filtered = allList.filter(d => d.statusCategory.includes('Follow-Up'));
+    titleText = `Status Dalam Follow-Up (${filtered.length} Nasabah)`;
+    dotColor = '#0F766E';
+  } else if (filterType === 'ingkar') {
+    filtered = allList.filter(d => d.statusCategory.includes('Ingkar'));
+    titleText = `Status Ingkar Janji / Overdue (${filtered.length} Nasabah)`;
+    dotColor = '#EF4444';
+  }
+
+  const cardDefs = [
+    { key: 'all', elId: 'ptp-card-all', activeBorder: '#334155' },
+    { key: 'selesai', elId: 'ptp-card-selesai', activeBorder: '#10B981' },
+    { key: 'followup', elId: 'ptp-card-followup', activeBorder: '#0F766E' },
+    { key: 'ingkar', elId: 'ptp-card-ingkar', activeBorder: '#EF4444' }
+  ];
+
+  cardDefs.forEach(c => {
+    const el = document.getElementById(c.elId);
+    if (!el) return;
+    if (c.key === window._ptpActiveFilter) {
+      el.style.transform = 'translateY(-2px)';
+      el.style.boxShadow = '0 8px 20px rgba(15,23,42,0.1)';
+      el.style.borderWidth = '2px';
+      el.style.borderColor = c.activeBorder;
+    } else {
+      el.style.transform = 'none';
+      el.style.boxShadow = 'none';
+      el.style.borderWidth = '1px';
+      if (c.key === 'all') el.style.borderColor = 'var(--border)';
+    }
+  });
+
+  const titleEl = document.getElementById('ptp-table-title');
+  if (titleEl) {
+    titleEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${dotColor};display:inline-block;"></span>
+        <span style="font-weight:800;color:var(--text);">Daftar Nasabah:</span> 
+        <span style="font-weight:700;color:var(--text-2);">${titleText}</span>
+      </div>
+    `;
+  }
+
+  const tbodyEl = document.getElementById('ptp-table-tbody');
+  if (!tbodyEl) return;
+
+  if (filtered.length === 0) {
+    tbodyEl.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-3);font-size:12.5px;">Tidak ada data nasabah pada kategori ini</td></tr>`;
+    return;
+  }
+
+  tbodyEl.innerHTML = filtered.map((d, idx) => {
+    let tagClass = 'badge-brand';
+    let dotStyle = 'background:#0F766E;';
+    if (d.statusCategory.includes('Selesai')) {
+      tagClass = 'badge-success';
+      dotStyle = 'background:#10B981;';
+    } else if (d.statusCategory.includes('Ingkar')) {
+      tagClass = 'badge-danger';
+      dotStyle = 'background:#EF4444;';
+    }
+    const tglStr = d.tanggalJanjiBayar ? new Date(d.tanggalJanjiBayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+
+    return `
+      <tr>
+        <td style="text-align:center;font-weight:800;color:var(--text-3);">${idx + 1}</td>
+        <td style="font-weight:700;color:var(--text);">${d.namaDebitur}</td>
+        <td class="mono" style="font-size:11.5px;color:var(--text-3);">${d.debiturId}</td>
+        <td style="text-align:right;" class="mono font-bold">${formatRupiah(d.nominalJanji)}</td>
+        <td style="text-align:center;">${tglStr}</td>
+        <td style="text-align:center;">
+          <span class="badge ${tagClass}" style="font-size:10.5px;padding:3px 10px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
+            <span style="width:6px;height:6px;border-radius:50%;${dotStyle}display:inline-block;"></span>
+            ${d.statusCategory}
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
 function renderDeskCallTab(res) {
   const container = document.getElementById('dc-content');
   if (!container) return;
@@ -2509,9 +2607,190 @@ function renderDeskCallTab(res) {
       `;
     }
 
+    const ptpMetrics = res?.ptpSuccessMetrics || {};
+    const totalPromiseDebtors = ptpMetrics.totalPromiseDebtors || 0;
+    const resolvedCount = ptpMetrics.resolvedCount || 0;
+    const pendingCount = ptpMetrics.pendingCount || 0;
+    const brokenCount = ptpMetrics.brokenCount || 0;
+    const pSuccessRate = (ptpMetrics.promiseSuccessRate || 0).toFixed(1);
+    const pCategory = ptpMetrics.promisePerformanceCategory || 'Perlu Perhatian';
+
+    const resolvedPct = totalPromiseDebtors > 0 ? Math.round((resolvedCount / totalPromiseDebtors) * 100) : 0;
+    const pendingPct = totalPromiseDebtors > 0 ? Math.round((pendingCount / totalPromiseDebtors) * 100) : 0;
+    const brokenPct = totalPromiseDebtors > 0 ? Math.round((brokenCount / totalPromiseDebtors) * 100) : 0;
+
+    let categoryBadgeStyle = 'background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger);';
+    if (pCategory === 'Sangat Baik') categoryBadgeStyle = 'background:var(--success-bg);color:var(--success);border:1px solid var(--success);';
+    else if (pCategory === 'Sedang') categoryBadgeStyle = 'background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning);';
+
+    window._ptpMetricsData = ptpMetrics;
+    const ptpWidgetHtml = `
+      <div class="card mb-4" style="padding:22px 24px;border-radius:18px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--sh-sm);">
+        <!-- Section Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;border-bottom:1px solid var(--border);padding-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:18px;height:18px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+              <div style="font-size:15px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span>Success Rate &amp; Klasifikasi Penyelesaian Nasabah Janji Bayar</span>
+              </div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:2px;">Analisis tingkat komitmen pembayaran nasabah Janji Bayar dan status pelunasannya</div>
+            </div>
+          </div>
+
+          <div>
+            <span class="badge" style="font-size:12px;padding:5px 14px;font-weight:800;border-radius:20px;display:inline-flex;align-items:center;gap:6px;${categoryBadgeStyle}">
+              <span style="width:7px;height:7px;border-radius:50%;background:currentColor;"></span>
+              Rating Performa: ${pCategory} (${pSuccessRate}%)
+            </span>
+          </div>
+        </div>
+
+        <!-- 4 Cards Interactive Grid -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:18px;">
+          <!-- Card 1: Total -->
+          <div id="ptp-card-all" onclick="filterPtpTable('all')" style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;transition:all 0.2s ease;" title="Klik untuk menyaring semua nasabah janji">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:11px;font-weight:800;color:var(--text-2);text-transform:uppercase;letter-spacing:0.3px;display:inline-flex;align-items:center;gap:6px;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#475569;"></span>
+                Total Nasabah Janji
+              </span>
+              <span style="font-size:9.5px;font-weight:700;color:var(--text-3);background:var(--bg-card);padding:2px 8px;border-radius:10px;border:1px solid var(--border);">Semua</span>
+            </div>
+            <div style="font-size:24px;font-weight:800;color:var(--text);">${totalPromiseDebtors} <span style="font-size:12px;font-weight:600;color:var(--text-3);">Nasabah</span></div>
+          </div>
+
+          <!-- Card 2: Selesai -->
+          <div id="ptp-card-selesai" onclick="filterPtpTable('selesai')" style="background:var(--success-bg);border:1px solid var(--success);border-radius:14px;padding:14px 16px;cursor:pointer;transition:all 0.2s ease;" title="Klik untuk menyaring nasabah Selesai (Sudah Bayar)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:11px;font-weight:800;color:var(--success);text-transform:uppercase;letter-spacing:0.3px;display:inline-flex;align-items:center;gap:6px;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#10B981;"></span>
+                Selesai (Sudah Bayar)
+              </span>
+              <span style="font-size:9.5px;font-weight:700;color:var(--success);background:var(--surface-lowest);padding:2px 8px;border-radius:10px;border:1px solid var(--success);">Filter</span>
+            </div>
+            <div style="font-size:24px;font-weight:800;color:var(--success);">${resolvedCount} <span style="font-size:12.5px;font-weight:700;">(${resolvedPct}%)</span></div>
+          </div>
+
+          <!-- Card 3: Dalam Follow Up -->
+          <div id="ptp-card-followup" onclick="filterPtpTable('followup')" style="background:var(--brand-light);border:1px solid var(--brand);border-radius:14px;padding:14px 16px;cursor:pointer;transition:all 0.2s ease;" title="Klik untuk menyaring nasabah Dalam Follow-Up">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:11px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:0.3px;display:inline-flex;align-items:center;gap:6px;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#0F766E;"></span>
+                Dalam Follow-Up
+              </span>
+              <span style="font-size:9.5px;font-weight:700;color:var(--brand);background:var(--surface-lowest);padding:2px 8px;border-radius:10px;border:1px solid var(--brand);">Filter</span>
+            </div>
+            <div style="font-size:24px;font-weight:800;color:var(--brand);">${pendingCount} <span style="font-size:12.5px;font-weight:700;">(${pendingPct}%)</span></div>
+          </div>
+
+          <!-- Card 4: Ingkar Janji -->
+          <div id="ptp-card-ingkar" onclick="filterPtpTable('ingkar')" style="background:var(--danger-bg);border:1px solid var(--danger);border-radius:14px;padding:14px 16px;cursor:pointer;transition:all 0.2s ease;" title="Klik untuk menyaring nasabah Ingkar Janji">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:11px;font-weight:800;color:var(--danger);text-transform:uppercase;letter-spacing:0.3px;display:inline-flex;align-items:center;gap:6px;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#EF4444;"></span>
+                Ingkar Janji (Overdue)
+              </span>
+              <span style="font-size:9.5px;font-weight:700;color:var(--danger);background:var(--surface-lowest);padding:2px 8px;border-radius:10px;border:1px solid var(--danger);">Filter</span>
+            </div>
+            <div style="font-size:24px;font-weight:800;color:var(--danger);">${brokenCount} <span style="font-size:12.5px;font-weight:700;">(${brokenPct}%)</span></div>
+          </div>
+        </div>
+
+        <!-- Progress Bar Section -->
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;margin-bottom:8px;">
+            <span style="color:var(--text);">Rasio Realisasi Komitmen Penagihan (PTP Resolution Progress)</span>
+            <span style="color:var(--brand);font-weight:800;font-size:13px;">${pSuccessRate}% Selesai</span>
+          </div>
+          <div style="height:10px;background:var(--border);border-radius:6px;overflow:hidden;display:flex;">
+            <div style="width:${resolvedPct}%;background:#10B981;" title="Selesai (Sudah Bayar)"></div>
+            <div style="width:${pendingPct}%;background:#0F766E;" title="Dalam Follow-Up"></div>
+            <div style="width:${brokenPct}%;background:#EF4444;" title="Ingkar Janji"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;margin-top:10px;font-size:11.5px;color:var(--text-2);flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:5px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#10B981;display:inline-block;"></span>
+              <span>Selesai: <strong>${resolvedCount} (${resolvedPct}%)</strong></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#0F766E;display:inline-block;"></span>
+              <span>Follow-Up: <strong>${pendingCount} (${pendingPct}%)</strong></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#EF4444;display:inline-block;"></span>
+              <span>Ingkar Janji: <strong>${brokenCount} (${brokenPct}%)</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Debtor Table Section -->
+        ${(ptpMetrics.debtorList && ptpMetrics.debtorList.length > 0) ? `
+          <div>
+            <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;" id="ptp-table-title">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block;"></span>
+                <span style="font-weight:800;color:var(--text);">Daftar Nasabah:</span> 
+                <span style="font-weight:700;color:var(--text-2);">Semua Nasabah Janji Bayar (${ptpMetrics.debtorList.length} Nasabah)</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:40px;text-align:center;">#</th>
+                      <th>Nama Debitur</th>
+                      <th>No. Rekening</th>
+                      <th style="text-align:right;">Nominal Janji</th>
+                      <th style="text-align:center;">Tgl Janji</th>
+                      <th style="text-align:center;">Kategori Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ptp-table-tbody">
+                    ${ptpMetrics.debtorList.map((d, idx) => {
+                      let tagClass = 'badge-brand';
+                      let dotStyle = 'background:#0F766E;';
+                      if (d.statusCategory.includes('Selesai')) {
+                        tagClass = 'badge-success';
+                        dotStyle = 'background:#10B981;';
+                      } else if (d.statusCategory.includes('Ingkar')) {
+                        tagClass = 'badge-danger';
+                        dotStyle = 'background:#EF4444;';
+                      }
+                      const tglStr = d.tanggalJanjiBayar ? new Date(d.tanggalJanjiBayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+
+                      return `
+                        <tr>
+                          <td style="text-align:center;font-weight:800;color:var(--text-3);">${idx + 1}</td>
+                          <td style="font-weight:700;color:var(--text);">${d.namaDebitur}</td>
+                          <td class="mono" style="font-size:11.5px;color:var(--text-3);">${d.debiturId}</td>
+                          <td style="text-align:right;" class="mono font-bold">${formatRupiah(d.nominalJanji)}</td>
+                          <td style="text-align:center;">${tglStr}</td>
+                          <td style="text-align:center;">
+                            <span class="badge ${tagClass}" style="font-size:10.5px;padding:3px 10px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
+                              <span style="width:6px;height:6px;border-radius:50%;${dotStyle}display:inline-block;"></span>
+                              ${d.statusCategory}
+                            </span>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
     container.innerHTML = `
       ${periodeSelectorHtml}
       ${kpiCardsHtml}
+      ${ptpWidgetHtml}
 
       <div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px;" class="dash-grid-2">
         <!-- Card 1: Status & Kanal -->
@@ -6539,6 +6818,7 @@ function endCallDialerProcess() {
 
 async function openDCModal(debiturId) {
   selectedDCDebiturId = debiturId || '';
+  selectedDCEditId = '';
   const dcfDeb = document.getElementById('dcf-debitur');
   const dcfTgl = document.getElementById('dcf-tgl');
   const dcfJenis = document.getElementById('dcf-jenis');
@@ -6670,6 +6950,44 @@ async function saveDC() {
   if (!waktu) waktu = '10:00';
 
   const nominalVal = parseCurrencyInput(dcfNominal);
+
+  if (selectedDCEditId) {
+    const payload = {
+      jenisKontak: dcfJenis,
+      statusKontak: dcfStatus,
+      durasiPanggilan: dcfDurasi,
+      prioritas: dcfPrio,
+      tindakLanjut: dcfTindak || 'Tidak Ada',
+      nominalJanji: nominalVal > 0 ? nominalVal : null,
+      tanggalJanjiBayar: dcfTglJanji || null,
+      hasilKomunikasi: dcfCatatan
+    };
+
+    try {
+      showToast('Memperbarui status Desk Call...', 'i');
+      await apiCall(`/deskcall/${selectedDCEditId}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
+      showToast('Status Desk Call berhasil diperbarui', 's');
+      selectedDCEditId = '';
+      closeModal('modal-dc-form');
+      if (typeof loadDeskCallView === 'function') loadDeskCallView();
+      if (typeof loadDashboardView === 'function') loadDashboardView();
+      if (typeof loadNotifications === 'function') await loadNotifications();
+      if (typeof loadDebiturView === 'function') loadDebiturView();
+      if (typeof loadBayarView === 'function') loadBayarView();
+      if (typeof loadKpiView === 'function') loadKpiView();
+      const notifModal = document.getElementById('modal-notif');
+      if (notifModal && notifModal.classList.contains('open')) {
+        if (typeof openNotifPanel === 'function') openNotifPanel();
+      }
+    } catch (err) {
+      showToast(`Gagal memperbarui Desk Call: ${err.message}`, 'e');
+    }
+    return;
+  }
+
   const payload = {
     debiturId,
     tanggal,
@@ -6694,7 +7012,14 @@ async function saveDC() {
     closeModal('modal-dc-form');
     if (typeof loadDeskCallView === 'function') loadDeskCallView();
     if (typeof loadDashboardView === 'function') loadDashboardView();
-    if (typeof loadNotifications === 'function') loadNotifications();
+    if (typeof loadNotifications === 'function') await loadNotifications();
+    if (typeof loadDebiturView === 'function') loadDebiturView();
+    if (typeof loadBayarView === 'function') loadBayarView();
+    if (typeof loadKpiView === 'function') loadKpiView();
+    const notifModal = document.getElementById('modal-notif');
+    if (notifModal && notifModal.classList.contains('open')) {
+      if (typeof openNotifPanel === 'function') openNotifPanel();
+    }
   } catch (err) {
     showToast(`Gagal menyimpan Desk Call: ${err.message}`, 'e');
   }
