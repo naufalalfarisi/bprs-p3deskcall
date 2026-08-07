@@ -1846,10 +1846,7 @@ function renderDebiturList(res) {
       <div class="search-box-group" style="flex:1;min-width:260px;max-width:440px;">
         <svg class="search-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="deb-search-input" type="text" placeholder="Cari nama, no. rekening, KTP..." value="${debState.search}" onkeydown="if(event.key==='Enter') executeDebiturSearch()"/>
-        <button class="search-box-btn" type="button" onclick="executeDebiturSearch()">
-          <span class="material-symbols-outlined" style="font-size:16px;">search</span>
-          <span>Cari</span>
-        </button>
+        <button class="search-box-btn" type="button" onclick="executeDebiturSearch()">Cari</button>
       </div>
 
       <!-- Filter KOL Pills -->
@@ -3871,10 +3868,7 @@ async function loadP3View() {
             <div class="search-box-group" style="width:280px;">
               <svg class="search-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input id="p3-search-input" type="text" placeholder="Cari nama / rek / no..." value="${p3State.q}" onkeydown="if(event.key==='Enter') executeP3Search()"/>
-              <button class="search-box-btn" type="button" onclick="executeP3Search()">
-                <span class="material-symbols-outlined" style="font-size:15px;">search</span>
-                <span>Cari</span>
-              </button>
+              <button class="search-box-btn" type="button" onclick="executeP3Search()">Cari</button>
             </div>
             <button class="btn btn-outline btn-sm" onclick="openP3MapModal()" style="padding:8px 14px;border-color:var(--brand);color:var(--brand);">
               Peta Rute Kunjungan
@@ -4794,7 +4788,11 @@ function renderLegalView() {
 
       <!-- TOOLBAR SP/SOMASI -->
       <div class="toolbar-wrap mb-4" style="display:flex;gap:10px;align-items:center;flex-wrap:nowrap;">
-        <input type="text" class="form-input" placeholder="Cari no. surat, nama debitur..." value="${legalState.searchQuery}" onkeydown="if(event.key==='Enter') executeSuratSearch(this.value)" style="width:280px;max-width:100%;font-size:13.5px;"/>
+        <div class="search-box-group" style="width:280px;max-width:100%;">
+          <svg class="search-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="surat-search-input" type="text" placeholder="Cari no. surat, nama debitur..." value="${legalState.searchQuery}" onkeydown="if(event.key==='Enter') executeSuratSearch(this.value)"/>
+          <button class="search-box-btn" type="button" onclick="executeSuratSearch(document.getElementById('surat-search-input')?.value)">Cari</button>
+        </div>
         <select class="form-select form-select-auto" onchange="filterSuratJenis(this.value)" style="width:auto;min-width:180px;font-size:13.5px;white-space:nowrap;">
           <option value="">Semua Jenis Surat</option>
           <option value="SP1" ${legalState.suratJenisFilter==='SP1'?'selected':''}>SP1</option>
@@ -4897,10 +4895,7 @@ function renderLegalView() {
         <div class="search-box-group" style="flex:1;min-width:260px;max-width:420px;">
           <svg class="search-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input id="legal-search-input" type="text" placeholder="Cari nama, no. rekening, notaris, no. akad..." value="${legalState.searchQuery}" onkeydown="if(event.key==='Enter') executeLegalSearch()"/>
-          <button class="search-box-btn" type="button" onclick="executeLegalSearch()">
-            <span class="material-symbols-outlined" style="font-size:16px;">search</span>
-            <span>Cari</span>
-          </button>
+          <button class="search-box-btn" type="button" onclick="executeLegalSearch()">Cari</button>
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
           <span style="font-size:12px;font-weight:700;color:var(--text-2);">Status:</span>
