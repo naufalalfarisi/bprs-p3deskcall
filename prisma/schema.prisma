@@ -120,7 +120,7 @@ model DeskCall {
   petugasId          String
   kol                String    // snapshot
   jenisKontak        String    // Telepon, WhatsApp
-  statusKontak       String    // Terhubung, Tersambung Tidak Diangkat, Tidak Diangkat, Sibuk, Tidak Aktif, Salah Nomor
+  statusKontak       String    // Terhubung, Tersambung Tidak Diangkat, Tidak Diangkat, Nomor Ditolak, Sibuk, Tidak Aktif, Salah Nomor
   hasilKomunikasi    String?
   tindakLanjut       String?   // Janji Bayar, Negosiasi, Restrukturisasi, Eskalasi, Tidak Ada
   prioritas          String    // Kritis, Tinggi, Sedang, Rendah

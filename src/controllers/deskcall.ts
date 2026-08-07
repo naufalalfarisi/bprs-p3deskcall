@@ -324,6 +324,7 @@ deskcallRouter.get('/insight', roleMiddleware(['admin', 'desk_call', 'kabid_p3',
       Terhubung: 0,
       'Tersambung Tidak Diangkat': 0,
       'Tidak Diangkat': 0,
+      'Nomor Ditolak': 0,
       Sibuk: 0,
       'Tidak Aktif': 0,
       'Salah Nomor': 0

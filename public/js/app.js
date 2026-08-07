@@ -2497,7 +2497,7 @@ function renderDeskCallTab(res) {
       if (status === 'Terhubung') colorClass = 'var(--success)';
       else if (status.includes('Tidak Diangkat')) colorClass = 'var(--warning)';
       else if (status === 'Sibuk') colorClass = 'var(--purple)';
-      else if (status === 'Tidak Aktif' || status === 'Salah Nomor') colorClass = 'var(--danger)';
+      else if (status === 'Tidak Aktif' || status === 'Salah Nomor' || status === 'Nomor Ditolak') colorClass = 'var(--danger)';
 
       return `
         <div style="margin-bottom:12px;">
