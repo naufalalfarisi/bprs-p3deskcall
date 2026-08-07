@@ -6739,6 +6739,9 @@ async function loadAboutView() {
   const container = document.getElementById('about-content');
   if (!container) return;
 
+  await loadAppSettings();
+  const ptName = state.settings?.pt_name || 'PT BPRS Mitra Harmoni Yogyakarta';
+
   container.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:20px;max-width:1100px;margin:0 auto;padding-bottom:20px;">
       
@@ -6747,11 +6750,11 @@ async function loadAboutView() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:20px;">
           <div style="display:flex;align-items:center;gap:16px;">
             <div style="width:54px;height:54px;border-radius:16px;background:var(--brand);color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;box-shadow:0 8px 16px rgba(15,118,110,0.25);flex-shrink:0;">
-              BM
+              ${state.settings.logo_url ? `<img src="${state.settings.logo_url}" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:14px;"/>` : 'BM'}
             </div>
             <div>
               <div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:-0.3px;">Sistem Informasi Penagihan Terpadu</div>
-              <div style="font-size:13px;font-weight:700;color:var(--brand);margin-top:2px;">PT BPRS Mitra Harmoni Yogyakarta</div>
+              <div style="font-size:13px;font-weight:700;color:var(--brand);margin-top:2px;">${ptName}</div>
               <div style="font-size:12px;color:var(--text-3);margin-top:2px;">Portal Perbankan Syariah Terintegrasi (AO, P3 &amp; Desk Call)</div>
             </div>
           </div>
@@ -6773,11 +6776,11 @@ async function loadAboutView() {
           </div>
           <div>
             <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;">Institusi Perbankan</div>
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-top:3px;">PT BPRS Mitra Harmoni Yogyakarta</div>
+            <div style="font-size:14px;font-weight:800;color:var(--text);margin-top:3px;">${ptName}</div>
           </div>
           <div>
             <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;">Lisensi &amp; Hak Cipta</div>
-            <div style="font-size:12.5px;font-weight:700;color:var(--text-2);margin-top:3px;">&copy; 2026 Hak Cipta Dilindungi Undang-Undang</div>
+            <div style="font-size:12.5px;font-weight:700;color:var(--text-2);margin-top:3px;">&copy; 2026 ${ptName}. Hak Cipta Dilindungi.</div>
           </div>
         </div>
 
