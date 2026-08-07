@@ -6646,15 +6646,18 @@ async function loadCbsImportHistory() {
                     ${(item.totalRowsParsed || 0).toLocaleString('id-ID')}
                   </td>
                   <td>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;">
-                      <span title="Data debitur yang baki debet / kolektibilitasnya diperbarui" style="color:var(--brand);background:var(--brand-light);padding:3px 8px;border-radius:6px;font-weight:700;">
-                        🔄 ${item.totalUpdated || 0} Update
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11.5px;align-items:center;">
+                      <span title="Data debitur yang baki debet / kolektibilitasnya diperbarui" style="display:inline-flex;align-items:center;gap:5px;color:#0F766E;background:rgba(15,118,110,0.08);padding:4px 10px;border-radius:6px;font-weight:700;border:1px solid rgba(15,118,110,0.18);">
+                        <span style="width:6px;height:6px;border-radius:50%;background:#0F766E;display:inline-block;"></span>
+                        ${(item.totalUpdated || 0).toLocaleString('id-ID')} Update
                       </span>
-                      <span title="Debitur baru yang ditambahkan" style="color:var(--success);background:rgba(16,185,129,0.1);padding:3px 8px;border-radius:6px;font-weight:700;">
-                        ✨ ${item.totalNewDetected || 0} Baru
+                      <span title="Debitur baru yang ditambahkan" style="display:inline-flex;align-items:center;gap:5px;color:#10B981;background:rgba(16,185,129,0.08);padding:4px 10px;border-radius:6px;font-weight:700;border:1px solid rgba(16,185,129,0.18);">
+                        <span style="width:6px;height:6px;border-radius:50%;background:#10B981;display:inline-block;"></span>
+                        ${(item.totalNewDetected || 0).toLocaleString('id-ID')} Baru
                       </span>
-                      <span title="Debitur yang tidak ada di CSV / lunas" style="color:var(--danger);background:rgba(239,68,68,0.1);padding:3px 8px;border-radius:6px;font-weight:700;">
-                        ⚠️ ${item.totalMissingDetected || 0} Lunas/Missing
+                      <span title="Debitur yang tidak ada di CSV / lunas" style="display:inline-flex;align-items:center;gap:5px;color:#EF4444;background:rgba(239,68,68,0.08);padding:4px 10px;border-radius:6px;font-weight:700;border:1px solid rgba(239,68,68,0.18);">
+                        <span style="width:6px;height:6px;border-radius:50%;background:#EF4444;display:inline-block;"></span>
+                        ${(item.totalMissingDetected || 0).toLocaleString('id-ID')} Lunas / Non-Aktif
                       </span>
                     </div>
                   </td>
