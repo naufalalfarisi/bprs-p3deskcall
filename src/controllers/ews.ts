@@ -5,8 +5,8 @@ import { logAudit } from '../utils/audit.js';
 
 export const ewsRouter = new Hono();
 
-// Enforce authentication & role restrictions (admin, ao, kabid_ao, staff_p3, kabid_p3)
-ewsRouter.use('*', authMiddleware, roleMiddleware(['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3']));
+// Enforce authentication & role restrictions (admin, ao, kabid_ao, staff_p3, kabid_p3, desk_call)
+ewsRouter.use('*', authMiddleware, roleMiddleware(['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3', 'desk_call']));
 
 // Helper function to calculate EWS status on-demand per debitur
 export function computeEwsStatus(tglJt: Date, frhPokok: number) {
