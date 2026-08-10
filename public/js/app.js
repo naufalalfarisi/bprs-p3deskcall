@@ -8440,6 +8440,13 @@ window.sendEwsWaReminder = sendEwsWaReminder;
 /* ================================================================= */
 /* HISTORIS TUNGGAKAN MODULE                                         */
 /* ================================================================= */
+let historisState = {
+  months: 6,
+  ao: '',
+  search: '',
+  page: 1
+};
+
 async function loadHistorisView() {
   const container = document.getElementById('historis-content');
   if (!container) return;
