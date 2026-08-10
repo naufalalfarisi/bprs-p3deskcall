@@ -2325,9 +2325,64 @@ async function loadDeskCallView() {
   }
 }
 
+function renderPaginationControls(currentPage, totalPages, onPageClickFnName) {
+  if (!totalPages || totalPages <= 1) return '';
+
+  let pages = [];
+  const maxVisiblePages = 5;
+
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i);
+  }
+
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0; flex-wrap:wrap; gap:12px;">
+      <div style="font-size:12.5px; font-weight:600; color:#64748b;">
+        Halaman <span style="color:#0F172A; font-weight:800;">${currentPage}</span> dari <span style="color:#0F172A; font-weight:800;">${totalPages}</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" ${currentPage === 1 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="${onPageClickFnName}(${currentPage - 1})" style="padding:4px 10px; border-radius:8px; font-size:12px; font-weight:700;">
+          &laquo; Prev
+        </button>
+        ${startPage > 1 ? `
+          <button class="btn btn-outline btn-sm" onclick="${onPageClickFnName}(1)" style="padding:4px 10px; border-radius:8px; font-size:12px; font-weight:700;">1</button>
+          ${startPage > 2 ? `<span style="color:#94a3b8; font-weight:700;">...</span>` : ''}
+        ` : ''}
+        ${pages.map(p => `
+          <button class="btn btn-sm" onclick="${onPageClickFnName}(${p})" style="padding:4px 10px; border-radius:8px; font-size:12px; font-weight:700; ${p === currentPage ? 'background:#0F766E; color:#ffffff; border-color:#0F766E;' : 'background:#ffffff; color:#334155; border:1px solid #cbd5e1;'}">
+            ${p}
+          </button>
+        `).join('')}
+        ${endPage < totalPages ? `
+          ${endPage < totalPages - 1 ? `<span style="color:#94a3b8; font-weight:700;">...</span>` : ''}
+          <button class="btn btn-outline btn-sm" onclick="${onPageClickFnName}(${totalPages})" style="padding:4px 10px; border-radius:8px; font-size:12px; font-weight:700;">${totalPages}</button>
+        ` : ''}
+        <button class="btn btn-outline btn-sm" ${currentPage === totalPages ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="${onPageClickFnName}(${currentPage + 1})" style="padding:4px 10px; border-radius:8px; font-size:12px; font-weight:700;">
+          Next &raquo;
+        </button>
+      </div>
+    </div>
+  `;
+}
+window.renderPaginationControls = renderPaginationControls;
+
 function renderRedAlertTab(container, res) {
+  window._lastRedAlertData = res;
   const stats = (res && res.stats) ? res.stats : {};
   const list = (res && res.list) ? res.list : [];
+
+  const pageSize = 20;
+  const totalItems = list.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const currentPage = Math.min(Math.max(window._redAlertPage || 1, 1), totalPages);
+  const pageList = list.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   let html = `
     <!-- RED ALERT TOP BANNER -->
@@ -2412,7 +2467,7 @@ function renderRedAlertTab(container, res) {
     <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
       <div style="margin-bottom:16px;">
         <div style="font-size:15px; font-weight:800; color:#0F172A;">Daftar Nasabah Red Alert (KOL 1 ➔ KOL 2)</div>
-        <div style="font-size:12px; color:#64748b;">Menampilkan ${list.length} nasabah berpotensi bermasalah yang membutuhkan intervensi cepat${window._redAlertDateFilter === 'today' ? ' (Filter: Hari Ini)' : ''}.</div>
+        <div style="font-size:12px; color:#64748b;">Menampilkan ${pageList.length} dari ${totalItems} nasabah berpotensi bermasalah${window._redAlertDateFilter === 'today' ? ' (Filter: Hari Ini)' : ''}.</div>
       </div>
 
       <div style="overflow-x:auto;">
@@ -2430,9 +2485,11 @@ function renderRedAlertTab(container, res) {
             </tr>
           </thead>
           <tbody>
-            ${list.map((d, i) => `
+            ${pageList.map((d, i) => {
+              const itemIndex = (currentPage - 1) * pageSize + i + 1;
+              return `
               <tr>
-                <td>${i + 1}</td>
+                <td>${itemIndex}</td>
                 <td>
                   <div style="font-weight:800; color:#0F766E; cursor:pointer;" onclick="viewDebiturDetail('${d.id}')" title="Klik untuk lihat detail nasabah">${d.nama}</div>
                   <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
@@ -2455,17 +2512,30 @@ function renderRedAlertTab(container, res) {
                   <div style="font-size:11px; color:#64748b; margin-top:3px;">${d.lastCallOutcome || '-'}</div>
                 </td>
               </tr>
-            `).join('') || '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah bergeser KOL 1 ➔ KOL 2 ditemukan untuk kriteria filter ini</td></tr>'}
+            `;}).join('') || '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah bergeser KOL 1 ➔ KOL 2 ditemukan untuk kriteria filter ini</td></tr>'}
           </tbody>
         </table>
       </div>
+      ${renderPaginationControls(currentPage, totalPages, 'setRedAlertPage')}
     </div>
   `;
 
   container.innerHTML = html;
 }
 
+function setRedAlertPage(p) {
+  window._redAlertPage = p;
+  const container = document.getElementById('dc-content');
+  if (container && window._lastRedAlertData) {
+    renderRedAlertTab(container, window._lastRedAlertData);
+  } else {
+    loadDeskCallView();
+  }
+}
+window.setRedAlertPage = setRedAlertPage;
+
 async function filterRedAlertData() {
+  window._redAlertPage = 1;
   const dateEl = document.getElementById('redalert-filter-date');
   const statusEl = document.getElementById('redalert-filter-status');
   const searchEl = document.getElementById('redalert-search-input');
@@ -7993,6 +8063,7 @@ async function loadEwsView() {
       } catch (e) {}
     }
 
+    window._lastEwsData = { summary, watchlist, leaderboard, aoList };
     renderEwsUI(container, summary, watchlist, leaderboard, aoList);
   } catch (err) {
     container.innerHTML = `<div class="empty-st text-danger"><p>Gagal memuat data EWS: ${err.message}</p></div>`;
@@ -8000,6 +8071,7 @@ async function loadEwsView() {
 }
 
 function selectEwsCategory(cat) {
+  ewsState.page = 1;
   if (ewsState.category === cat) {
     ewsState.category = null;
   } else {
@@ -8009,6 +8081,7 @@ function selectEwsCategory(cat) {
 }
 
 function executeEwsSearch() {
+  ewsState.page = 1;
   const input = document.getElementById('ews-search-input');
   if (input) {
     ewsState.q = input.value;
@@ -8016,7 +8089,26 @@ function executeEwsSearch() {
   }
 }
 
+function filterEwsAo(ao) {
+  ewsState.ao = ao;
+  ewsState.page = 1;
+  loadEwsView();
+}
+window.filterEwsAo = filterEwsAo;
+
+function setEwsPage(p) {
+  ewsState.page = p;
+  const container = document.getElementById('ews-content');
+  if (container && window._lastEwsData) {
+    renderEwsUI(container, window._lastEwsData.summary, window._lastEwsData.watchlist, window._lastEwsData.leaderboard, window._lastEwsData.aoList);
+  } else {
+    loadEwsView();
+  }
+}
+window.setEwsPage = setEwsPage;
+
 function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
+  window._lastEwsData = { summary, watchlist, leaderboard, aoList };
   const activeCat = ewsState.category || 'CRITICAL';
 
   let counts = {
@@ -8062,6 +8154,12 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
     MEDIUM: 'Kategori MEDIUM (H-1 s/d Hari H)',
     LOW: 'Kategori LOW (H-7 s/d H-2)'
   };
+
+  const pageSize = 20;
+  const totalItems = filteredDebiturs.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const currentPage = Math.min(Math.max(ewsState.page || 1, 1), totalPages);
+  const pageDebiturs = filteredDebiturs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   let html = `
     <!-- FILTER AO BAR DIBAWAH SUBTITLE PEMANTAUAN -->
@@ -8151,7 +8249,7 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
         <div>
           <div style="font-size:15px; font-weight:800; color:#0F172A;">${categoryTitles[activeCat] || 'Semua Debitur EWS'}</div>
-          <div style="font-size:12px; color:#64748b;">Menampilkan ${filteredDebiturs.length} nasabah binaan pada kategori ini.</div>
+          <div style="font-size:12px; color:#64748b;">Menampilkan ${pageDebiturs.length} dari ${totalItems} nasabah binaan pada kategori ini.</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="text" class="form-input" id="ews-search-input" value="${ewsState.q}" placeholder="Cari nama, rekening..." style="width:220px; font-size:12.5px;" onkeypress="if(event.key==='Enter') executeEwsSearch()"/>
@@ -8177,9 +8275,11 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
             </tr>
           </thead>
           <tbody>
-            ${filteredDebiturs.map((d, i) => `
+            ${pageDebiturs.map((d, i) => {
+              const itemIndex = (currentPage - 1) * pageSize + i + 1;
+              return `
               <tr>
-                <td>${i + 1}</td>
+                <td>${itemIndex}</td>
                 <td>
                   <div style="font-weight:800; color:#0F766E; cursor:pointer;" onclick="viewDebiturDetail('${d.id}')" title="Klik untuk lihat detail nasabah">${d.nama}</div>
                   <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
@@ -8203,10 +8303,11 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
                   </div>
                 </td>
               </tr>
-            `).join('') || '<tr><td colspan="10" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah pada kategori ini</td></tr>'}
+            `;}).join('') || '<tr><td colspan="10" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah pada kategori ini</td></tr>'}
           </tbody>
         </table>
       </div>
+      ${renderPaginationControls(currentPage, totalPages, 'setEwsPage')}
     </div>
   `;
 
@@ -8336,18 +8437,7 @@ window.toggleAoLogTglJanji = toggleAoLogTglJanji;
 window.saveAoLog = saveAoLog;
 window.sendEwsWaReminder = sendEwsWaReminder;
 
-/* ==========================================================================
-   HISTORIS TUNGGAKAN (1-6 BULAN KEBELAKANG) VIEW & CONTROLLER LOGIC
-   ========================================================================== */
-
-let historisState = {
-  months: 6,
-  ao: '',
-  search: '',
-  page: 1
-};
-
-async function loadHistorisView() {
+/* =================================================================async function loadHistorisView() {
   const container = document.getElementById('historis-content');
   if (!container) return;
 
@@ -8357,6 +8447,7 @@ async function loadHistorisView() {
     const summary = await apiCall(`/historis/summary?months=${historisState.months}&ao=${encodeURIComponent(historisState.ao)}`);
     const nasabah = await apiCall(`/historis/nasabah?months=${historisState.months}&ao=${encodeURIComponent(historisState.ao)}&q=${encodeURIComponent(historisState.search)}&page=${historisState.page}`);
 
+    window._lastHistorisData = { summary, nasabah };
     renderHistorisUI(container, summary, nasabah);
   } catch (err) {
     container.innerHTML = `<div class="empty-st text-danger"><p>Gagal memuat Historis Tunggakan: ${err.message}</p></div>`;
@@ -8378,6 +8469,17 @@ function searchHistorisTable() {
   }
 }
 
+function setHistorisPage(p) {
+  historisState.page = p;
+  const container = document.getElementById('historis-content');
+  if (container && window._lastHistorisData) {
+    renderHistorisUI(container, window._lastHistorisData.summary, window._lastHistorisData.nasabah);
+  } else {
+    loadHistorisView();
+  }
+}
+window.setHistorisPage = setHistorisPage;
+
 function getEwsBadgeClass(cat) {
   if (!cat) return 'badge-teal';
   const c = String(cat).toUpperCase();
@@ -8387,12 +8489,18 @@ function getEwsBadgeClass(cat) {
 }
 
 function renderHistorisUI(container, summary, nasabah) {
+  window._lastHistorisData = { summary, nasabah };
   const months = historisState.months;
   const stats = (summary && summary.stats) ? summary.stats : {};
   const list = (nasabah && nasabah.debiturs) ? nasabah.debiturs : ((nasabah && nasabah.list) ? nasabah.list : []);
-  const totalRows = (nasabah && nasabah.totalCount) ? nasabah.totalCount : list.length;
+  const totalRows = list.length;
   const officerMatrix = (summary && summary.matrix) ? summary.matrix : ((summary && summary.officerMatrix) ? summary.officerMatrix : []);
   const monthTrend = (summary && summary.trend) ? summary.trend : ((summary && summary.monthTrend) ? summary.monthTrend : []);
+
+  const pageSize = 20;
+  const totalPages = Math.ceil(totalRows / pageSize) || 1;
+  const currentPage = Math.min(Math.max(historisState.page || 1, 1), totalPages);
+  const pageList = list.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   let html = `
     <!-- TOP INFORMATIONAL BANNER CARD -->
@@ -8499,7 +8607,7 @@ function renderHistorisUI(container, summary, nasabah) {
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
         <div>
           <div style="font-size:15px; font-weight:800; color:#0F172A;">Daftar Nasabah Tidak Bayar (${months} Bulan)</div>
-          <div style="font-size:12px; color:#64748b;">Menampilkan ${list.length} data nasabah. Total: ${totalRows} nasabah.</div>
+          <div style="font-size:12px; color:#64748b;">Menampilkan ${pageList.length} dari ${totalRows} data nasabah.</div>
         </div>
         <div style="display:flex; gap:8px;">
           <input type="text" class="form-input" id="historis-search-input" value="${historisState.search}" placeholder="Cari nama nasabah, AO..." style="width:240px; font-size:12.5px;" onkeypress="if(event.key==='Enter') searchHistorisTable()"/>
@@ -8523,9 +8631,11 @@ function renderHistorisUI(container, summary, nasabah) {
             </tr>
           </thead>
           <tbody>
-            ${list.map((d, i) => `
+            ${pageList.map((d, i) => {
+              const itemIndex = (currentPage - 1) * pageSize + i + 1;
+              return `
               <tr>
-                <td>${i + 1}</td>
+                <td>${itemIndex}</td>
                 <td>
                   <div style="font-weight:800; color:#0F766E; cursor:pointer;" onclick="openDebiturModal('${d.id}')">${d.nama}</div>
                   <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
@@ -8546,10 +8656,11 @@ function renderHistorisUI(container, summary, nasabah) {
                   <button class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px;" onclick="openDebiturModal('${d.id}')">Detail</button>
                 </td>
               </tr>
-            `).join('') || '<tr><td colspan="9" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah menunggak ditemukan</td></tr>'}
+            `;}).join('') || '<tr><td colspan="9" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah menunggak ditemukan</td></tr>'}
           </tbody>
         </table>
       </div>
+      ${renderPaginationControls(currentPage, totalPages, 'setHistorisPage')}
     </div>
   `;
 
