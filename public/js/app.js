@@ -942,11 +942,17 @@ async function openNotifPanel() {
             </div>
           </div>
           <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;flex-wrap:wrap;">
-            ${n.isRedAlert ? `
-              <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');openDCModalFromRedAlert('${n.debiturId}', '${(n.debiturNama || '').replace(/'/g, "\\'")}', '${n.prevKol || 'DPK'}', '${n.newKol || 'Kurang Lancar'}')" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;background:#EF4444;color:#ffffff;border:none;box-shadow:0 2px 6px rgba(239,68,68,0.3);">
-                Prioritaskan Desk Call
-              </button>
-            ` : isPromise ? `
+            ${n.isRedAlert ? (
+              n.isRedAlertSummary ? `
+                <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');window.location.hash='#desk-call';setTimeout(() => { if (typeof switchDCTab === 'function') switchDCTab('redalert'); }, 200);" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;background:#EF4444;color:#ffffff;border:none;box-shadow:0 2px 6px rgba(239,68,68,0.3);">
+                  Buka Tab Red Alert (${n.count || 0})
+                </button>
+              ` : `
+                <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');openDCModalFromRedAlert('${n.debiturId}', '${(n.debiturNama || '').replace(/'/g, "\\'")}', '${n.prevKol || 'DPK'}', '${n.newKol || 'Kurang Lancar'}')" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;background:#EF4444;color:#ffffff;border:none;box-shadow:0 2px 6px rgba(239,68,68,0.3);">
+                  Prioritaskan Desk Call
+                </button>
+              `
+            ) : isPromise ? `
               ${canAct ? `
                 <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');openDCModalFromNotif('${n.debiturId}', '${(n.debiturNama || '').replace(/'/g, "\\'")}', ${cnt + 1}, '${n.deskCallId || ''}')" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#ffffff;box-shadow:var(--sh-sm);border:none;">
                   <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;">

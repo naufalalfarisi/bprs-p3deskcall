@@ -194,12 +194,11 @@ notificationsRouter.get('/', async (c) => {
       }
     }
 
-    // 6. Early Warning Red-Alert System: Pergeseran Kolektibilitas (KOL 2 DPK -> KOL 3/4/5 NPF)
-    if (role === 'desk_call' || role === 'admin' || role === 'staff_p3' || role === 'kabid_p3') {
-      const npfDebiturs = await prisma.debitur.findMany({
+    // 6. Early Warning Red-Alert System: Pergeseran Kolektibilitas (Disatukan dalam 1 notifikasi)
+    if (role === 'desk_call' || role === 'admin' || role === 'staff_p3' || role === 'kabid_p3' || role === 'kabid_ao') {
+      const activeDebiturs = await prisma.debitur.findMany({
         where: {
-          statusDebitur: 'Aktif',
-          kol: { in: ['Kurang Lancar', 'Diragukan', 'Macet'] }
+          statusDebitur: 'Aktif'
         },
         select: {
           id: true,
@@ -213,30 +212,41 @@ notificationsRouter.get('/', async (c) => {
         }
       });
 
-      for (const deb of npfDebiturs) {
-        if (deb.kolHistory.length >= 2) {
+      let redAlertCount = 0;
+      let totalBakiDebet = 0;
+
+      for (const deb of activeDebiturs) {
+        if (deb.kolHistory && deb.kolHistory.length >= 2) {
           const latestSnap = deb.kolHistory[0];
           const prevSnap = deb.kolHistory[1];
 
-          if (
-            (prevSnap.kol === 'DPK' || prevSnap.kol === 'Lancar') &&
-            (latestSnap.kol === 'Kurang Lancar' || latestSnap.kol === 'Diragukan' || latestSnap.kol === 'Macet')
-          ) {
-            const bakiText = `Rp ${new Intl.NumberFormat('id-ID').format(deb.bakiDebet)}`;
-            notifications.push({
-              id: `red_alert_kol_${deb.id}_${latestSnap.id}`,
-              type: 'danger',
-              title: `RED-ALERT: Pergeseran Kolektibilitas (${prevSnap.kol} → ${latestSnap.kol})`,
-              message: `Debitur ${deb.nama} (${deb.id}) bergeser dari ${prevSnap.kol} menjadi ${latestSnap.kol}. Baki Debet: ${bakiText}. Prioritaskan penagihan Desk Call & P3!`,
-              link: `#/debitur?q=${deb.id}`,
-              debiturId: deb.id,
-              debiturNama: deb.nama,
-              isRedAlert: true,
-              prevKol: prevSnap.kol,
-              newKol: latestSnap.kol
-            });
+          // Deteksi pergeseran KOL memburuk (Lancar -> DPK/NPF, DPK -> NPF)
+          const isShift = (
+            (prevSnap.kol === 'Lancar' && latestSnap.kol !== 'Lancar') ||
+            (prevSnap.kol === 'DPK' && (latestSnap.kol === 'Kurang Lancar' || latestSnap.kol === 'Diragukan' || latestSnap.kol === 'Macet')) ||
+            ((prevSnap.kol === '1' || prevSnap.kol === 'KOL 1') && (latestSnap.kol !== '1' && latestSnap.kol !== 'KOL 1'))
+          );
+
+          if (isShift) {
+            redAlertCount++;
+            totalBakiDebet += (deb.bakiDebet || 0);
           }
         }
+      }
+
+      if (redAlertCount > 0) {
+        const bakiText = `Rp ${new Intl.NumberFormat('id-ID').format(totalBakiDebet)}`;
+        notifications.push({
+          id: `red_alert_summary_${todayStr}`,
+          type: 'danger',
+          title: `RED-ALERT: Pergeseran Kolektibilitas (${redAlertCount} Debitur)`,
+          message: `Terdapat ${redAlertCount} debitur yang mengalami pergeseran kolektibilitas hari ini (Total Baki Debet: ${bakiText}). Segera lakukan penanganan.`,
+          link: '#/desk-call',
+          isRedAlert: true,
+          isRedAlertSummary: true,
+          count: redAlertCount,
+          totalBaki: totalBakiDebet
+        });
       }
     }
 
