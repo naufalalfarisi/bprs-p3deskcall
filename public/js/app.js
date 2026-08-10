@@ -506,8 +506,30 @@ function doLogout(callApi = true) {
   closeModal('modal-profile');
 }
 
-// Profile Modal
-async function openProfileModal() {
+// Toggle Header User Dropdown & Profile Settings
+function toggleUserDropdown(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('user-dropdown-menu');
+  if (!dropdown) return;
+  const isShown = dropdown.style.display === 'block';
+  dropdown.style.display = isShown ? 'none' : 'block';
+}
+
+function goToSettingsProfile() {
+  const dropdown = document.getElementById('user-dropdown-menu');
+  if (dropdown) dropdown.style.display = 'none';
+  switchPane('settings', 'profile');
+}
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('user-dropdown-menu');
+  const chipBtn = document.getElementById('user-chip-btn');
+  if (dropdown && dropdown.style.display === 'block' && chipBtn && !chipBtn.contains(e.target) && !dropdown.contains(e.target)) {
+    dropdown.style.display = 'none';
+  }
+});
+
+async function loadProfileData() {
   if (!state.user) return;
   const av = document.getElementById('prof-av');
   const nama = document.getElementById('prof-nama');
@@ -546,6 +568,8 @@ async function openProfileModal() {
 
   const roles = {
     admin: 'Administrator',
+    kabid_ao: 'Kepala Bidang AO',
+    ao: 'Account Officer',
     kabid_p3: 'Kepala Bidang P3',
     staff_p3: 'Staff P3 Lapangan',
     desk_call: 'Staff Desk Call',
@@ -553,7 +577,6 @@ async function openProfileModal() {
   };
   if (badge) badge.innerText = roles[state.user.posisi] || 'Staff';
 
-  // Populate inputs
   const inputNama = document.getElementById('prof-input-nama');
   const inputEmail = document.getElementById('prof-input-email');
   const inputTtl = document.getElementById('prof-input-ttl');
@@ -563,45 +586,10 @@ async function openProfileModal() {
   if (inputTtl && state.user.tglLahir) {
     inputTtl.value = state.user.tglLahir.substring(0, 10);
   }
+}
 
-  const tabAdmin = document.getElementById('prof-tab-admin');
-  if (tabAdmin) {
-    tabAdmin.style.display = state.user.posisi === 'admin' ? 'flex' : 'none';
-  }
-
-  if (state.user.posisi === 'admin') {
-    try {
-      const pendingUsers = await apiCall('/users/pending');
-      const list = Array.isArray(pendingUsers) ? pendingUsers : (pendingUsers?.users || []);
-      const secPending = document.getElementById('sec-pending');
-      const pendBadge = document.getElementById('pend-cnt-badge');
-      const pendList = document.getElementById('pend-list');
-
-      if (list.length > 0) {
-        if (secPending) secPending.style.display = 'block';
-        if (pendBadge) pendBadge.innerText = `${list.length} menunggu`;
-        if (pendList) {
-          pendList.innerHTML = list.map(u => `
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
-              <div>
-                <div style="font-weight:700;font-size:12.5px;">${u.nama} (@${u.username})</div>
-                <div style="font-size:11px;color:var(--text-3);">${u.email} &middot; <span class="badge badge-teal" style="font-size:10px;">${u.posisi}</span></div>
-              </div>
-              <div style="display:flex;gap:4px;">
-                <button class="btn btn-primary btn-sm" onclick="approveUser('${u.id}')" style="padding:3px 8px;font-size:11px;">Setujui</button>
-                <button class="btn btn-danger-out btn-sm" onclick="rejectUser('${u.id}')" style="padding:3px 8px;font-size:11px;">Tolak</button>
-              </div>
-            </div>
-          `).join('');
-        }
-      } else {
-        if (secPending) secPending.style.display = 'none';
-      }
-    } catch (e) {}
-  }
-
-  switchProfileTab('info');
-  openModal('modal-profile');
+async function openProfileModal() {
+  goToSettingsProfile();
 }
 
 function switchProfileTab(tab) {
@@ -793,6 +781,7 @@ function renderNavMenu(role) {
   const menu = [
     { id: 'dashboard', label: 'Dashboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
     { id: 'ews', label: 'EWS (Early Warning)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>', roles: ['admin', 'ao', 'kabid_ao'] },
+    { id: 'historis', label: 'Historis Tunggakan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
     { id: 'debitur', label: 'Data Debitur', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
     { id: 'deskcall', label: 'Desk Call', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>', roles: ['admin', 'desk_call'] },
     { id: 'p3', label: 'P3 (Lapangan)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal'] },
@@ -833,6 +822,7 @@ function switchSettingsSubtab(subId) {
     targetPane.style.display = 'block';
   }
 
+  if (subId === 'profile') loadProfileData();
   if (subId === 'users') loadUsersView();
   if (subId === 'appmgmt') loadAppMgmtView();
   if (subId === 'importcbs') loadImportCbsView();
@@ -844,7 +834,7 @@ function switchPane(paneId, subId = null) {
   closeDrawer();
 
   // Redirect old admin route links to settings pane with corresponding subtab
-  if (['users', 'appmgmt', 'importcbs', 'about'].includes(paneId)) {
+  if (['profile', 'users', 'appmgmt', 'importcbs', 'about'].includes(paneId)) {
     subId = paneId;
     paneId = 'settings';
   }
@@ -863,6 +853,7 @@ function switchPane(paneId, subId = null) {
   // Load view contents dynamically
   if (paneId === 'dashboard') loadDashboardView();
   if (paneId === 'ews') loadEwsView();
+  if (paneId === 'historis') loadHistorisView();
   if (paneId === 'debitur') loadDebiturView();
   if (paneId === 'deskcall') loadDeskCallView();
   if (paneId === 'p3') loadP3View();
@@ -871,15 +862,19 @@ function switchPane(paneId, subId = null) {
   if (paneId === 'kpi') loadKpiView();
   if (paneId === 'settings') {
     const isAdmin = state.user?.posisi === 'admin';
+    const subProfile = document.getElementById('subtab-profile');
     const subUsers = document.getElementById('subtab-users');
     const subApp = document.getElementById('subtab-appmgmt');
     const subImport = document.getElementById('subtab-importcbs');
+    const subAbout = document.getElementById('subtab-about');
 
+    if (subProfile) subProfile.style.display = 'flex';
     if (subUsers) subUsers.style.display = isAdmin ? 'flex' : 'none';
     if (subApp) subApp.style.display = isAdmin ? 'flex' : 'none';
     if (subImport) subImport.style.display = isAdmin ? 'flex' : 'none';
+    if (subAbout) subAbout.style.display = 'flex';
 
-    const activeSub = subId || (isAdmin ? 'users' : 'about');
+    const activeSub = subId || 'profile';
     switchSettingsSubtab(activeSub);
   }
 }
@@ -1081,10 +1076,10 @@ async function loadDashboardView() {
 
   try {
     const [kpiRes, debRes, dcRes, aoSummaryRes] = await Promise.all([
-      apiCall('/kpi/dashboard'),
-      apiCall('/debitur?limit=2000'),
-      apiCall('/deskcall/harian'),
-      apiCall('/debitur/summary/ao')
+      apiCall('/kpi/dashboard').catch(err => { console.warn('kpi/dashboard warning:', err); return {}; }),
+      apiCall('/debitur?limit=2000').catch(err => { console.warn('debitur warning:', err); return {}; }),
+      apiCall('/deskcall/harian').catch(err => { console.warn('deskcall/harian warning:', err); return {}; }),
+      apiCall('/debitur/summary/ao').catch(err => { console.warn('debitur/summary/ao warning:', err); return []; })
     ]);
 
     const stats = kpiRes?.stats || {};
@@ -2310,6 +2305,12 @@ async function loadDeskCallView() {
   container.innerHTML = `<div class="empty-st"><p>Memuat data Desk Call...</p></div>`;
 
   try {
+    if (currentDCTab === 'redalert') {
+      const redAlertData = await apiCall('/deskcall/redalert');
+      renderRedAlertTab(container, redAlertData);
+      return;
+    }
+
     const endpoint = currentDCTab === 'insight' ? '/deskcall/insight' : (currentDCTab === 'bulanan' ? '/deskcall/bulanan' : '/deskcall/harian');
     const res = await apiCall(endpoint);
     renderDeskCallTab(res);
@@ -2317,6 +2318,184 @@ async function loadDeskCallView() {
     container.innerHTML = `<div class="empty-st"><p>Gagal memuat data Desk Call: ${err.message}</p></div>`;
   }
 }
+
+function renderRedAlertTab(container, res) {
+  const stats = (res && res.stats) ? res.stats : {};
+  const list = (res && res.list) ? res.list : [];
+
+  let html = `
+    <!-- RED ALERT TOP BANNER -->
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:18px; padding:18px 22px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; box-shadow:0 2px 8px rgba(239,68,68,0.05);">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div style="width:44px; height:44px; border-radius:12px; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size:15.5px; font-weight:800; color:#7f1d1d; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            PEMANTAUAN RED ALERT: PERGESERAN KOB (KOL 1 ➔ KOL 2)
+            <span style="font-size:11px; font-weight:700; color:#b91c1c; background:#fee2e2; padding:3px 10px; border-radius:12px; border:1px solid #fca5a5;">
+              DPK (Dalam Pengawasan Khusus)
+            </span>
+          </div>
+          <div style="font-size:12.5px; color:#991b1b; margin-top:2px;">
+            Memantau nasabah yang baru saja bergeser dari <strong>KOL 1 (Lancar)</strong> menjadi <strong>KOL 2 (DPK)</strong>. Lakukan kontak penagihan dini melalui Desk Call untuk pencegahan tunggakan lebih lanjut.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 SUMMARY METRIC CARDS -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
+      <div style="background:#fff; border:1px solid #fecaca; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="font-size:11px; font-weight:800; color:#991b1b; text-transform:uppercase; letter-spacing:0.5px;">TOTAL DEBITUR RED ALERT</div>
+        <div style="font-size:26px; font-weight:800; color:#dc2626; margin:8px 0 4px;" class="mono">${stats.totalNoa || 0} <span style="font-size:14px; font-weight:600; color:#991b1b;">Nasabah</span></div>
+        <div style="font-size:12px; font-weight:600; color:#b91c1c;">Bergeser KOL 1 ➔ KOL 2</div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">TOTAL BAKI DEBET RED ALERT</div>
+        <div style="font-size:22px; font-weight:800; color:#0F172A; margin:8px 0 4px;" class="mono">${formatRupiah(stats.totalBakiDebet || 0)}</div>
+        <div style="font-size:12px; font-weight:600; color:#64748b;">Portofolio Berisiko Terpapar</div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">BELUM DIHUBUNGI HARI INI</div>
+        <div style="font-size:26px; font-weight:800; color:#ea580c; margin:8px 0 4px;" class="mono">${stats.belumDihubungiToday || 0} <span style="font-size:14px; font-weight:600; color:#c2410c;">Nasabah</span></div>
+        <div style="font-size:12px; font-weight:600; color:#64748b;">Membutuhkan Follow-Up Deskcall</div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">ADA JANJI BAYAR (PTP)</div>
+        <div style="font-size:26px; font-weight:800; color:#0F766E; margin:8px 0 4px;" class="mono">${stats.janjiBayarCount || 0} <span style="font-size:14px; font-weight:600; color:#0F766E;">Nasabah</span></div>
+        <div style="font-size:12px; font-weight:600; color:#64748b;">Komitmen Pembayaran Catatan</div>
+      </div>
+    </div>
+
+    <!-- FILTER BAR SECTION -->
+    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:16px 20px; margin-bottom:20px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="font-size:12.5px; font-weight:700; color:#334155;">Filter Data Red Alert:</div>
+        <select class="form-input" id="redalert-filter-date" style="width:160px; font-size:12.5px; font-weight:600;" onchange="filterRedAlertData()">
+          <option value="all" ${window._redAlertDateFilter === 'all' || !window._redAlertDateFilter ? 'selected' : ''}>Semua Periode</option>
+          <option value="today" ${window._redAlertDateFilter === 'today' ? 'selected' : ''}>Hari Ini</option>
+        </select>
+
+        <select class="form-input" id="redalert-filter-status" style="width:200px; font-size:12.5px; font-weight:600;" onchange="filterRedAlertData()">
+          <option value="all" ${window._redAlertStatusFilter === 'all' || !window._redAlertStatusFilter ? 'selected' : ''}>Semua Status Call</option>
+          <option value="belum_call" ${window._redAlertStatusFilter === 'belum_call' ? 'selected' : ''}>Belum Di-Call Hari Ini</option>
+          <option value="sudah_call" ${window._redAlertStatusFilter === 'sudah_call' ? 'selected' : ''}>Sudah Di-Call Hari Ini</option>
+          <option value="ptp" ${window._redAlertStatusFilter === 'ptp' ? 'selected' : ''}>Janji Bayar (PTP)</option>
+        </select>
+
+        <button class="btn ${window._redAlertDateFilter === 'today' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="setRedAlertFilterToday()" style="border-radius:9999px; font-weight:700; ${window._redAlertDateFilter === 'today' ? 'background:#0F766E; border-color:#0F766E; color:#fff;' : ''}">
+          Hari Ini
+        </button>
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <input type="text" class="form-input" id="redalert-search-input" placeholder="Cari nama, rekening, AO..." style="width:240px; font-size:12.5px;" value="${window._redAlertQuery || ''}" onkeypress="if(event.key==='Enter') filterRedAlertData()"/>
+        <button class="btn btn-primary btn-sm" onclick="filterRedAlertData()" style="border-radius:9999px;">Cari</button>
+      </div>
+    </div>
+
+    <!-- TABLE SECTION -->
+    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:15px; font-weight:800; color:#0F172A;">Daftar Nasabah Red Alert (KOL 1 ➔ KOL 2)</div>
+        <div style="font-size:12px; color:#64748b;">Menampilkan ${list.length} nasabah berpotensi bermasalah yang membutuhkan intervensi cepat${window._redAlertDateFilter === 'today' ? ' (Filter: Hari Ini)' : ''}.</div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="data-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="width:40px;">NO</th>
+              <th>NAMA DEBITUR &amp; REKENING</th>
+              <th>AO PENGAMPU</th>
+              <th style="text-align:center;">PERGESERAN KOL</th>
+              <th style="text-align:right;">BAKI DEBET</th>
+              <th style="text-align:right;">TOTAL TUNGGAKAN</th>
+              <th style="text-align:center;">DPD (HARI)</th>
+              <th style="text-align:center;">STATUS DESKCALL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map((d, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>
+                  <div style="font-weight:800; color:#0F766E; cursor:pointer;" onclick="viewDebiturDetail('${d.id}')" title="Klik untuk lihat detail nasabah">${d.nama}</div>
+                  <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
+                  ${d.telepon ? `<div style="font-size:11.5px; color:#475569; margin-top:2px;">Telp: ${d.telepon}</div>` : ''}
+                </td>
+                <td style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
+                <td style="text-align:center;">
+                  <div style="font-size:11px; font-weight:700; color:#16a34a; text-decoration:line-through;">KOL 1 (Lancar)</div>
+                  <div style="font-size:12px; font-weight:800; color:#dc2626; margin-top:2px;">➔ KOL 2 (DPK)</div>
+                </td>
+                <td style="text-align:right; font-weight:700;" class="mono">${formatRupiah(d.bakiDebet)}</td>
+                <td style="text-align:right; font-weight:800; color:#dc2626;" class="mono">${formatRupiah(d.totalTunggakan)}</td>
+                <td style="text-align:center;">
+                  <span class="badge badge-red" style="font-weight:800; font-size:12px;">${d.frhPokok || 1} Hari</span>
+                </td>
+                <td style="text-align:center;">
+                  <span class="badge ${d.isCalledToday ? 'badge-teal' : 'badge-yellow'}" style="font-size:11px;">
+                    ${d.isCalledToday ? 'Sudah Di-Call Hari Ini' : 'Belum Di-Call Hari Ini'}
+                  </span>
+                  <div style="font-size:11px; color:#64748b; margin-top:3px;">${d.lastCallOutcome || '-'}</div>
+                </td>
+              </tr>
+            `).join('') || '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah bergeser KOL 1 ➔ KOL 2 ditemukan untuk kriteria filter ini</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+async function filterRedAlertData() {
+  const dateEl = document.getElementById('redalert-filter-date');
+  const statusEl = document.getElementById('redalert-filter-status');
+  const searchEl = document.getElementById('redalert-search-input');
+
+  window._redAlertDateFilter = dateEl ? dateEl.value : 'all';
+  window._redAlertStatusFilter = statusEl ? statusEl.value : 'all';
+  window._redAlertQuery = searchEl ? searchEl.value : '';
+
+  const container = document.getElementById('dc-content');
+  if (!container) return;
+  container.innerHTML = `<div class="empty-st"><p>Memuat data Red Alert...</p></div>`;
+
+  try {
+    let url = `/deskcall/redalert?q=${encodeURIComponent(window._redAlertQuery)}`;
+    if (window._redAlertDateFilter === 'today') {
+      url += '&hariIni=true';
+    }
+    if (window._redAlertStatusFilter && window._redAlertStatusFilter !== 'all') {
+      url += `&status=${encodeURIComponent(window._redAlertStatusFilter)}`;
+    }
+
+    const res = await apiCall(url);
+    renderRedAlertTab(container, res);
+  } catch (err) {
+    container.innerHTML = `<div class="empty-st"><p>Gagal memuat data Red Alert: ${err.message}</p></div>`;
+  }
+}
+
+function setRedAlertFilterToday() {
+  window._redAlertDateFilter = window._redAlertDateFilter === 'today' ? 'all' : 'today';
+  filterRedAlertData();
+}
+
+window.filterRedAlertData = filterRedAlertData;
+window.setRedAlertFilterToday = setRedAlertFilterToday;
+window.searchRedAlertTable = filterRedAlertData;
 
 function switchDCTab(tab) {
   currentDCTab = tab;
@@ -7781,7 +7960,8 @@ let ewsState = {
   q: '',
   kol: '',
   ewsStatus: '',
-  ao: ''
+  ao: '',
+  category: 'CRITICAL'
 };
 
 async function loadEwsView() {
@@ -7794,14 +7974,16 @@ async function loadEwsView() {
     const summary = await apiCall(`/ews/summary?ao=${encodeURIComponent(ewsState.ao)}`);
     const watchlist = await apiCall(`/ews/watchlist?q=${encodeURIComponent(ewsState.q)}&kol=${encodeURIComponent(ewsState.kol)}&ewsStatus=${encodeURIComponent(ewsState.ewsStatus)}&ao=${encodeURIComponent(ewsState.ao)}`);
 
-    const isKabidOrAdmin = state.user?.posisi === 'kabid_ao' || state.user?.posisi === 'admin';
     let leaderboard = null;
     let aoList = [];
 
-    if (isKabidOrAdmin) {
+    try {
+      aoList = await apiCall('/auth/ao-list');
+    } catch (e) {}
+
+    if (state.user?.posisi === 'kabid_ao' || state.user?.posisi === 'admin') {
       try {
         leaderboard = await apiCall('/ews/leaderboard');
-        aoList = await apiCall('/auth/ao-list');
       } catch (e) {}
     }
 
@@ -7811,275 +7993,272 @@ async function loadEwsView() {
   }
 }
 
-function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
-  const isKabidOrAdmin = state.user?.posisi === 'kabid_ao' || state.user?.posisi === 'admin';
-
-  let html = `
-    <!-- EWS SUMMARY STAT CARDS -->
-    <div class="legal-summary-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-      <div class="stat-card">
-        <div class="stat-label">Total Nasabah Portofolio</div>
-        <div class="stat-num">${summary.totalDebitur || 0}</div>
-        <div class="stat-sub">Nasabah binaan AO</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Baki Debet Berisiko (DPK &amp; NPF)</div>
-        <div class="stat-num text-danger" style="font-size:20px;">${fmtRp(summary.totalBakiDebetBerisiko || 0)}</div>
-        <div class="stat-sub">Total kewajiban berpotensi macet</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Watchlist NPF (KOL 3-5)</div>
-        <div class="stat-num text-danger">${summary.npfWatchlistCount || 0}</div>
-        <div class="stat-sub">Nasabah pembiayaan bermasalah</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Jatuh Tempo (H-7 s.d. Hari Ini)</div>
-        <div class="stat-num text-warning">${(summary.ewsStatusCounts?.['Reminder'] || 0) + (summary.ewsStatusCounts?.['Jatuh Tempo Hari Ini'] || 0)}</div>
-        <div class="stat-sub">Memerlukan reminder presif</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">DPD 1 (1-30 Hari Tunggak)</div>
-        <div class="stat-num text-warning">${summary.ewsStatusCounts?.['DPD 1 / Dalam Perhatian'] || 0}</div>
-        <div class="stat-sub">Dalam perhatian khusus</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">DPD 2+ (&gt;30 Hari Tunggak)</div>
-        <div class="stat-num text-danger">${summary.ewsStatusCounts?.['DPD 2+ / Bermasalah'] || 0}</div>
-        <div class="stat-sub">Penanganan khusus AO</div>
-      </div>
-    </div>
-
-    <!-- FILTER TOOLBAR -->
-    <div class="toolbar-wrap mb-4" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
-      <div class="search-box-group" style="flex:1;min-width:240px;max-width:380px;">
-        <svg class="search-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="ews-search-input" type="text" placeholder="Cari nama, no. rekening, AO..." value="${ewsState.q}" onkeydown="if(event.key==='Enter') executeEwsSearch()"/>
-        <button class="search-box-btn" type="button" onclick="executeEwsSearch()">Cari</button>
-      </div>
-
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        ${isKabidOrAdmin && Array.isArray(aoList) ? `
-          <select class="form-select" onchange="filterEwsAo(this.value)" style="width:auto;font-size:12.5px;">
-            <option value="">Semua Portofolio AO</option>
-            ${aoList.map(a => `<option value="${a}" ${ewsState.ao === a ? 'selected' : ''}>AO: ${a}</option>`).join('')}
-          </select>
-        ` : ''}
-
-        <select class="form-select" onchange="filterEwsStatus(this.value)" style="width:auto;font-size:12.5px;">
-          <option value="" ${ewsState.ewsStatus === '' ? 'selected' : ''}>Semua Status EWS</option>
-          <option value="Reminder" ${ewsState.ewsStatus === 'Reminder' ? 'selected' : ''}>🟡 Reminder (H-7 s.d H-1)</option>
-          <option value="Jatuh Tempo Hari Ini" ${ewsState.ewsStatus === 'Jatuh Tempo Hari Ini' ? 'selected' : ''}>🟡 Jatuh Tempo Hari Ini</option>
-          <option value="DPD 1 / Dalam Perhatian" ${ewsState.ewsStatus === 'DPD 1 / Dalam Perhatian' ? 'selected' : ''}>🟠 DPD 1 (1-30 Hari)</option>
-          <option value="DPD 2+ / Bermasalah" ${ewsState.ewsStatus === 'DPD 2+ / Bermasalah' ? 'selected' : ''}>🔴 DPD 2+ (&gt;30 Hari)</option>
-          <option value="Lancar / Normal" ${ewsState.ewsStatus === 'Lancar / Normal' ? 'selected' : ''}>🟢 Lancar / Normal</option>
-        </select>
-
-        <select class="form-select" onchange="filterEwsKol(this.value)" style="width:auto;font-size:12.5px;">
-          <option value="" ${ewsState.kol === '' ? 'selected' : ''}>Semua KOL</option>
-          <option value="Lancar" ${ewsState.kol === 'Lancar' ? 'selected' : ''}>Lancar</option>
-          <option value="DPK" ${ewsState.kol === 'DPK' ? 'selected' : ''}>DPK</option>
-          <option value="Kurang Lancar" ${ewsState.kol === 'Kurang Lancar' ? 'selected' : ''}>Kurang Lancar</option>
-          <option value="Diragukan" ${ewsState.kol === 'Diragukan' ? 'selected' : ''}>Diragukan</option>
-          <option value="Macet" ${ewsState.kol === 'Macet' ? 'selected' : ''}>Macet</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- EWS WATCHLIST TABLE -->
-    <div class="tbl-wrap mb-4">
-      <table class="tbl" style="min-width:1050px;">
-        <thead>
-          <tr>
-            <th>Nama Debitur</th>
-            <th>AO Pengampu</th>
-            <th>Akad</th>
-            <th class="num">Baki Debet</th>
-            <th class="num">Angsuran / Bln</th>
-            <th>Tgl Jatuh Tempo</th>
-            <th style="text-align:center;">DPD</th>
-            <th>KOL</th>
-            <th>Status EWS</th>
-            <th>Log Terakhir AO</th>
-            <th style="text-align:center;">Aksi AO</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${watchlist.length === 0 ? '<tr><td colspan="11" class="empty-st">Tidak ada debitur sesuai kriteria EWS.</td></tr>' : watchlist.map(d => {
-            const ews = d.ewsStatusInfo;
-            const canEdit = d.isOwnedByMe;
-            const lastLog = d.lastAoLog;
-
-            let badgeStyle = 'background:var(--success-bg);color:var(--success);border:1px solid var(--success);';
-            if (ews.code === 'YELLOW') badgeStyle = 'background:rgba(234,179,8,0.12);color:#B45309;border:1px solid rgba(234,179,8,0.3);';
-            if (ews.code === 'ORANGE') badgeStyle = 'background:rgba(249,115,22,0.12);color:#C2410C;border:1px solid rgba(249,115,22,0.3);';
-            if (ews.code === 'RED') badgeStyle = 'background:rgba(239,68,68,0.12);color:#EF4444;border:1px solid rgba(239,68,68,0.3);';
-
-            return `
-              <tr>
-                <td class="font-bold">
-                  ${d.nama}
-                  <br><span class="mono text-muted" style="font-size:11px;">Rek: ${d.id}</span>
-                </td>
-                <td style="font-size:12.5px;">${d.ao || '-'}</td>
-                <td style="font-size:12px;">${d.jenisMargin || '-'}</td>
-                <td class="num mono font-bold">${fmtRp(d.bakiDebet)}</td>
-                <td class="num mono" style="font-size:12px;">${fmtRp((d.angsPrincipal || 0) + (d.angsMargin || 0))}</td>
-                <td class="mono" style="font-size:12px;">${formatDate(d.tglJt)}</td>
-                <td style="text-align:center;" class="mono font-bold ${d.frhPokok > 30 ? 'text-danger' : d.frhPokok > 0 ? 'text-warning' : ''}">${d.frhPokok} hr</td>
-                <td><span class="badge ${d.kol==='Lancar'?'badge-green':d.kol==='DPK'?'badge-yellow':'badge-red'}">${d.kol}</span></td>
-                <td>
-                  <span class="badge" style="font-size:10.5px;padding:3px 9px;border-radius:6px;font-weight:700;${badgeStyle}">
-                    ${ews.label}
-                  </span>
-                </td>
-                <td style="font-size:11.5px;max-width:180px;">
-                  ${lastLog ? `
-                    <div style="font-weight:700;color:var(--text);">${lastLog.statusTindakLanjut}</div>
-                    <div class="text-muted" style="font-size:10.5px;">${formatDate(lastLog.tanggal)} · ${lastLog.jenisAktivitas}</div>
-                  ` : '<span class="text-muted">— Belum ada log —</span>'}
-                </td>
-                <td style="text-align:center;">
-                  <div style="display:flex;gap:4px;justify-content:center;flex-wrap:nowrap;">
-                    ${canEdit ? `
-                      <button class="btn btn-primary btn-sm" onclick="openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "\\'")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "\\'")}')" style="font-size:11px;padding:4px 9px;" title="Catat Tindak Lanjut AO">
-                        Catat Log
-                      </button>
-                    ` : `
-                      <button class="btn btn-ghost btn-sm" onclick="openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "\\'")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "\\'")}')" style="font-size:11px;padding:4px 9px;opacity:0.75;" title="Lihat Riwayat Log AO (Read-Only)">
-                        Lihat Log
-                      </button>
-                    `}
-                    <button class="btn btn-outline btn-sm" onclick="sendEwsWaReminder('${d.id}', '${d.nama.replace(/'/g, "\\'")}', '${d.telepon}', ${d.totalTunggakan}, '${d.tglJt}')" style="font-size:11px;padding:4px 8px;border-color:#25D366;color:#25D366;" title="Kirim Reminder WA Temp">
-                      WA
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  // LEADERBOARD AO SECTION (for Kabid AO & Admin)
-  if (isKabidOrAdmin && Array.isArray(leaderboard) && leaderboard.length > 0) {
-    html += `
-      <div style="margin-top:28px;">
-        <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;">Leaderboard &amp; Evaluasi Kinerja Account Officer</div>
-        <div style="font-size:12.5px;color:var(--text-2);margin-bottom:14px;">Pemantauan NPF Ratio per AO, total pembiayaan yang dikelola, dan keberhasilan tindak lanjut.</div>
-
-        <div class="tbl-wrap">
-          <table class="tbl" style="min-width:750px;">
-            <thead>
-              <tr>
-                <th style="width:50px;text-align:center;">Rank</th>
-                <th>Nama Account Officer</th>
-                <th class="num">Total Nasabah</th>
-                <th class="num">Total Baki Debet</th>
-                <th class="num">Baki Debet NPF</th>
-                <th class="num">NPF Ratio</th>
-                <th class="num">Log Dikerjakan</th>
-                <th class="num">% Selesai</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${leaderboard.map((ao, idx) => {
-                const rankMedal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-                return `
-                  <tr>
-                    <td style="text-align:center;font-weight:800;font-size:14px;">${rankMedal}</td>
-                    <td class="font-bold">${ao.nama} <span class="mono text-muted" style="font-size:11px;">(${ao.aoNameRef || 'AO'})</span></td>
-                    <td class="num font-bold">${ao.totalDebitur}</td>
-                    <td class="num mono">${fmtRp(ao.totalBakiDebet)}</td>
-                    <td class="num mono text-danger font-bold">${fmtRp(ao.npfBakiDebet)}</td>
-                    <td class="num mono font-bold ${ao.npfRatio > 5 ? 'text-danger' : 'text-success'}">${ao.npfRatio}%</td>
-                    <td class="num mono">${ao.totalLogs}</td>
-                    <td class="num mono font-bold text-teal">${ao.successRate}%</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
+function selectEwsCategory(cat) {
+  if (ewsState.category === cat) {
+    ewsState.category = null;
+  } else {
+    ewsState.category = cat;
   }
-
-  container.innerHTML = html;
+  loadEwsView();
 }
 
 function executeEwsSearch() {
   const input = document.getElementById('ews-search-input');
   if (input) {
-    ewsState.q = input.value.trim();
+    ewsState.q = input.value;
     loadEwsView();
   }
 }
 
-function filterEwsKol(kol) {
-  ewsState.kol = kol;
-  loadEwsView();
-}
+function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
+  const activeCat = ewsState.category || 'CRITICAL';
 
-function filterEwsStatus(st) {
-  ewsState.ewsStatus = st;
-  loadEwsView();
-}
+  let counts = {
+    CRITICAL: 0,
+    VERY_HIGH: 0,
+    HIGH: 0,
+    MEDIUM: 0,
+    LOW: 0
+  };
 
-function filterEwsAo(ao) {
-  ewsState.ao = ao;
-  loadEwsView();
+  (watchlist || []).forEach(d => {
+    const dpd = d.frhPokok || 0;
+    if (dpd > 14) counts.CRITICAL++;
+    else if (dpd >= 8) counts.VERY_HIGH++;
+    else if (dpd >= 1) counts.HIGH++;
+    else if (dpd === 0) counts.MEDIUM++;
+    else counts.LOW++;
+  });
+
+  let filteredDebiturs = (watchlist || []).filter(d => {
+    const dpd = d.frhPokok || 0;
+    if (activeCat === 'CRITICAL') return dpd > 14;
+    if (activeCat === 'VERY_HIGH') return dpd >= 8 && dpd <= 14;
+    if (activeCat === 'HIGH') return dpd >= 1 && dpd <= 7;
+    if (activeCat === 'MEDIUM') return dpd === 0;
+    if (activeCat === 'LOW') return dpd < 0;
+    return true;
+  });
+
+  if (ewsState.q) {
+    const qLower = ewsState.q.toLowerCase();
+    filteredDebiturs = filteredDebiturs.filter(d => 
+      (d.nama || '').toLowerCase().includes(qLower) || 
+      (d.id || '').toLowerCase().includes(qLower) || 
+      (d.ao || '').toLowerCase().includes(qLower)
+    );
+  }
+
+  const categoryTitles = {
+    CRITICAL: 'Kategori CRITICAL (> H+14 / DPD > 14 Hari)',
+    VERY_HIGH: 'Kategori VERY HIGH (H+8 s/d H+14 Hari)',
+    HIGH: 'Kategori HIGH (H+1 s/d H+7 Hari)',
+    MEDIUM: 'Kategori MEDIUM (H-1 s/d Hari H)',
+    LOW: 'Kategori LOW (H-7 s/d H-2)'
+  };
+
+  let html = `
+    <!-- FILTER AO BAR DIBAWAH SUBTITLE PEMANTAUAN -->
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px 18px; box-shadow:0 2px 6px rgba(0,0,0,0.02);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span style="font-size:13px; font-weight:700; color:#1e293b;">Filter Account Officer (AO):</span>
+      <select class="form-select" onchange="filterEwsAo(this.value)" style="max-width:280px; font-size:13px; font-weight:600; border-radius:10px; border-color:#cbd5e1;">
+        <option value="">Semua Portofolio AO</option>
+        ${(aoList || []).map(a => `<option value="${a}" ${ewsState.ao === a ? 'selected' : ''}>AO: ${a}</option>`).join('')}
+      </select>
+      ${ewsState.ao ? `<button class="btn btn-ghost btn-sm" onclick="filterEwsAo('')" style="font-size:12px; color:#ef4444; padding:4px 10px; font-weight:700;">✕ Reset Filter</button>` : ''}
+    </div>
+
+    <!-- 5 EWS CATEGORY CARDS MATCHING SCREENSHOT 2 -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:24px;">
+      <!-- CRITICAL -->
+      <div onclick="selectEwsCategory('CRITICAL')" style="background:${activeCat === 'CRITICAL' ? '#FEF2F2' : '#FFF'}; border:2px solid ${activeCat === 'CRITICAL' ? '#EF4444' : '#FCA5A5'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="width:40px; height:40px; border-radius:50%; background:#EF4444; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px; font-weight:800; font-size:18px;">!</div>
+        <div style="font-size:13px; font-weight:800; color:#991B1B; text-transform:uppercase;">CRITICAL</div>
+        <div style="font-size:11px; font-weight:600; color:#B91C1C; margin-bottom:8px;">&gt; H+14 (DPD &gt; 14)</div>
+        <div style="font-size:32px; font-weight:800; color:#7F1D1D; line-height:1;">${counts.CRITICAL}</div>
+        <div style="font-size:12px; font-weight:600; color:#991B1B; margin-top:2px;">Nasabah</div>
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'CRITICAL' ? '#FEE2E2' : '#FEF2F2'}; color:#991B1B; cursor:pointer;">
+          ${activeCat === 'CRITICAL' ? '▲ Tutup' : '▼ Expand'}
+        </button>
+      </div>
+
+      <!-- VERY HIGH -->
+      <div onclick="selectEwsCategory('VERY_HIGH')" style="background:${activeCat === 'VERY_HIGH' ? '#FAF5FF' : '#FFF'}; border:2px solid ${activeCat === 'VERY_HIGH' ? '#A855F7' : '#E9D5FF'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="width:40px; height:40px; border-radius:50%; background:#9333EA; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <div style="font-size:13px; font-weight:800; color:#6B21A8; text-transform:uppercase;">VERY HIGH</div>
+        <div style="font-size:11px; font-weight:600; color:#7E22CE; margin-bottom:8px;">H+8 s/d H+14</div>
+        <div style="font-size:32px; font-weight:800; color:#581C87; line-height:1;">${counts.VERY_HIGH}</div>
+        <div style="font-size:12px; font-weight:600; color:#6B21A8; margin-top:2px;">Nasabah</div>
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'VERY_HIGH' ? '#F3E8FF' : '#FAF5FF'}; color:#6B21A8; cursor:pointer;">
+          ${activeCat === 'VERY_HIGH' ? '▲ Tutup' : '▼ Expand'}
+        </button>
+      </div>
+
+      <!-- HIGH -->
+      <div onclick="selectEwsCategory('HIGH')" style="background:${activeCat === 'HIGH' ? '#FFF7ED' : '#FFF'}; border:2px solid ${activeCat === 'HIGH' ? '#F97316' : '#FFEDD5'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="width:40px; height:40px; border-radius:50%; background:#EA580C; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <div style="font-size:13px; font-weight:800; color:#9A3412; text-transform:uppercase;">HIGH</div>
+        <div style="font-size:11px; font-weight:600; color:#C2410C; margin-bottom:8px;">H+1 s/d H+7</div>
+        <div style="font-size:32px; font-weight:800; color:#7C2D12; line-height:1;">${counts.HIGH}</div>
+        <div style="font-size:12px; font-weight:600; color:#9A3412; margin-top:2px;">Nasabah</div>
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'HIGH' ? '#FFEDD5' : '#FFF7ED'}; color:#9A3412; cursor:pointer;">
+          ${activeCat === 'HIGH' ? '▲ Tutup' : '▼ Expand'}
+        </button>
+      </div>
+
+      <!-- MEDIUM -->
+      <div onclick="selectEwsCategory('MEDIUM')" style="background:${activeCat === 'MEDIUM' ? '#FEFCE8' : '#FFF'}; border:2px solid ${activeCat === 'MEDIUM' ? '#EAB308' : '#FEF08A'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="width:40px; height:40px; border-radius:50%; background:#CA8A04; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <div style="font-size:13px; font-weight:800; color:#854D0E; text-transform:uppercase;">MEDIUM</div>
+        <div style="font-size:11px; font-weight:600; color:#A16207; margin-bottom:8px;">H-1 s/d Hari H</div>
+        <div style="font-size:32px; font-weight:800; color:#713F12; line-height:1;">${counts.MEDIUM}</div>
+        <div style="font-size:12px; font-weight:600; color:#854D0E; margin-top:2px;">Nasabah</div>
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'MEDIUM' ? '#FEF08A' : '#FEFCE8'}; color:#854D0E; cursor:pointer;">
+          ${activeCat === 'MEDIUM' ? '▲ Tutup' : '▼ Expand'}
+        </button>
+      </div>
+
+      <!-- LOW -->
+      <div onclick="selectEwsCategory('LOW')" style="background:${activeCat === 'LOW' ? '#F0FDF4' : '#FFF'}; border:2px solid ${activeCat === 'LOW' ? '#22C55E' : '#DCFCE7'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="width:40px; height:40px; border-radius:50%; background:#16A34A; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div style="font-size:13px; font-weight:800; color:#166534; text-transform:uppercase;">LOW</div>
+        <div style="font-size:11px; font-weight:600; color:#15803D; margin-bottom:8px;">H-7 s/d H-2</div>
+        <div style="font-size:32px; font-weight:800; color:#14532D; line-height:1;">${counts.LOW}</div>
+        <div style="font-size:12px; font-weight:600; color:#166534; margin-top:2px;">Nasabah</div>
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'LOW' ? '#DCFCE7' : '#F0FDF4'}; color:#166534; cursor:pointer;">
+          ${activeCat === 'LOW' ? '▲ Tutup' : '▼ Expand'}
+        </button>
+      </div>
+    </div>
+
+    <!-- EWS TABLE CONTAINER MATCHING SCREENSHOT 2 -->
+    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <div>
+          <div style="font-size:15px; font-weight:800; color:#0F172A;">${categoryTitles[activeCat] || 'Semua Debitur EWS'}</div>
+          <div style="font-size:12px; color:#64748b;">Menampilkan ${filteredDebiturs.length} nasabah binaan pada kategori ini.</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" class="form-input" id="ews-search-input" value="${ewsState.q}" placeholder="Cari nama, rekening..." style="width:220px; font-size:12.5px;" onkeypress="if(event.key==='Enter') executeEwsSearch()"/>
+          <button class="btn btn-primary btn-sm" onclick="executeEwsSearch()" style="border-radius:9999px;">Cari</button>
+          <button class="btn btn-outline btn-sm" onclick="selectEwsCategory(null)" style="border-radius:9999px;">Tutup</button>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="data-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="width:40px;">NO</th>
+              <th>NAMA DEBITUR &amp; REKENING</th>
+              <th>AO PENGAMPU</th>
+              <th>JENIS PEMBIAYAAN</th>
+              <th style="text-align:right;">BAKI DEBET &#8597;</th>
+              <th style="text-align:right;">ANGSURAN / BLN</th>
+              <th>TGL JATUH TEMPO</th>
+              <th style="text-align:center;">DPD / STAT &#9662;</th>
+              <th style="text-align:center;">KOL</th>
+              <th style="text-align:center;">AKSI</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredDebiturs.map((d, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>
+                  <div style="font-weight:800; color:#0F766E; cursor:pointer;" onclick="viewDebiturDetail('${d.id}')" title="Klik untuk lihat detail nasabah">${d.nama}</div>
+                  <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
+                </td>
+                <td style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
+                <td style="font-size:12px; color:#475569;">${d.jenisMargin || d.jenisPembiayaan || 'PEMBIAYAAN iB HARMONI'}</td>
+                <td style="text-align:right; font-weight:800; color:#0F172A;" class="mono">${formatRupiah(d.bakiDebet)}</td>
+                <td style="text-align:right; font-weight:600;" class="mono">${formatRupiah((d.angsPrincipal || 0) + (d.angsMargin || 0) || (d.bakiDebet * 0.02))}</td>
+                <td style="font-size:12px; color:#475569;">${formatDate(d.tglJt)}</td>
+                <td style="text-align:center;">
+                  <div style="font-weight:800; color:#DC2626; font-size:12px;">Tunggak</div>
+                  <div style="font-weight:800; color:#DC2626; font-size:13px;">${d.frhPokok || 0} Hari</div>
+                </td>
+                <td style="text-align:center;">
+                  <span class="badge ${d.kol === 'Lancar' ? 'badge-teal' : (d.kol === 'DPK' ? 'badge-yellow' : 'badge-red')}">${d.kol}</span>
+                </td>
+                <td style="text-align:center;">
+                  <div style="display:flex; gap:4px; justify-content:center;">
+                    <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px;" onclick="openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "&apos;")}')">+ Log</button>
+                    <button class="btn btn-outline btn-sm" onclick="sendEwsWaReminder('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.telepon}', ${d.totalTunggakan}, '${d.tglJt}')" style="font-size:11px; padding:4px 8px; border-color:#25D366; color:#25D366; border-radius:8px;" title="Kirim WA">WA</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('') || '<tr><td colspan="10" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah pada kategori ini</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
 }
 
 async function openAoLogModal(debiturId, nama, kol, bakiDebet, aoName) {
-  document.getElementById('aolog-debitur-id').value = debiturId;
-  document.getElementById('aolog-debitur-nama').innerText = nama;
-  document.getElementById('aolog-debitur-kol').innerText = kol;
-  document.getElementById('aolog-debitur-bakidebet').innerText = fmtRp(bakiDebet);
-  document.getElementById('aolog-debitur-ao').innerText = aoName || '-';
+  const modalDebId = document.getElementById('aolog-debitur-id');
+  if (modalDebId) modalDebId.value = debiturId;
 
-  document.getElementById('aolog-jenis').value = 'Telepon';
-  document.getElementById('aolog-status').value = 'Sudah Dihubungi';
-  document.getElementById('aolog-catatan').value = '';
+  const debNamaEl = document.getElementById('aolog-debitur-nama');
+  if (debNamaEl) debNamaEl.innerText = nama || debiturId;
+
+  const debKolEl = document.getElementById('aolog-debitur-kol');
+  if (debKolEl) debKolEl.innerText = kol || '-';
+
+  const debBakiEl = document.getElementById('aolog-debitur-bakidebet');
+  if (debBakiEl) debBakiEl.innerText = formatRupiah(bakiDebet || 0);
+
+  const debAoEl = document.getElementById('aolog-debitur-ao');
+  if (debAoEl) debAoEl.innerText = aoName || '-';
+
+  const jenisEl = document.getElementById('aolog-jenis');
+  if (jenisEl) jenisEl.value = 'Telepon';
+
+  const statusEl = document.getElementById('aolog-status');
+  if (statusEl) statusEl.value = 'Sudah Dihubungi';
+
+  const catEl = document.getElementById('aolog-catatan');
+  if (catEl) catEl.value = '';
+
   toggleAoLogTglJanji('Sudah Dihubungi');
-
-  // Check read-only state
-  const isKabidOrAdmin = state.user?.posisi === 'kabid_ao';
-  const submitBtn = document.getElementById('aolog-submit-btn');
-  if (submitBtn) {
-    if (isKabidOrAdmin) {
-      submitBtn.style.display = 'none';
-    } else {
-      submitBtn.style.display = 'inline-block';
-    }
-  }
-
-  // Fetch history list
-  const historyContainer = document.getElementById('aolog-history-list');
-  historyContainer.innerHTML = '<p style="color:var(--text-3);text-align:center;">Memuat riwayat log...</p>';
 
   openModal('modal-ao-log');
 
-  try {
-    const logs = await apiCall(`/ews/collection-log/${debiturId}`);
-    if (!logs || logs.length === 0) {
-      historyContainer.innerHTML = '<p style="color:var(--text-3);text-align:center;padding:10px 0;">Belum ada catatan tindak lanjut AO sebelumnya.</p>';
-    } else {
-      historyContainer.innerHTML = logs.map(l => `
-        <div style="padding:6px 0;border-bottom:1px solid var(--border);">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong style="color:var(--text);">${l.statusTindakLanjut}</strong>
-            <span class="mono text-muted" style="font-size:10.5px;">${formatDate(l.tanggal)} ${l.waktu || ''}</span>
+  const historyContainer = document.getElementById('aolog-history-list');
+  if (historyContainer) {
+    historyContainer.innerHTML = '<p style="color:var(--text-3);text-align:center;">Memuat riwayat log...</p>';
+    try {
+      const logs = await apiCall(`/ews/collection-log/${debiturId}`);
+      if (!logs || logs.length === 0) {
+        historyContainer.innerHTML = '<p style="color:var(--text-3);text-align:center;padding:10px 0;">Belum ada catatan tindak lanjut AO sebelumnya.</p>';
+      } else {
+        historyContainer.innerHTML = logs.map(l => `
+          <div style="padding:6px 0;border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="color:var(--text);">${l.statusTindakLanjut}</strong>
+              <span class="mono text-muted" style="font-size:10.5px;">${formatDate(l.tanggal)} ${l.waktu || ''}</span>
+            </div>
+            <div style="color:var(--text-2);margin-top:2px;">Aktivitas: <strong>${l.jenisAktivitas}</strong> ${l.tanggalJanji ? `· Janji: <strong style="color:var(--brand);">${formatDate(l.tanggalJanji)}</strong>` : ''}</div>
+            ${l.catatan ? `<div style="font-style:italic;color:var(--text-3);margin-top:2px;">"${l.catatan}"</div>` : ''}
+            <div style="font-size:10px;color:var(--text-3);margin-top:2px;">Oleh: ${l.createdByUser?.nama || 'AO'}</div>
           </div>
-          <div style="color:var(--text-2);margin-top:2px;">Aktivitas: <strong>${l.jenisAktivitas}</strong> ${l.tanggalJanji ? `· Janji: <strong style="color:var(--brand);">${formatDate(l.tanggalJanji)}</strong>` : ''}</div>
-          ${l.catatan ? `<div style="font-style:italic;color:var(--text-3);margin-top:2px;">"${l.catatan}"</div>` : ''}
-          <div style="font-size:10px;color:var(--text-3);margin-top:2px;">Oleh: ${l.createdByUser?.nama || 'AO'}</div>
-        </div>
-      `).join('');
+        `).join('');
+      }
+    } catch (e) {
+      historyContainer.innerHTML = `<p style="color:var(--danger);text-align:center;">Gagal memuat riwayat log: ${e.message}</p>`;
     }
-  } catch (e) {
-    historyContainer.innerHTML = `<p style="color:var(--danger);text-align:center;">Gagal memuat riwayat log: ${e.message}</p>`;
   }
 }
 
@@ -8097,7 +8276,7 @@ function toggleAoLogTglJanji(val) {
 }
 
 async function saveAoLog(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const debiturId = document.getElementById('aolog-debitur-id').value;
   const jenisAktivitas = document.getElementById('aolog-jenis').value;
   const statusTindakLanjut = document.getElementById('aolog-status').value;
@@ -8131,20 +8310,250 @@ function sendEwsWaReminder(debiturId, nama, telp, totalTunggakan, tglJt) {
   }
 
   const ptName = state.settings?.pt_name || 'PT BPRS Mitra Harmoni Yogyakarta';
-  const formattedTunggakan = fmtRp(totalTunggakan);
+  const formattedTunggakan = formatRupiah(totalTunggakan || 0);
   const formattedJt = formatDate(tglJt);
 
-  const message = `Assalamu'alaikum Wr. Wb.\n\nYth. Bapak/Ibu *${nama}*,\nNasabah ${ptName}.\n\nKami mengingatkan kembali terkait kewajiban angsuran pembiayaan Bapak/Ibu dengan rincian berikut:\n- Nominal Tunggakan: *${formattedTunggakan}*\n- Tanggal Jatuh Tempo: *${formattedJt}*\n\nMohon berkenan untuk melakukan pembayaran tepat waktu demi kenyamanan kelancaran pembiayaan Bapak/Ibu.\n\nTerima kasih.\nWassalamu'alaikum Wr. Wb.\n_Account Officer ${ptName}_`;
+  const message = `Assalamu'alaikum Wr. Wb.\n\nYth. Bapak/Ibu *${nama || ''}*,\nNasabah ${ptName}.\n\nKami mengingatkan kembali terkait kewajiban angsuran pembiayaan Bapak/Ibu dengan rincian berikut:\n- Nominal Tunggakan: *${formattedTunggakan}*\n- Tanggal Jatuh Tempo: *${formattedJt}*\n\nMohon berkenan untuk melakukan pembayaran tepat waktu demi kenyamanan kelancaran pembiayaan Bapak/Ibu.\n\nTerima kasih.\nWassalamu'alaikum Wr. Wb.\n_Account Officer ${ptName}_`;
 
   const waUrl = `https://wa.me/${cleanTelp}?text=${encodeURIComponent(message)}`;
   window.open(waUrl, '_blank');
 }
 
+window.selectEwsCategory = selectEwsCategory;
 window.loadEwsView = loadEwsView;
 window.executeEwsSearch = executeEwsSearch;
-window.filterEwsKol = filterEwsKol;
-window.filterEwsStatus = filterEwsStatus;
-window.filterEwsAo = filterEwsAo;
+window.filterEwsKol = function(k){ ewsState.kol = k; loadEwsView(); };
+window.filterEwsStatus = function(s){ ewsState.ewsStatus = s; loadEwsView(); };
+window.filterEwsAo = function(a){ ewsState.ao = a; loadEwsView(); };
+window.openAoLogModal = openAoLogModal;
+window.toggleAoLogTglJanji = toggleAoLogTglJanji;
+window.saveAoLog = saveAoLog;
+window.sendEwsWaReminder = sendEwsWaReminder;
+
+/* ==========================================================================
+   HISTORIS TUNGGAKAN (1-6 BULAN KEBELAKANG) VIEW & CONTROLLER LOGIC
+   ========================================================================== */
+
+let historisState = {
+  months: 6,
+  ao: '',
+  search: '',
+  page: 1
+};
+
+async function loadHistorisView() {
+  const container = document.getElementById('historis-content');
+  if (!container) return;
+
+  container.innerHTML = '<div class="empty-st"><p>Memuat data Historis Tunggakan 1-6 Bulan Kebelakang...</p></div>';
+
+  try {
+    const summary = await apiCall(`/historis/summary?months=${historisState.months}&ao=${encodeURIComponent(historisState.ao)}`);
+    const nasabah = await apiCall(`/historis/nasabah?months=${historisState.months}&ao=${encodeURIComponent(historisState.ao)}&q=${encodeURIComponent(historisState.search)}&page=${historisState.page}`);
+
+    renderHistorisUI(container, summary, nasabah);
+  } catch (err) {
+    container.innerHTML = `<div class="empty-st text-danger"><p>Gagal memuat Historis Tunggakan: ${err.message}</p></div>`;
+  }
+}
+
+function setHistorisMonths(months) {
+  historisState.months = months;
+  historisState.page = 1;
+  loadHistorisView();
+}
+
+function searchHistorisTable() {
+  const input = document.getElementById('historis-search-input');
+  if (input) {
+    historisState.search = input.value;
+    historisState.page = 1;
+    loadHistorisView();
+  }
+}
+
+function getEwsBadgeClass(cat) {
+  if (!cat) return 'badge-teal';
+  const c = String(cat).toUpperCase();
+  if (c.includes('CRITICAL') || c.includes('MACET') || c.includes('DPD 2+')) return 'badge-red';
+  if (c.includes('VERY HIGH') || c.includes('HIGH')) return 'badge-yellow';
+  return 'badge-teal';
+}
+
+function renderHistorisUI(container, summary, nasabah) {
+  const months = historisState.months;
+  const stats = (summary && summary.stats) ? summary.stats : {};
+  const list = (nasabah && nasabah.debiturs) ? nasabah.debiturs : ((nasabah && nasabah.list) ? nasabah.list : []);
+  const totalRows = (nasabah && nasabah.totalCount) ? nasabah.totalCount : list.length;
+  const officerMatrix = (summary && summary.matrix) ? summary.matrix : ((summary && summary.officerMatrix) ? summary.officerMatrix : []);
+  const monthTrend = (summary && summary.trend) ? summary.trend : ((summary && summary.monthTrend) ? summary.monthTrend : []);
+
+  let html = `
+    <!-- TOP INFORMATIONAL BANNER CARD -->
+    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:18px; padding:18px 22px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div style="width:42px; height:42px; border-radius:12px; background:#0F766E; color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <div style="font-size:15px; font-weight:800; color:#0F172A; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            Analisis Historis Debitur Tidak Bayar 
+            <span style="font-size:11.5px; font-weight:600; color:#0F766E; background:#ccfbf1; padding:3px 10px; border-radius:12px; border:1px solid #99f6e4;">
+              Portofolio AO: KOL 1 (Lancar), KOL 2 (DPK), &amp; KOL 3 (KL)
+            </span>
+          </div>
+          <div style="font-size:12.5px; color:#475569; margin-top:2px;">Monitoring nasabah menunggak secara agregat per AO/P3 dan pola historis 1-6 bulan ke belakang.</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; font-weight:700; color:#475569; margin-right:4px;">Rentang Waktu:</span>
+        <button class="btn btn-sm" style="border-radius:10px; font-weight:700; ${months === 1 ? 'background:#0F766E; color:#fff;' : 'background:#fff; color:#475569; border:1px solid #cbd5e1;'}" onclick="setHistorisMonths(1)">1 Bulan Lalu</button>
+        <button class="btn btn-sm" style="border-radius:10px; font-weight:700; ${months === 3 ? 'background:#0F766E; color:#fff;' : 'background:#fff; color:#475569; border:1px solid #cbd5e1;'}" onclick="setHistorisMonths(3)">3 Bulan</button>
+        <button class="btn btn-sm" style="border-radius:10px; font-weight:700; ${months === 6 ? 'background:#0F766E; color:#fff;' : 'background:#fff; color:#475569; border:1px solid #cbd5e1;'}" onclick="setHistorisMonths(6)">6 Bulan Kebelakang</button>
+      </div>
+    </div>
+
+    <!-- 4 METRIC CARDS MATCHING SCREENSHOT 1 -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">TOTAL BAKI DEBET UNPAID (${months} BLN)</div>
+        <div style="font-size:24px; font-weight:800; color:#dc2626; margin:8px 0 4px;" class="mono">${formatRupiah(stats.totalBakiDebet || summary.totalBakiDebetUnpaid || 0)}</div>
+        <div style="font-size:12px; font-weight:600; color:#64748b;">${stats.totalNoa || summary.totalNoaUnpaid || 0} Nasabah Menunggak</div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">TOTAL NOA UNPAID DEBITORS</div>
+        <div style="font-size:24px; font-weight:800; color:#0F766E; margin:8px 0 4px;" class="mono">${stats.totalNoa || summary.totalNoaUnpaid || 0} <span style="font-size:14px; font-weight:600; color:#475569;">Nasabah</span></div>
+        <div style="font-size:12px; font-weight:600; color:#64748b;">Aktif Dalam Portofolio</div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">FREKUENSI TUNGGAKAN BERULANG</div>
+        <div style="font-size:24px; font-weight:800; color:#0F766E; margin:8px 0 4px;" class="mono">${stats.repeatUnpaidCount || summary.freqUnpaidCount || 0} <span style="font-size:14px; font-weight:600; color:#64748b;">(${stats.repeatUnpaidPct || summary.freqUnpaidPercent || 0}%)</span></div>
+        <div style="font-size:12px; font-weight:600; color:#64748b;">&gt;1 Bulan Tidak Bayar</div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">AO / P3 BAKI DEBET TERBESAR</div>
+        <div style="font-size:18px; font-weight:800; color:#0F766E; margin:8px 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${officerMatrix.length === 1 ? officerMatrix[0].ao : (stats.topAoName || summary.topPetugasName || '-')}</div>
+        <div style="font-size:12px; font-weight:600; color:#64748b;">Puncak Tunggakan Terbanyak</div>
+      </div>
+    </div>
+
+    <!-- MIDDLE 2-COLUMN GRID -->
+    <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:20px; margin-bottom:24px;">
+      <!-- Tren Chart Column -->
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div>
+            <div style="font-size:14px; font-weight:800; color:#0F172A;">📊 Tren Baki Debet Menunggak (${months} Bulan)</div>
+            <div style="font-size:12px; color:#64748b;">Pergerakan agregat baki debet tidak bayar dari bulan ke bulan.</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:#0F766E; background:#ccfbf1; padding:3px 10px; border-radius:12px;">Historis Multi-Bulan</span>
+        </div>
+        <div style="height:230px; position:relative;">
+          <canvas id="historis-trend-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Petugas Matrix Column -->
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div>
+            <div style="font-size:14px; font-weight:800; color:#0F172A;">👤 Matriks Klasifikasi Per Petugas</div>
+            <div style="font-size:12px; color:#64748b;">Penyebaran total baki debet &amp; NOA menunggak per AO / P3.</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:#475569; background:#f1f5f9; padding:3px 10px; border-radius:12px;">${officerMatrix.length} Petugas</span>
+        </div>
+        <div style="max-height:230px; overflow-y:auto;">
+          <table class="data-table" style="width:100%;">
+            <thead>
+              <tr>
+                <th style="text-align:left;">PETUGAS (AO/P3)</th>
+                <th style="text-align:right;">TOTAL BAKI DEBET</th>
+                <th style="text-align:right;">NOA</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${officerMatrix.map(off => `
+                <tr>
+                  <td style="font-weight:700; color:#0F172A;">${off.ao || off.name || '-'}</td>
+                  <td style="text-align:right; font-weight:800; color:#dc2626;" class="mono">${formatRupiah(off.totalBaki || off.totalBakiDebet || 0)}</td>
+                  <td style="text-align:right; font-weight:700;" class="mono">${off.totalNoa || off.noaCount || 0}</td>
+                </tr>
+              `).join('') || '<tr><td colspan="3" style="text-align:center; color:#94a3b8; padding:16px;">Tidak ada data petugas</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM TABLE SECTION -->
+    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <div>
+          <div style="font-size:15px; font-weight:800; color:#0F172A;">Daftar Nasabah Tidak Bayar (${months} Bulan)</div>
+          <div style="font-size:12px; color:#64748b;">Menampilkan ${list.length} data nasabah. Total: ${totalRows} nasabah.</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" class="form-input" id="historis-search-input" value="${historisState.search}" placeholder="Cari nama nasabah, AO..." style="width:240px; font-size:12.5px;" onkeypress="if(event.key==='Enter') searchHistorisTable()"/>
+          <button class="btn btn-primary btn-sm" onclick="searchHistorisTable()" style="border-radius:9999px;">Cari</button>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="data-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="width:40px;">NO</th>
+              <th>NAMA DEBITUR &amp; REKENING</th>
+              <th>AO PENGAMPU</th>
+              <th style="text-align:center;">KOL</th>
+              <th style="text-align:right;">BAKI DEBET</th>
+              <th style="text-align:right;">TOTAL TUNGGAKAN</th>
+              <th style="text-align:center;">BULAN TIDAK BAYAR</th>
+              <th style="text-align:center;">STATUS EWS / DC</th>
+              <th style="text-align:center;">AKSI</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map((d, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>
+                  <div style="font-weight:800; color:#0F766E; cursor:pointer;" onclick="openDebiturModal('${d.id}')">${d.nama}</div>
+                  <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
+                </td>
+                <td style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
+                <td style="text-align:center;">
+                  <span class="badge ${d.kol === 'Lancar' ? 'badge-teal' : (d.kol === 'DPK' ? 'badge-yellow' : 'badge-red')}">${d.kol}</span>
+                </td>
+                <td style="text-align:right; font-weight:700;" class="mono">${formatRupiah(d.bakiDebet)}</td>
+                <td style="text-align:right; font-weight:800; color:#dc2626;" class="mono">${formatRupiah(d.totalTunggakan)}</td>
+                <td style="text-align:center;">
+                  <span class="badge badge-red" style="font-weight:700;">${d.unpaidMonthsFreq || d.monthsUnpaid || 1} Bulan</span>
+                </td>
+                <td style="text-align:center;">
+                  <span class="badge ${getEwsBadgeClass(d.kol)}">${d.kol}</span>
+                </td>
+                <td style="text-align:center;">
+                  <button class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px;" onclick="openDebiturModal('${d.id}')">Detail</button>
+                </td>
+              </tr>
+            `).join('') || '<tr><td colspan="9" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah menunggak ditemukan</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+window.executeEwsSearch = executeEwsSearch;
+window.filterEwsKol = function(k){ ewsState.kol = k; loadEwsView(); };
+window.filterEwsStatus = function(s){ ewsState.ewsStatus = s; loadEwsView(); };
+window.filterEwsAo = function(a){ ewsState.ao = a; loadEwsView(); };
 window.openAoLogModal = openAoLogModal;
 window.toggleAoLogTglJanji = toggleAoLogTglJanji;
 window.saveAoLog = saveAoLog;

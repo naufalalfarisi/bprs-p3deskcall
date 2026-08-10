@@ -521,126 +521,7 @@
   </div>
 </div>
 
-<!-- PROFILE MODAL -->
-<div class="modal-overlay" id="modal-profile">
-  <div class="modal-box" style="max-width:540px;border-radius:18px;overflow:hidden;box-shadow:var(--sh-xl);">
-    <div class="modal-hdr" style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg-card);">
-      <div class="modal-title" style="font-size:16px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Pengaturan Profil Pengguna
-      </div>
-      <button class="modal-close" onclick="closeModal('modal-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    </div>
-
-    <div class="modal-body" style="padding:20px 22px 24px;background:var(--bg);">
-      <!-- USER IDENTITY BANNER CARD -->
-      <div style="display:flex;align-items:center;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:var(--sh-sm);">
-        <div style="position:relative;width:64px;height:64px;flex-shrink:0;cursor:pointer;" onclick="document.getElementById('profile-avatar-input').click()" title="Klik untuk mengunggah foto profil baru">
-          <div id="prof-av" style="width:64px;height:64px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;overflow:hidden;border:2.5px solid var(--brand-mid);box-shadow:var(--sh-sm);">AD</div>
-          <div style="position:absolute;bottom:0;right:0;background:var(--brand);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.25);border:2px solid var(--bg-card);">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          </div>
-        </div>
-        <input type="file" id="profile-avatar-input" style="display:none !important;" accept=".png,.jpg,.jpeg,.svg" onchange="uploadMyAvatar(this.files[0])"/>
-
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-            <div id="prof-nama" style="font-size:16.5px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Nama User</div>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('profile-avatar-input').click()" style="font-size:11.5px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;">📷 Ganti Foto</button>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
-            <span class="badge badge-teal" id="prof-badge" style="font-size:11px;padding:3px 10px;">Posisi</span>
-            <span class="mono" style="font-size:11.5px;color:var(--text-3);" id="prof-user">@username</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- SEGMENTED NAV TABS -->
-      <div style="display:flex;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:18px;box-shadow:var(--sh-sm);">
-        <button class="prof-tab-btn active" id="prof-tab-info" onclick="switchProfileTab('info')" style="flex:1;padding:9px 12px;border-radius:9px;font-size:12.5px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;background:var(--brand);color:#ffffff;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Informasi Pribadi
-        </button>
-        <button class="prof-tab-btn" id="prof-tab-pw" onclick="switchProfileTab('pw')" style="flex:1;padding:9px 12px;border-radius:9px;font-size:12.5px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;background:transparent;color:var(--text-2);">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Ubah Password
-        </button>
-        <button class="prof-tab-btn" id="prof-tab-admin" onclick="switchProfileTab('admin')" style="display:none;flex:1;padding:9px 12px;border-radius:9px;font-size:12.5px;font-weight:700;border:none;cursor:pointer;align-items:center;justify-content:center;gap:6px;transition:all .15s;background:transparent;color:var(--text-2);">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Sistem Admin
-        </button>
-      </div>
-
-      <!-- TAB 1: INFORMASI PRIBADI -->
-      <div id="prof-sec-info" style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--sh-sm);">
-        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:6px;">
-          <span>📋 Data Identitas Pengguna</span>
-        </div>
-        <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Nama Lengkap</label>
-          <input type="text" id="prof-input-nama" class="form-input" placeholder="Nama lengkap Anda" style="width:100%;box-sizing:border-box;"/>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Email</label>
-            <input type="email" id="prof-input-email" class="form-input" placeholder="nama@email.com" style="width:100%;box-sizing:border-box;"/>
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Tanggal Lahir</label>
-            <input type="date" id="prof-input-ttl" class="form-input" style="width:100%;box-sizing:border-box;"/>
-          </div>
-        </div>
-        <button class="btn btn-primary btn-block" onclick="saveMyProfileInfo()" style="margin-top:6px;width:100%;padding:11px;font-weight:700;border-radius:10px;">💾 Simpan Perubahan Profil</button>
-      </div>
-
-      <!-- TAB 2: UBAH PASSWORD -->
-      <div id="prof-sec-pw" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--sh-sm);">
-        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;">🔒 Keamanan & Pembaruan Password</div>
-        <p style="font-size:11.5px;color:var(--text-3);margin-bottom:14px;">Password baru minimal harus terdiri dari 8 karakter.</p>
-        
-        <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Password Saat Ini (Lama)</label>
-          <input type="password" id="prof-pw-old" class="form-input" placeholder="Masukkan password lama Anda" style="width:100%;box-sizing:border-box;"/>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Password Baru</label>
-            <input type="password" id="prof-pw-new" class="form-input" placeholder="Min. 8 karakter" style="width:100%;box-sizing:border-box;"/>
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Konfirmasi Password Baru</label>
-            <input type="password" id="prof-pw-confirm" class="form-input" placeholder="Ulangi password baru" style="width:100%;box-sizing:border-box;"/>
-          </div>
-        </div>
-        <button class="btn btn-primary btn-block" onclick="changeMyPassword()" style="margin-top:6px;width:100%;padding:11px;font-weight:700;border-radius:10px;">Perbarui Password Saya</button>
-      </div>
-
-      <!-- TAB 3: ADMIN OPTIONS (Admin Only) -->
-      <div id="prof-sec-admin" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--sh-sm);">
-        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;">Pengaturan Sistem Aplikasi</div>
-        <button class="btn btn-outline btn-block" onclick="closeModal('modal-profile');switchPane('appmgmt')" style="width:100%;padding:10px;margin-bottom:12px;border-radius:10px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Buka Manajemen Aplikasi (Branding, Logo, Favicon)
-        </button>
-
-        <div id="sec-pending" style="display:none;">
-          <div class="divider" style="margin:12px 0;"></div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="font-size:12.5px;font-weight:700;">Permintaan Pendaftaran Akun Baru</span><span class="badge badge-red" id="pend-cnt-badge">0 menunggu</span></div>
-          <div id="pend-list"></div>
-        </div>
-      </div>
-
-      <div class="divider" style="margin:18px 0 14px;"></div>
-      <button class="btn btn-outline btn-block mb-2" id="pwa-install-btn-profile" onclick="triggerPWAInstall()" style="width:100%;padding:10px;border-radius:10px;font-weight:700;border-color:var(--brand);color:var(--brand);margin-bottom:10px;">
-        📱 Install Aplikasi ke HP / Desktop
-      </button>
-      <button class="btn btn-danger-out btn-block" onclick="doLogout()" style="width:100%;padding:10px;border-radius:10px;font-weight:700;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Keluar dari Sesi Aplikasi
-      </button>
-    </div>
-  </div>
-</div>
+<!-- CONFIRM DIALOG -->
 
 <!-- CONFIRM DIALOG -->
 <div class="modal-overlay" id="modal-confirm">
@@ -1265,10 +1146,29 @@
         <span class="notif-badge" id="notif-cnt" style="display:none;">0</span>
       </button>
 
-      <button class="user-chip" onclick="openProfileModal()">
-        <span class="user-av" id="user-av">AD</span>
-        <span class="user-chip-info"><span class="user-chip-name" id="user-cname">Admin</span><span class="user-chip-role" id="user-crole">Administrator</span></span>
-      </button>
+      <div style="position:relative;">
+        <button class="user-chip" id="user-chip-btn" onclick="toggleUserDropdown(event)">
+          <span class="user-av" id="user-av">AD</span>
+          <span class="user-chip-info">
+            <span class="user-chip-name" id="user-cname">Admin</span>
+            <span class="user-chip-role" id="user-crole">Administrator</span>
+          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:4px;"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+
+        <!-- DROPDOWN MENU HANYA PENGATURAN & KELUAR -->
+        <div id="user-dropdown-menu" style="display:none; position:absolute; top:calc(100% + 8px); right:0; width:180px; background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; box-shadow:0 10px 25px rgba(0,0,0,0.12); z-index:9999; padding:6px;">
+          <button onclick="goToSettingsProfile()" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:transparent; font-size:13px; font-weight:700; color:#1e293b; border-radius:10px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Pengaturan
+          </button>
+          <div style="height:1px; background:#f1f5f9; margin:4px 0;"></div>
+          <button onclick="doLogout()" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:transparent; font-size:13px; font-weight:700; color:#dc2626; border-radius:10px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Keluar
+          </button>
+        </div>
+      </div>
     </div>
   </header>
   <div id="drawer-scrim" onclick="closeDrawer()"></div>
@@ -1323,6 +1223,14 @@
               </svg>
               <span>Customer Insight</span>
             </div>
+            <div class="dc-tab" id="dctab-redalert" onclick="switchDCTab('redalert')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span>Red Alert</span>
+            </div>
           </div>
           <div id="dc-content"></div>
         </div>
@@ -1347,6 +1255,18 @@
           <div id="kpi-content"></div>
         </div>
 
+        <div class="tab-pane" id="pane-historis">
+          <div class="page-hd">
+            <div class="page-hd-row">
+              <div>
+                <div class="page-title">Historis Tunggakan (1-6 Bulan Kebelakang)</div>
+                <div class="page-sub">Analisis multi-bulan nasabah yang tidak dapat melakukan pembayaran, diklasifikasikan per AO/P3, kolektibilitas, dan baki debet.</div>
+              </div>
+            </div>
+          </div>
+          <div id="historis-content"></div>
+        </div>
+
         <div class="tab-pane" id="pane-ews">
           <div class="page-hd">
             <div class="page-hd-row">
@@ -1367,7 +1287,11 @@
 
           <!-- SUBMENU TAB NAVIGATION -->
           <div style="display:flex; gap:8px; border-bottom:2px solid var(--border); margin-bottom:20px; overflow-x:auto; padding-bottom:2px;">
-            <button class="setting-subtab active" id="subtab-users" onclick="switchSettingsSubtab('users')" style="padding:10px 18px; font-size:14px; font-weight:700; border:none; background:transparent; border-bottom:3px solid var(--brand); color:var(--brand); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
+            <button class="setting-subtab active" id="subtab-profile" onclick="switchSettingsSubtab('profile')" style="padding:10px 18px; font-size:14px; font-weight:700; border:none; background:transparent; border-bottom:3px solid var(--brand); color:var(--brand); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Profil Saya
+            </button>
+            <button class="setting-subtab" id="subtab-users" onclick="switchSettingsSubtab('users')" style="padding:10px 18px; font-size:14px; font-weight:600; border:none; background:transparent; border-bottom:3px solid transparent; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
               Manajemen User
             </button>
@@ -1386,7 +1310,71 @@
           </div>
 
           <!-- SUBMENU CONTENTS -->
-          <div id="settings-subpane-users" class="settings-subpane" style="display:block;">
+          <div id="settings-subpane-profile" class="settings-subpane" style="display:block;">
+            <!-- USER IDENTITY BANNER CARD -->
+            <div style="display:flex;align-items:center;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin-bottom:20px;box-shadow:var(--sh-sm);max-width:900px;">
+              <div style="position:relative;width:64px;height:64px;flex-shrink:0;cursor:pointer;" onclick="document.getElementById('profile-avatar-input').click()" title="Klik untuk mengunggah foto profil baru">
+                <div id="prof-av" style="width:64px;height:64px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;overflow:hidden;border:2.5px solid var(--brand-mid);box-shadow:var(--sh-sm);">AD</div>
+                <div style="position:absolute;bottom:0;right:0;background:var(--brand);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.25);border:2px solid var(--bg-card);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+              </div>
+              <input type="file" id="profile-avatar-input" style="display:none !important;" accept=".png,.jpg,.jpeg,.svg" onchange="uploadMyAvatar(this.files[0])"/>
+
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <div id="prof-nama" style="font-size:17px;font-weight:800;color:var(--text);">Nama User</div>
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('profile-avatar-input').click()" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;">📷 Ganti Foto Avatar</button>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+                  <span class="badge badge-teal" id="prof-badge" style="font-size:11.5px;padding:3px 10px;">Posisi</span>
+                  <span class="mono" style="font-size:12px;color:var(--text-3);" id="prof-user">@username</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:20px; max-width:900px;">
+              <!-- INFORMASI PRIBADI FORM -->
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--sh-sm);">
+                <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:14px;">📋 Informasi Pribadi</div>
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Nama Lengkap</label>
+                  <input type="text" id="prof-input-nama" class="form-input" placeholder="Nama lengkap Anda" style="width:100%;box-sizing:border-box;"/>
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Email</label>
+                  <input type="email" id="prof-input-email" class="form-input" placeholder="nama@email.com" style="width:100%;box-sizing:border-box;"/>
+                </div>
+                <div class="form-group" style="margin-bottom:18px;">
+                  <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Tanggal Lahir</label>
+                  <input type="date" id="prof-input-ttl" class="form-input" style="width:100%;box-sizing:border-box;"/>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="saveMyProfileInfo()" style="width:100%;padding:11px;font-weight:700;border-radius:10px;">💾 Simpan Perubahan Profil</button>
+              </div>
+
+              <!-- UBAH PASSWORD FORM -->
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--sh-sm);">
+                <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px;">🔒 Keamanan &amp; Password</div>
+                <p style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Password baru minimal harus 8 karakter.</p>
+                
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Password Saat Ini (Lama)</label>
+                  <input type="password" id="prof-pw-old" class="form-input" placeholder="Masukkan password lama" style="width:100%;box-sizing:border-box;"/>
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Password Baru</label>
+                  <input type="password" id="prof-pw-new" class="form-input" placeholder="Min. 8 karakter" style="width:100%;box-sizing:border-box;"/>
+                </div>
+                <div class="form-group" style="margin-bottom:18px;">
+                  <label class="form-label" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block;">Konfirmasi Password Baru</label>
+                  <input type="password" id="prof-pw-confirm" class="form-input" placeholder="Ulangi password baru" style="width:100%;box-sizing:border-box;"/>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="changeMyPassword()" style="width:100%;padding:11px;font-weight:700;border-radius:10px;">Perbarui Password Saya</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="settings-subpane-users" class="settings-subpane" style="display:none;">
             <div id="users-content"></div>
           </div>
           <div id="settings-subpane-appmgmt" class="settings-subpane" style="display:none;">

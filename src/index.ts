@@ -20,6 +20,9 @@ import { importRouter } from './controllers/import.js';
 import { notificationsRouter } from './controllers/notifications.js';
 import { userRouter } from './controllers/user.js';
 import { ewsRouter } from './controllers/ews.js';
+import { historisRouter } from './controllers/historis.js';
+import { qontakRouter } from './controllers/qontak.js';
+import { portalRouter } from './controllers/portal.js';
 
 const app = new Hono();
 
@@ -60,6 +63,9 @@ app.route('/api/app-settings', appSettingsRouter);
 app.route('/api/import', importRouter);
 app.route('/api/notifications', notificationsRouter);
 app.route('/api/ews', ewsRouter);
+app.route('/api/historis', historisRouter);
+app.route('/api/qontak', qontakRouter);
+app.route('/api/portal', portalRouter);
 
 // Global Error Handler
 app.onError((err, c) => {

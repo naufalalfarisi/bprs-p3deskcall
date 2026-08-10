@@ -98,7 +98,7 @@ deskcallRouter.post('/', async (c) => {
 
 
 // GET /harian - Laporan Harian
-deskcallRouter.get('/harian', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal']), async (c) => {
+deskcallRouter.get('/harian', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal', 'kabid_ao', 'ao']), async (c) => {
   try {
     const tanggalStr = c.req.query('tanggal') || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
     const q = c.req.query('q') || '';
@@ -183,7 +183,7 @@ deskcallRouter.get('/harian', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 
 });
 
 // GET /bulanan - Laporan Bulanan (Grouped per Minggu dalam Sebulan)
-deskcallRouter.get('/bulanan', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal']), async (c) => {
+deskcallRouter.get('/bulanan', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal', 'kabid_ao', 'ao']), async (c) => {
   try {
     const yearMonth = c.req.query('periode') || new Date().toISOString().substring(0, 7); // YYYY-MM
     const [year, month] = yearMonth.split('-').map(Number);
@@ -285,8 +285,146 @@ deskcallRouter.get('/bulanan', roleMiddleware(['admin', 'desk_call', 'kabid_p3',
   }
 });
 
+// GET /redalert - Red Alert: Nasabah bergeser dari KOL 1 (Lancar) ke KOL 2 (DPK)
+deskcallRouter.get('/redalert', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal', 'kabid_ao', 'ao']), async (c) => {
+  try {
+    const q = c.req.query('q') || '';
+    const ao = c.req.query('ao') || '';
+    const hariIni = c.req.query('hariIni') || ''; // 'true' or ''
+    const filterStatus = c.req.query('status') || 'all'; // 'all', 'hari_ini', 'belum_call', 'sudah_call', 'ptp'
+
+    const whereClause: any = {
+      statusDebitur: 'Aktif',
+      OR: [
+        { kol: { in: ['DPK', '2', 'KOL 2'] } },
+        { kolMurni: '2' },
+        { frhPokok: { gte: 1, lte: 30 } }
+      ]
+    };
+
+    if (q) {
+      whereClause.AND = [
+        {
+          OR: [
+            { nama: { contains: q } },
+            { id: { contains: q } },
+            { ao: { contains: q } }
+          ]
+        }
+      ];
+    }
+
+    if (ao) {
+      whereClause.ao = ao;
+    }
+
+    const debiturs = await prisma.debitur.findMany({
+      where: whereClause,
+      include: {
+        kolHistory: {
+          orderBy: { tanggalSnapshot: 'desc' },
+          take: 3
+        },
+        deskCalls: {
+          orderBy: { tanggal: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: [
+        { frhPokok: 'desc' },
+        { bakiDebet: 'desc' }
+      ]
+    });
+
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+    let totalBaki = 0;
+    let totalTunggakan = 0;
+    let belumDihubungiCount = 0;
+    let ptpCount = 0;
+    let bergeserHariIniCount = 0;
+
+    let list = debiturs.map(d => {
+      totalBaki += d.bakiDebet || 0;
+      totalTunggakan += d.totalTunggakan || 0;
+
+      const lastCall = d.deskCalls && d.deskCalls.length > 0 ? d.deskCalls[0] : null;
+      let lastCallDateStr = '-';
+      if (lastCall && lastCall.tanggal) {
+        lastCallDateStr = new Date(lastCall.tanggal).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+      }
+
+      const isCalledToday = lastCallDateStr === todayStr;
+      if (!isCalledToday) {
+        belumDihubungiCount++;
+      }
+
+      if (lastCall && lastCall.tindakLanjut === 'Janji Bayar') {
+        ptpCount++;
+      }
+
+      let prevKol = 'Lancar (KOL 1)';
+      if (d.kolHistory && d.kolHistory.length > 1) {
+        prevKol = d.kolHistory[1].kol || 'Lancar (KOL 1)';
+      }
+
+      const isBergeserHariIni = d.frhPokok === 1 || (d.updatedAt && new Date(d.updatedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) === todayStr);
+      if (isBergeserHariIni) {
+        bergeserHariIniCount++;
+      }
+
+      return {
+        id: d.id,
+        cif: d.cif,
+        nama: d.nama,
+        telepon: d.telepon,
+        ao: d.ao,
+        plafon: d.plafon,
+        bakiDebet: d.bakiDebet,
+        totalTunggakan: d.totalTunggakan,
+        frhPokok: d.frhPokok,
+        kol: d.kol,
+        kolMurni: d.kolMurni,
+        prevKol,
+        currentKol: d.kol,
+        tglJt: d.tglJt,
+        lastCallDate: lastCallDateStr,
+        lastCallStatus: lastCall ? lastCall.statusKontak : 'Belum Di-Call',
+        lastCallOutcome: lastCall ? (lastCall.tindakLanjut || lastCall.hasilKomunikasi || '-') : '-',
+        isCalledToday,
+        isBergeserHariIni
+      };
+    });
+
+    if (hariIni === 'true' || filterStatus === 'hari_ini') {
+      list = list.filter(item => item.isBergeserHariIni || item.isCalledToday || item.frhPokok <= 1);
+    } else if (filterStatus === 'belum_call') {
+      list = list.filter(item => !item.isCalledToday);
+    } else if (filterStatus === 'sudah_call') {
+      list = list.filter(item => item.isCalledToday);
+    } else if (filterStatus === 'ptp') {
+      list = list.filter(item => item.lastCallOutcome === 'Janji Bayar');
+    }
+
+    return c.json({
+      stats: {
+        totalNoa: debiturs.length,
+        totalBakiDebet: totalBaki,
+        totalTunggakan,
+        belumDihubungiToday: belumDihubungiCount,
+        janjiBayarCount: ptpCount,
+        bergeserHariIniCount
+      },
+      list
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
 // GET /insight - Customer Insight tab
-deskcallRouter.get('/insight', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal']), async (c) => {
+deskcallRouter.get('/insight', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal', 'kabid_ao', 'ao']), async (c) => {
   try {
     const yearMonth = c.req.query('periode') || new Date().toISOString().substring(0, 7); // YYYY-MM
     const [year, month] = yearMonth.split('-').map(Number);
@@ -516,7 +654,7 @@ deskcallRouter.get('/insight', roleMiddleware(['admin', 'desk_call', 'kabid_p3',
 });
 
 // GET /export/excel - Export Excel Deskcall (Harian atau Bulanan)
-deskcallRouter.get('/export/excel', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal']), async (c) => {
+deskcallRouter.get('/export/excel', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal', 'kabid_ao', 'ao']), async (c) => {
   try {
     const type = c.req.query('type') || 'harian';
     const tanggalStr = c.req.query('tanggal') || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -710,7 +848,7 @@ deskcallRouter.get('/export/excel', roleMiddleware(['admin', 'desk_call', 'kabid
 });
 
 // GET /export/csv - Export CSV Deskcall (Harian atau Bulanan)
-deskcallRouter.get('/export/csv', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal']), async (c) => {
+deskcallRouter.get('/export/csv', roleMiddleware(['admin', 'desk_call', 'kabid_p3', 'staff_p3', 'legal', 'kabid_ao', 'ao']), async (c) => {
   try {
     const type = c.req.query('type') || 'harian';
     const tanggalStr = c.req.query('tanggal') || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
