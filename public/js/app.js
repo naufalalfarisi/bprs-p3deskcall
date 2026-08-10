@@ -8437,7 +8437,10 @@ window.toggleAoLogTglJanji = toggleAoLogTglJanji;
 window.saveAoLog = saveAoLog;
 window.sendEwsWaReminder = sendEwsWaReminder;
 
-/* =================================================================async function loadHistorisView() {
+/* ================================================================= */
+/* HISTORIS TUNGGAKAN MODULE                                         */
+/* ================================================================= */
+async function loadHistorisView() {
   const container = document.getElementById('historis-content');
   if (!container) return;
 
@@ -8667,11 +8670,7 @@ function renderHistorisUI(container, summary, nasabah) {
   container.innerHTML = html;
 }
 
-window.executeEwsSearch = executeEwsSearch;
-window.filterEwsKol = function(k){ ewsState.kol = k; loadEwsView(); };
-window.filterEwsStatus = function(s){ ewsState.ewsStatus = s; loadEwsView(); };
-window.filterEwsAo = function(a){ ewsState.ao = a; loadEwsView(); };
-window.openAoLogModal = openAoLogModal;
-window.toggleAoLogTglJanji = toggleAoLogTglJanji;
-window.saveAoLog = saveAoLog;
-window.sendEwsWaReminder = sendEwsWaReminder;
+window.loadHistorisView = loadHistorisView;
+window.setHistorisMonths = setHistorisMonths;
+window.searchHistorisTable = searchHistorisTable;
+window.setHistorisPage = setHistorisPage;
