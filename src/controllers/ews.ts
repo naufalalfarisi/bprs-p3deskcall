@@ -5,8 +5,8 @@ import { logAudit } from '../utils/audit.js';
 
 export const ewsRouter = new Hono();
 
-// Enforce authentication & role restrictions (admin, ao, kabid_ao only)
-ewsRouter.use('*', authMiddleware, roleMiddleware(['admin', 'ao', 'kabid_ao']));
+// Enforce authentication & role restrictions (admin, ao, kabid_ao, staff_p3, kabid_p3)
+ewsRouter.use('*', authMiddleware, roleMiddleware(['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3']));
 
 // Helper function to calculate EWS status on-demand per debitur
 export function computeEwsStatus(tglJt: Date, frhPokok: number) {
@@ -14,28 +14,57 @@ export function computeEwsStatus(tglJt: Date, frhPokok: number) {
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth(); // 0-indexed
   
-  const dueDay = tglJt ? new Date(tglJt).getDate() : 10;
+  let dueDay = 25;
+  if (tglJt) {
+    const dt = new Date(tglJt);
+    if (!isNaN(dt.getTime())) {
+      dueDay = dt.getDate();
+    }
+  }
+  
   const lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const actualDueDay = Math.min(dueDay, lastDayOfCurrentMonth);
   
   const dueDateThisMonth = new Date(currentYear, currentMonth, actualDueDay);
-  
   const todayMidnight = new Date(currentYear, currentMonth, today.getDate()).getTime();
   const dueMidnight = dueDateThisMonth.getTime();
   
+  // diffDays > 0 means days remaining UNTIL due date this month
+  // diffDays < 0 means days past due date this month
   const diffDays = Math.round((dueMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
   
-  if (diffDays >= 1 && diffDays <= 7) {
-    return { status: 'Reminder', label: `H-${diffDays} Jatuh Tempo`, code: 'YELLOW', badgeClass: 'badge-yellow', diffDays };
-  } else if (diffDays === 0) {
-    return { status: 'Jatuh Tempo Hari Ini', label: 'Jatuh Tempo Hari Ini', code: 'YELLOW', badgeClass: 'badge-yellow', diffDays: 0 };
-  } else if (diffDays < 0 && frhPokok >= 1 && frhPokok <= 30) {
-    return { status: 'DPD 1 / Dalam Perhatian', label: `DPD ${frhPokok} Hari`, code: 'ORANGE', badgeClass: 'badge-orange', diffDays };
-  } else if (diffDays < 0 && frhPokok > 30) {
-    return { status: 'DPD 2+ / Bermasalah', label: `DPD ${frhPokok} Hari`, code: 'RED', badgeClass: 'badge-red', diffDays };
+  if (diffDays > 0) {
+    // Due date in current month has NOT arrived yet
+    if (diffDays === 1 || diffDays === 0) {
+      return { status: 'Reminder', label: 'H-1 s/d Hari H', category: 'MEDIUM', code: 'YELLOW', badgeClass: 'badge-yellow', diffDays };
+    } else {
+      return { status: 'Lancar / Normal', label: `H-${diffDays} Jatuh Tempo`, category: 'LOW', code: 'GREEN', badgeClass: 'badge-green', diffDays };
+    }
   } else {
-    return { status: 'Lancar / Normal', label: 'Lancar / Normal', code: 'GREEN', badgeClass: 'badge-green', diffDays };
+    // Due date has passed in current month
+    const dpd = Math.max(frhPokok || 0, Math.abs(diffDays));
+    if (dpd > 14) {
+      return { status: 'DPD 2+ / Kritis', label: `DPD ${dpd} Hari`, category: 'CRITICAL', code: 'RED', badgeClass: 'badge-red', diffDays, dpd };
+    } else if (dpd >= 8) {
+      return { status: 'DPD 8-14 / Bermasalah', label: `DPD ${dpd} Hari`, category: 'VERY_HIGH', code: 'PURPLE', badgeClass: 'badge-purple', diffDays, dpd };
+    } else if (dpd >= 1) {
+      return { status: 'DPD 1-7 / Perhatian', label: `DPD ${dpd} Hari`, category: 'HIGH', code: 'ORANGE', badgeClass: 'badge-orange', diffDays, dpd };
+    } else {
+      return { status: 'Jatuh Tempo Hari Ini', label: 'Hari H Jatuh Tempo', category: 'MEDIUM', code: 'YELLOW', badgeClass: 'badge-yellow', diffDays: 0, dpd: 0 };
+    }
   }
+}
+
+
+// Helper: Filter target KOL based on role (AO -> KOL 1,2,3 | P3 -> KOL 3,4,5)
+function getEwsKolsForRole(posisi: string): string[] | null {
+  if (posisi === 'ao' || posisi === 'kabid_ao') {
+    return ['Lancar', '1', 'KOL 1', 'DPK', '2', 'KOL 2', 'Kurang Lancar', '3', 'KOL 3'];
+  }
+  if (posisi === 'staff_p3' || posisi === 'kabid_p3') {
+    return ['Kurang Lancar', '3', 'KOL 3', 'Diragukan', '4', 'KOL 4', 'Macet', '5', 'KOL 5'];
+  }
+  return null;
 }
 
 // GET /summary - Portfolio EWS Stats Header
@@ -45,6 +74,10 @@ ewsRouter.get('/summary', async (c) => {
     const reqAo = c.req.query('ao');
 
     let whereClause: any = { statusDebitur: 'Aktif' };
+    const roleKols = getEwsKolsForRole(user.posisi);
+    if (roleKols) {
+      whereClause.kol = { in: roleKols };
+    }
 
     if (user.posisi === 'ao') {
       // Filter for specific AO
@@ -132,6 +165,7 @@ ewsRouter.get('/watchlist', async (c) => {
     const ewsStatusParam = c.req.query('ewsStatus') || '';
 
     let whereClause: any = { statusDebitur: 'Aktif' };
+    const roleKols = getEwsKolsForRole(user.posisi);
 
     if (user.posisi === 'ao') {
       if (user.aoNameRef) {
@@ -150,8 +184,15 @@ ewsRouter.get('/watchlist', async (c) => {
     }
 
     if (kolParam) {
-      whereClause.kol = kolParam;
+      if (roleKols && !roleKols.includes(kolParam)) {
+        whereClause.kol = { in: [] };
+      } else {
+        whereClause.kol = kolParam;
+      }
+    } else if (roleKols) {
+      whereClause.kol = { in: roleKols };
     }
+
 
     if (q) {
       const searchTerms = {

@@ -771,6 +771,7 @@ function setupAppShell() {
   if (drSub) drSub.innerText = roleTitle;
 
   renderNavMenu(user.posisi);
+  updateEwsHeaderTitle();
   loadNotifications();
 }
 
@@ -780,7 +781,7 @@ function renderNavMenu(role) {
 
   const menu = [
     { id: 'dashboard', label: 'Dashboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
-    { id: 'ews', label: 'EWS (Early Warning)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>', roles: ['admin', 'ao', 'kabid_ao'] },
+    { id: 'ews', label: 'EWS (Early Warning)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>', roles: ['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3'] },
     { id: 'historis', label: 'Historis Tunggakan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
     { id: 'debitur', label: 'Data Debitur', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
     { id: 'deskcall', label: 'Desk Call', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>', roles: ['admin', 'desk_call'] },
@@ -1048,7 +1049,7 @@ async function loadAppSettings() {
         if (pt3) pt3.innerText = res.pt_name;
         if (pt4) pt4.innerText = res.pt_name;
         if (drPt) drPt.innerText = res.pt_name;
-        if (footerCopy) footerCopy.innerHTML = `Copyright &copy; ${new Date().getFullYear()} &mdash; All rights reserved<br><strong>${res.pt_name}</strong>`;
+        if (footerCopy) footerCopy.innerHTML = `Copyright &copy; ${new Date().getFullYear()} &mdash; All rights reserved<br><strong>${res.pt_name}</strong><br><span style="font-size:11.5px;color:var(--brand);font-weight:700;display:inline-block;margin-top:2px;">Developed by Naufal AlFarisi</span>`;
 
         document.title = `${res.pt_name} — Sistem Informasi Penagihan Terpadu AO, P3 & Desk Call`;
       }
@@ -2386,82 +2387,112 @@ function renderRedAlertTab(container, res) {
 
   let html = `
     <!-- RED ALERT TOP BANNER -->
-    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:18px; padding:18px 22px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; box-shadow:0 2px 8px rgba(239,68,68,0.05);">
-      <div style="display:flex; align-items:center; gap:14px;">
-        <div style="width:44px; height:44px; border-radius:12px; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
+    <div style="background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 60%, #fee2e2 100%); border: 1px solid #fca5a5; border-left: 6px solid #dc2626; border-radius: 20px; padding: 22px 26px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 18px; box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.1), 0 4px 6px -2px rgba(220, 38, 38, 0.05); position: relative; overflow: hidden;">
+      
+      <!-- Background Ambient Radial Glow -->
+      <div style="position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; background: radial-gradient(circle, rgba(239,68,68,0.18) 0%, rgba(239,68,68,0) 70%); border-radius: 50%; pointer-events: none;"></div>
+
+      <div style="display: flex; align-items: center; gap: 18px; position: relative; z-index: 1;">
+        
+        <!-- Glowing Red Alert Icon Badge -->
+        <div style="position: relative; flex-shrink: 0;">
+          <div style="width: 54px; height: 54px; border-radius: 16px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(220, 38, 38, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.3);">
+            <!-- Siren / Alarm Bell SVG Icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <!-- Pulsing Alert Beacon Dot -->
+          <span class="red-alert-beacon-dot" style="position: absolute; top: -3px; right: -3px; width: 14px; height: 14px; background: #ef4444; border: 2.5px solid #fff; border-radius: 50%; box-shadow: 0 0 8px #ef4444;"></span>
         </div>
+
         <div>
-          <div style="font-size:15.5px; font-weight:800; color:#7f1d1d; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            PEMANTAUAN RED ALERT: PERGESERAN KOB (KOL 1 ➔ KOL 2)
-            <span style="font-size:11px; font-weight:700; color:#b91c1c; background:#fee2e2; padding:3px 10px; border-radius:12px; border:1px solid #fca5a5;">
+          <div style="font-size: 16px; font-weight: 800; color: #7f1d1d; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; letter-spacing: -0.2px;">
+            <span>PEMANTAUAN RED ALERT</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #991b1b; background: #fee2e2; padding: 4px 12px; border-radius: 20px; border: 1px solid #fca5a5;">
+              <span class="red-alert-beacon-dot" style="width: 7px; height: 7px; border-radius: 50%; background: #dc2626; display: inline-block;"></span>
+              Pergeseran KOB (KOL 1 ➔ KOL 2)
+            </span>
+            <span style="font-size: 11px; font-weight: 800; color: #b91c1c; background: #fff; padding: 3px 10px; border-radius: 12px; border: 1px solid #fca5a5; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
               DPK (Dalam Pengawasan Khusus)
             </span>
           </div>
-          <div style="font-size:12.5px; color:#991b1b; margin-top:2px;">
-            Memantau nasabah yang baru saja bergeser dari <strong>KOL 1 (Lancar)</strong> menjadi <strong>KOL 2 (DPK)</strong>. Lakukan kontak penagihan dini melalui Desk Call untuk pencegahan tunggakan lebih lanjut.
+          <div style="font-size: 13px; color: #991b1b; margin-top: 6px; line-height: 1.5; font-weight: 500;">
+            Memantau nasabah yang baru saja bergeser dari <strong style="color: #1e293b; background: #fff; padding: 2px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px;">KOL 1 (Lancar)</strong> menjadi <strong style="color: #991b1b; background: #fee2e2; padding: 2px 8px; border-radius: 6px; border: 1px solid #fca5a5; font-size: 12px;">KOL 2 (DPK)</strong>. Lakukan kontak penagihan dini melalui Desk Call untuk pencegahan tunggakan lebih lanjut.
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 4 SUMMARY METRIC CARDS -->
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
-      <div style="background:#fff; border:1px solid #fecaca; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="font-size:11px; font-weight:800; color:#991b1b; text-transform:uppercase; letter-spacing:0.5px;">TOTAL DEBITUR RED ALERT</div>
-        <div style="font-size:26px; font-weight:800; color:#dc2626; margin:8px 0 4px;" class="mono">${stats.totalNoa || 0} <span style="font-size:14px; font-weight:600; color:#991b1b;">Nasabah</span></div>
-        <div style="font-size:12px; font-weight:600; color:#b91c1c;">Bergeser KOL 1 ➔ KOL 2</div>
-      </div>
 
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">TOTAL BAKI DEBET RED ALERT</div>
-        <div style="font-size:22px; font-weight:800; color:#0F172A; margin:8px 0 4px;" class="mono">${formatRupiah(stats.totalBakiDebet || 0)}</div>
-        <div style="font-size:12px; font-weight:600; color:#64748b;">Portofolio Berisiko Terpapar</div>
-      </div>
-
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">BELUM DIHUBUNGI HARI INI</div>
-        <div style="font-size:26px; font-weight:800; color:#ea580c; margin:8px 0 4px;" class="mono">${stats.belumDihubungiToday || 0} <span style="font-size:14px; font-weight:600; color:#c2410c;">Nasabah</span></div>
-        <div style="font-size:12px; font-weight:600; color:#64748b;">Membutuhkan Follow-Up Deskcall</div>
-      </div>
-
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">ADA JANJI BAYAR (PTP)</div>
-        <div style="font-size:26px; font-weight:800; color:#0F766E; margin:8px 0 4px;" class="mono">${stats.janjiBayarCount || 0} <span style="font-size:14px; font-weight:600; color:#0F766E;">Nasabah</span></div>
-        <div style="font-size:12px; font-weight:600; color:#64748b;">Komitmen Pembayaran Catatan</div>
-      </div>
-    </div>
 
     <!-- FILTER BAR SECTION -->
-    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:16px 20px; margin-bottom:20px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
-      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-        <div style="font-size:12.5px; font-weight:700; color:#334155;">Filter Data Red Alert:</div>
-        <select class="form-input" id="redalert-filter-date" style="width:160px; font-size:12.5px; font-weight:600;" onchange="filterRedAlertData()">
-          <option value="all" ${window._redAlertDateFilter === 'all' || !window._redAlertDateFilter ? 'selected' : ''}>Semua Periode</option>
-          <option value="today" ${window._redAlertDateFilter === 'today' ? 'selected' : ''}>Hari Ini</option>
-        </select>
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 16px 20px; margin-bottom: 22px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.02);">
+      
+      <!-- Left Controls Group (Proportional Flex) -->
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1 1 auto;">
+        
+        <!-- Filter Header Label -->
+        <div style="font-size: 13px; font-weight: 800; color: #1e293b; display: inline-flex; align-items: center; gap: 8px; margin-right: 4px;">
+          <div style="width: 34px; height: 34px; border-radius: 10px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 1px 1px rgba(255,255,255,0.6);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+          </div>
+          <span style="white-space: nowrap;">Filter Data:</span>
+        </div>
 
-        <select class="form-input" id="redalert-filter-status" style="width:200px; font-size:12.5px; font-weight:600;" onchange="filterRedAlertData()">
-          <option value="all" ${window._redAlertStatusFilter === 'all' || !window._redAlertStatusFilter ? 'selected' : ''}>Semua Status Call</option>
-          <option value="belum_call" ${window._redAlertStatusFilter === 'belum_call' ? 'selected' : ''}>Belum Di-Call Hari Ini</option>
-          <option value="sudah_call" ${window._redAlertStatusFilter === 'sudah_call' ? 'selected' : ''}>Sudah Di-Call Hari Ini</option>
-          <option value="ptp" ${window._redAlertStatusFilter === 'ptp' ? 'selected' : ''}>Janji Bayar (PTP)</option>
-        </select>
+        <!-- Periode Select -->
+        <div style="flex: 1 1 150px; min-width: 140px; max-width: 180px;">
+          <select class="redalert-filter-select" id="redalert-filter-date" style="width: 100%; cursor: pointer;" onchange="filterRedAlertData()">
+            <option value="all" ${window._redAlertDateFilter === 'all' || !window._redAlertDateFilter ? 'selected' : ''}>Semua Periode</option>
+            <option value="today" ${window._redAlertDateFilter === 'today' ? 'selected' : ''}>Hari Ini</option>
+          </select>
+        </div>
 
-        <button class="btn ${window._redAlertDateFilter === 'today' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="setRedAlertFilterToday()" style="border-radius:9999px; font-weight:700; ${window._redAlertDateFilter === 'today' ? 'background:#0F766E; border-color:#0F766E; color:#fff;' : ''}">
+        <!-- Status Select -->
+        <div style="flex: 1 1 190px; min-width: 170px; max-width: 220px;">
+          <select class="redalert-filter-select" id="redalert-filter-status" style="width: 100%; cursor: pointer;" onchange="filterRedAlertData()">
+            <option value="all" ${window._redAlertStatusFilter === 'all' || !window._redAlertStatusFilter ? 'selected' : ''}>Semua Status Call</option>
+            <option value="belum_call" ${window._redAlertStatusFilter === 'belum_call' ? 'selected' : ''}>Belum Di-Call Hari Ini</option>
+            <option value="sudah_call" ${window._redAlertStatusFilter === 'sudah_call' ? 'selected' : ''}>Sudah Di-Call Hari Ini</option>
+            <option value="ptp" ${window._redAlertStatusFilter === 'ptp' ? 'selected' : ''}>Janji Bayar (PTP)</option>
+          </select>
+        </div>
+
+        <!-- Quick Filter Button -->
+        <button onclick="setRedAlertFilterToday()" style="height: 38px; padding: 0 16px; border-radius: 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; ${window._redAlertDateFilter === 'today' ? 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; border: none; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);' : 'background: #fff; color: #475569; border: 1px solid #cbd5e1;'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
           Hari Ini
         </button>
       </div>
 
-      <div style="display:flex; gap:8px;">
-        <input type="text" class="form-input" id="redalert-search-input" placeholder="Cari nama, rekening, AO..." style="width:240px; font-size:12.5px;" value="${window._redAlertQuery || ''}" onkeypress="if(event.key==='Enter') filterRedAlertData()"/>
-        <button class="btn btn-primary btn-sm" onclick="filterRedAlertData()" style="border-radius:9999px;">Cari</button>
+      <!-- Vertical Divider -->
+      <div style="width: 1px; height: 26px; background: #e2e8f0; margin: 0 2px;"></div>
+
+      <!-- Right Search Group (Proportional Flex) -->
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1 1 260px; max-width: 340px;">
+        <div style="position: relative; display: flex; align-items: center; flex: 1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="position: absolute; left: 12px; z-index: 2; pointer-events: none;">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" class="redalert-filter-input" id="redalert-search-input" placeholder="Cari nama, rekening, AO..." style="width: 100%;" value="${window._redAlertQuery || ''}" onkeypress="if(event.key==='Enter') filterRedAlertData()"/>
+        </div>
+        <button onclick="filterRedAlertData()" style="height: 38px; padding: 0 20px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; border: none; border-radius: 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); transition: all 0.2s ease;">
+          Cari
+        </button>
       </div>
     </div>
+
+
 
     <!-- TABLE SECTION -->
     <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -2497,8 +2528,14 @@ function renderRedAlertTab(container, res) {
                 </td>
                 <td style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
                 <td style="text-align:center;">
-                  <div style="font-size:11px; font-weight:700; color:#16a34a; text-decoration:line-through;">KOL 1 (Lancar)</div>
-                  <div style="font-size:12px; font-weight:800; color:#dc2626; margin-top:2px;">➔ KOL 2 (DPK)</div>
+                  <div style="display:inline-flex; align-items:center; gap:6px; background:#fff5f5; border:1px solid #fca5a5; padding:4px 10px; border-radius:30px; box-shadow:0 1px 3px rgba(239,68,68,0.06);">
+                    <span style="font-size:10.5px; font-weight:700; color:#15803d; background:#dcfce7; border:1px solid #86efac; padding:2px 7px; border-radius:12px; text-decoration:line-through; opacity:0.85;" title="Kolektibilitas Asal (Lancar)">KOL 1</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14"/>
+                      <path d="m12 5 7 7-7 7"/>
+                    </svg>
+                    <span style="font-size:11px; font-weight:800; color:#fff; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding:2px 9px; border-radius:12px; box-shadow:0 2px 6px rgba(220,38,38,0.3);" title="Kolektibilitas Baru (DPK)">KOL 2 (DPK)</span>
+                  </div>
                 </td>
                 <td style="text-align:right; font-weight:700;" class="mono">${formatRupiah(d.bakiDebet)}</td>
                 <td style="text-align:right; font-weight:800; color:#dc2626;" class="mono">${formatRupiah(d.totalTunggakan)}</td>
@@ -7049,161 +7086,240 @@ async function loadAboutView() {
   const ptName = state.settings?.pt_name || 'PT BPRS Mitra Harmoni Yogyakarta';
 
   container.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:20px;max-width:1100px;margin:0 auto;padding-bottom:20px;">
+    <div style="display:flex;flex-direction:column;gap:24px;max-width:1100px;margin:0 auto;padding-bottom:30px;">
       
       <!-- HERO CARD: IDENTITY & DEVELOPER CREDIT -->
-      <div class="card" style="padding:28px;border-radius:20px;background:linear-gradient(135deg, var(--bg-card) 0%, var(--bg) 100%);border:1px solid var(--border);box-shadow:var(--sh-md);">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:20px;">
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="width:54px;height:54px;border-radius:16px;background:var(--brand);color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;box-shadow:0 8px 16px rgba(15,118,110,0.25);flex-shrink:0;">
-              ${state.settings.logo_url ? `<img src="${state.settings.logo_url}" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:14px;"/>` : 'BM'}
+      <div class="card" style="padding:30px;border-radius:24px;background:linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);border:1px solid var(--border);box-shadow:0 8px 25px -5px rgba(15,23,42,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:18px;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:18px;">
+            <div style="width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg, #0f766e 0%, #0d9488 100%);color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:24px;box-shadow:0 8px 20px rgba(15,118,110,0.28);flex-shrink:0;">
+              ${state.settings.logo_url ? `<img src="${state.settings.logo_url}" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:16px;"/>` : 'BM'}
             </div>
             <div>
-              <div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:-0.3px;">Sistem Informasi Penagihan Terpadu</div>
-              <div style="font-size:13px;font-weight:700;color:var(--brand);margin-top:2px;">${ptName}</div>
-              <div style="font-size:12px;color:var(--text-3);margin-top:2px;">Portal Perbankan Syariah Terintegrasi (AO, P3 &amp; Desk Call)</div>
+              <div style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.4px;">Sistem Informasi Penagihan Terpadu (SISPENG)</div>
+              <div style="font-size:13.5px;font-weight:700;color:var(--brand);margin-top:2px;">${ptName}</div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:2px;">Portal Perbankan Syariah Terintegrasi (Account Officer, P3, Desk Call, &amp; Legal)</div>
             </div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-            <span class="badge badge-success" style="font-size:11.5px;padding:4px 12px;font-weight:800;border-radius:20px;">
+            <span class="badge" style="font-size:11.5px;padding:5px 14px;font-weight:800;border-radius:20px;background:#ccfbf1;color:#0f766e;border:1px solid #99f6e4;">
               v3.2.0 Enterprise Build
             </span>
             <span style="font-size:11px;color:var(--text-3);font-weight:600;">System Status: Operational / Active</span>
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:14px;margin-bottom:20px;">
+        <!-- DEVELOPER & INSTITUTION GRID -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));gap:16px;padding:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;margin-bottom:22px;">
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;">Pengembang Utama</div>
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-top:3px;display:flex;align-items:center;gap:6px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Pengembang Utama</div>
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:4px;display:flex;align-items:center;gap:7px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">MN</div>
               Muhammad Naufal AlFarisi
             </div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:2px;margin-left:31px;">Tim TI BPRS Mitra Harmoni</div>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;">Institusi Perbankan</div>
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-top:3px;">${ptName}</div>
+            <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Institusi Perbankan</div>
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:4px;">${ptName}</div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:2px;">Kantor Pusat Yogyakarta</div>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;">Lisensi &amp; Hak Cipta</div>
-            <div style="font-size:12.5px;font-weight:700;color:var(--text-2);margin-top:3px;">&copy; 2026 ${ptName}. Hak Cipta Dilindungi.</div>
+            <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Kepatuhan &amp; Regulasi</div>
+            <div style="font-size:13.5px;font-weight:800;color:#0f766e;margin-top:4px;">Regulasi OJK &amp; DSN-MUI</div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:2px;">Standar Penanganan NPF Syariah</div>
           </div>
         </div>
 
-        <div style="font-size:13px;line-height:1.65;color:var(--text-2);">
-          Sistem ini dirancang khusus untuk mengelola, melacak, dan mengoptimalkan penagihan pembiayaan bermasalah (Non-Performing Financing / NPF) secara presisi, terstruktur, dan akuntabel sesuai dengan standar regulasi Otoritas Jasa Keuangan (OJK) dan prinsip-prinsip syariah DSN-MUI.
+        <div style="font-size:13.5px;line-height:1.7;color:#334155;">
+          <strong>SISPENG (Sistem Informasi Penagihan Terpadu)</strong> dirancang secara khusus untuk mengelola, melacak, dan mengoptimalkan seluruh ekosistem penagihan pembiayaan (NPF) secara presisi dan akuntabel. Sistem menghubungkan kerja kolaboratif antara <strong>Account Officer (AO)</strong> untuk pemantauan dini, <strong>Penagihan Pihak Ke-3 (P3)</strong> untuk kunjungan penagihan fisik NPF, <strong>Desk Call</strong> untuk komunikasi jarak jauh, serta <strong>Legal</strong> untuk penanganan dokumen legalitas akad dan AYDA.
         </div>
       </div>
 
-      <!-- CARD 2: PANDUAN PENGGUNAAN & ALUR KERJA OPERASIONAL MODUL -->
-      <div class="card" style="padding:24px;border-radius:18px;">
-        <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          Panduan Penggunaan Sistem &amp; Alur Kerja Modul Operasional
+      <!-- CARD 2: MATRIKS HAK AKSES DAN PERAN USER (ROLE PERMISSIONS) -->
+      <div class="card" style="padding:26px;border-radius:20px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 20px -2px rgba(15,23,42,0.04);">
+        <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:#e0e7ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          Klasifikasi Peran Pengguna (User Role Matrix) &amp; Cakupan Fokus
         </div>
-        <div style="font-size:12.5px;color:var(--text-3);margin-bottom:20px;">Penjelasan rinci tata cara penggunaan modul-modul utama bagi pengguna aplikasi.</div>
+        <div style="font-size:12.5px;color:#64748b;margin-bottom:18px;">Setiap peran pengguna memiliki cakupan akses data dan tanggung jawab yang disesuaikan dengan alur kerja perbankan.</div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:14px;">
+          
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span class="badge" style="background:#dbeafe;color:#1e40af;font-weight:800;font-size:11px;padding:3px 10px;border-radius:12px;">Account Officer (AO)</span>
+            </div>
+            <div style="font-size:12.5px;color:#334155;line-height:1.55;">
+              Berfokus pada pemantauan dini <strong>KOL 1 (Lancar)</strong>, <strong>KOL 2 (DPK)</strong>, dan <strong>KOL 3 (Kurang Lancar)</strong>. Bertanggung jawab terhadap edukasi kelancaran angsuran nasabah sebelum masuk kategori NPF berat.
+            </div>
+          </div>
+
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800;font-size:11px;padding:3px 10px;border-radius:12px;">Penagihan (P3)</span>
+            </div>
+            <div style="font-size:12.5px;color:#334155;line-height:1.55;">
+              Berfokus pada pembiayaan bermasalah NPF <strong>KOL 3 (Kurang Lancar)</strong>, <strong>KOL 4 (Diragukan)</strong>, dan <strong>KOL 5 (Macet)</strong>. Mengelola penagihan fisik di lapangan, pengunggahan foto geotag, dan berita acara.
+            </div>
+          </div>
+
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span class="badge" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:11px;padding:3px 10px;border-radius:12px;">Desk Call</span>
+            </div>
+            <div style="font-size:12.5px;color:#334155;line-height:1.55;">
+              Melakukan komunikasi penagihan jarak jauh via Telepon/WhatsApp, mencatat status panggilan, janji bayar nasabah (PTP), mengelola pengingat notifikasi otomatis, dan menganalisis waktu produktif panggilan.
+            </div>
+          </div>
+
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span class="badge" style="background:#f3e8ff;color:#6b21a8;font-weight:800;font-size:11px;padding:3px 10px;border-radius:12px;">Legal &amp; Admin</span>
+            </div>
+            <div style="font-size:12.5px;color:#334155;line-height:1.55;">
+              Memeriksa 14 checklist kelengkapan dokumen legalitas akad pembiayaan, mengelola aset jaminan (AYDA), otorisasi manajemen user, branding aplikasi, serta import data Core Banking System.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CARD 3: PANDUAN PENGGUNAAN & ALUR KERJA OPERASIONAL MODUL -->
+      <div class="card" style="padding:26px;border-radius:20px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 20px -2px rgba(15,23,42,0.04);">
+        <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          Panduan Penggunaan Sistem &amp; Alur Kerja 9 Modul Utama
+        </div>
+        <div style="font-size:12.5px;color:#64748b;margin-bottom:20px;">Petunjuk teknis dan fungsi-fungsi operasional bagi pengguna aplikasi.</div>
 
         <div style="display:flex;flex-direction:column;gap:14px;">
           
           <!-- Modul 1 -->
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;">
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
-              <span style="width:24px;height:24px;border-radius:6px;background:var(--brand-light);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">1</span>
-              Modul Data Debitur &amp; Monitoring Portofolio Pembiayaan
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">1</span>
+              Modul Early Warning System (EWS) &amp; Red Alert
             </div>
-            <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-left:32px;">
-              Digunakan untuk memantau seluruh portofolio nasabah pembiayaan aktif, tunggakan pokok &amp; margin, baki debet, serta tingkat kolektibilitas (KOL 1 - 5). Petugas dapat menggunakan tombol filter cepat (<em>Quick Filter Pills</em>) untuk menyaring nasabah berdasarkan Account Officer (AO), status kolektibilitas, dan periode jatuh tempo.
+            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
+              Memantau risiko pembiayaan secara dini sebelum jatuh ke tunggakan berat. Menampilkan kategori risiko potensi tunggakan (<em>High Risk</em> / <em>Medium Risk</em> / <em>Low Risk</em>), estimasi H-X jatuh tempo angsuran bulanan yang dihitung dinamis setiap tanggal jatuh tempo bulan berjalan, filter khusus per Account Officer (AO), serta fitur pencatatan tindak lanjut.
             </div>
           </div>
 
           <!-- Modul 2 -->
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;">
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
-              <span style="width:24px;height:24px;border-radius:6px;background:var(--brand-light);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">2</span>
-              Modul Desk Call &amp; Customer Behavior Insight
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">2</span>
+              Modul Data Debitur &amp; Monitoring Portofolio Pembiayaan
             </div>
-            <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-left:32px;">
-              Petugas Desk Call mencatat setiap riwayat komunikasi via Telepon atau WhatsApp (Terhubung, Tidak Diangkat, Sibuk, Salah Nomor). Sistem secara otomatis menganalisis <strong>Golden Hour</strong> (jam paling produktif nasabah), efektivitas kanal kontak, serta memantau <strong>Success Rate Janji Bayar (PTP)</strong> yang diklasifikasikan ke dalam kategori <em>Selesai (Sudah Bayar)</em>, <em>Dalam Follow-Up</em>, dan <em>Ingkar Janji (Overdue)</em>.
+            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
+              Digunakan untuk memantau seluruh portofolio nasabah pembiayaan aktif, tunggakan pokok &amp; margin, baki debet, serta tingkat kolektibilitas (KOL 1 - 5). Dilengkapi tombol penyaring cepat (<em>Quick Filter Pills</em>) untuk menyaring nasabah berdasarkan AO, status kolektibilitas, dan rentang jatuh tempo.
             </div>
           </div>
 
           <!-- Modul 3 -->
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;">
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
-              <span style="width:24px;height:24px;border-radius:6px;background:var(--brand-light);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">3</span>
-              Modul Follow-Up Notifikasi Janji Bayar
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">3</span>
+              Modul Desk Call &amp; Customer Behavior Insight
             </div>
-            <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-left:32px;">
-              Notifikasi otomatis muncul di header aplikasi untuk pengingat H-1 dan Hari-H jatuh tempo janji bayar. Petugas dapat melakukan follow-up langsung dari panel notifikasi hingga maksimal 3 kali per nasabah. Saat status diubah menjadi <em>"Sudah Bayar"</em>, notifikasi akan otomatis bersih dan entri awal Desk Call di-update tanpa menggeser tanggal ke hari ini.
+            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
+              Mencatat setiap riwayat komunikasi via Telepon atau WhatsApp (Terhubung, Tidak Diangkat, Sibuk, Salah Nomor). Sistem secara otomatis mengkalkulasi <strong>Golden Hour</strong> (waktu paling responsif nasabah), menganalisis efektivitas kanal kontak, serta memantau <strong>Success Rate Janji Bayar (PTP)</strong>.
             </div>
           </div>
 
           <!-- Modul 4 -->
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;">
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
-              <span style="width:24px;height:24px;border-radius:6px;background:var(--brand-light);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">4</span>
-              Modul Penagihan Lapangan (P3 / Penagihan Pihak Ke-3)
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">4</span>
+              Modul Follow-Up Notifikasi Janji Bayar
             </div>
-            <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-left:32px;">
-              Tim penagihan lapangan dapat melihat jadwal kunjungan 14 hari pada kalender interaktif, mengunggah foto bukti lokasi kunjungan ber-geotag koordinat lat-long dengan kompresi gambar otomatis, serta membuat berita acara hasil penagihan fisik di tempat nasabah.
+            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
+              Notifikasi otomatis aktif di header aplikasi untuk pengingat H-1 dan Hari-H jatuh tempo janji bayar. Petugas dapat memperbarui status menjadi <em>"Sudah Bayar"</em> langsung dari modal notifikasi hingga 3 kali follow-up per nasabah, yang mana otomatis membersihkan notifikasi tanpa mengubah tanggal entri penagihan awal.
             </div>
           </div>
 
           <!-- Modul 5 -->
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;">
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
-              <span style="width:24px;height:24px;border-radius:6px;background:var(--brand-light);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">5</span>
-              Modul Berkas Legalitas &amp; Agunan (AYDA)
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">5</span>
+              Modul Penagihan Lapangan (P3 / Penagihan Pihak Ke-3)
             </div>
-            <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-left:32px;">
-              Memfasilitasi pemeriksaan 14 checklist kelengkapan dokumen legalitas akad pembiayaan (KTP, SKU, Akad Pembiayaan, APHT, Fidusia, Sertifikat, dll.) serta pemantauan penanganan Aset Yang Diambil Alih (AYDA) untuk penyelesaian kredit bermasalah.
+            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
+              Tim penagihan lapangan dapat melihat agenda kunjungan pada kalender interaktif 14 hari, mengunggah foto bukti lokasi kunjungan ber-geotag koordinat lokasi dengan kompresi gambar otomatis, serta membuat berita acara hasil penagihan fisik nasabah.
             </div>
           </div>
 
           <!-- Modul 6 -->
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;">
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
-              <span style="width:24px;height:24px;border-radius:6px;background:var(--brand-light);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">6</span>
-              Modul Riwayat Pembayaran &amp; Cetak PDF Laporan
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">6</span>
+              Modul Historis Tunggakan (1 - 6 Bulan Kebelakang)
             </div>
-            <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-left:32px;">
-              Mencatat transaksi angsuran tunai/transfer, mendukung pengunggahan masal (<em>Import Batch</em>) via file Excel/CSV, serta menerbitkan <strong>Cetak PDF Laporan Rekapitulasi Pembayaran Harian</strong> resmi ber-kop surat bank lengkap dengan kolom otorisasi tanda tangan.
+            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
+              Menyajikan analisis multi-bulan nasabah arrears, grafik tren baki debet menggunakan Chart.js interaktif, filter rentang waktu (1, 3, atau 6 bulan), serta matriks rekapitulasi klasifikasi per Account Officer (AO) dan Penagihan (P3).
             </div>
           </div>
 
           <!-- Modul 7 -->
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;">
-            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
-              <span style="width:24px;height:24px;border-radius:6px;background:var(--brand-light);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">7</span>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">7</span>
+              Modul Berkas Legalitas &amp; Agunan (AYDA)
+            </div>
+            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
+              Memfasilitasi pemeriksaan 14 checklist kelengkapan berkas legalitas (KTP, SKU, Akad Pembiayaan, APHT, Fidusia, Sertifikat, dll.) serta pemantauan aset jaminan lelang / Aset Yang Diambil Alih (AYDA) untuk penyelesaian kredit bermasalah.
+            </div>
+          </div>
+
+          <!-- Modul 8 -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">8</span>
+              Modul Riwayat Pembayaran &amp; Cetak PDF Laporan
+            </div>
+            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
+              Mencatat penerimaan pembayaran angsuran tunai/transfer, pengunggahan masal via Excel/CSV, serta penerbitan <strong>Cetak PDF Laporan Rekapitulasi Pembayaran Harian</strong> resmi ber-kop surat bank lengkap dengan kolom tanda tangan otorisasi.
+            </div>
+          </div>
+
+          <!-- Modul 9 -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">9</span>
               Modul KPI Scorecard &amp; Target Rencana Bisnis Bank (RBB)
             </div>
-            <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-left:32px;">
-              Memantau 16 indikator utama kinerja penagihan dan kualitas pembiayaan (seperti NPF Gross, Recovery Rate, Cure Rate, Collection Rate, Promise Kept Rate, Roll Rate, dan Coverage Ratio) untuk memastikan ketercapaian target RBB bulanan.
+            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
+              Memantau 16 indikator kinerja utama penagihan (seperti NPF Gross, Recovery Rate, Cure Rate, Collection Rate, Promise Kept Rate, Roll Rate, dan Coverage Ratio) untuk memastikan ketercapaian target RBB bulanan bank.
             </div>
           </div>
 
         </div>
       </div>
 
-      <!-- CARD 3: ARSITEKTUR TEKNOLOGI & METADATA SISPENG -->
-      <div class="card" style="padding:22px 24px;border-radius:18px;background:var(--bg-card);border:1px solid var(--border);">
-        <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px;">Spesifikasi Teknis &amp; Lingkungan Operasional</div>
+      <!-- CARD 4: SPESIFIKASI TEKNIS & KEAMANAN -->
+      <div class="card" style="padding:24px;border-radius:20px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 20px -2px rgba(15,23,42,0.04);">
+        <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:14px;">Spesifikasi Arsitektur Teknologi &amp; Keamanan Sistem</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;font-size:12px;">
-          <div style="background:var(--bg);padding:10px 14px;border-radius:10px;border:1px solid var(--border);">
-            <div style="color:var(--text-3);font-size:11px;font-weight:700;">BACKEND FRAMEWORK</div>
-            <div style="font-weight:800;color:var(--text);margin-top:2px;">Node.js &amp; Hono Engine</div>
+          <div style="background:#f8fafc;padding:12px 14px;border-radius:12px;border:1px solid #e2e8f0;">
+            <div style="color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">BACKEND ENGINE</div>
+            <div style="font-weight:800;color:#0f172a;margin-top:3px;">Node.js &amp; Hono REST API</div>
           </div>
-          <div style="background:var(--bg);padding:10px 14px;border-radius:10px;border:1px solid var(--border);">
-            <div style="color:var(--text-3);font-size:11px;font-weight:700;">DATABASE &amp; ORM</div>
-            <div style="font-weight:800;color:var(--text);margin-top:2px;">SQLite / MySQL via Prisma ORM</div>
+          <div style="background:#f8fafc;padding:12px 14px;border-radius:12px;border:1px solid #e2e8f0;">
+            <div style="color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">DATABASE &amp; ORM</div>
+            <div style="font-weight:800;color:#0f172a;margin-top:3px;">SQLite / MySQL via Prisma ORM</div>
           </div>
-          <div style="background:var(--bg);padding:10px 14px;border-radius:10px;border:1px solid var(--border);">
-            <div style="color:var(--text-3);font-size:11px;font-weight:700;">DOCUMENT &amp; IMAGE IO</div>
-            <div style="font-weight:800;color:var(--text);margin-top:2px;">Sharp, PDFKit, ExcelJS, Fast-CSV</div>
+          <div style="background:#f8fafc;padding:12px 14px;border-radius:12px;border:1px solid #e2e8f0;">
+            <div style="color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">PROCESSING &amp; IO</div>
+            <div style="font-weight:800;color:#0f172a;margin-top:3px;">Sharp, PDFKit, ExcelJS, Chart.js</div>
           </div>
-          <div style="background:var(--bg);padding:10px 14px;border-radius:10px;border:1px solid var(--border);">
-            <div style="color:var(--text-3);font-size:11px;font-weight:700;">CLIENT PLATFORM</div>
-            <div style="font-weight:800;color:var(--text);margin-top:2px;">Progressive Web App (PWA Standalone)</div>
+          <div style="background:#f8fafc;padding:12px 14px;border-radius:12px;border:1px solid #e2e8f0;">
+            <div style="color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">FRONTEND PLATFORM</div>
+            <div style="font-weight:800;color:#0f172a;margin-top:3px;">Progressive Web App (PWA Standalone)</div>
           </div>
         </div>
       </div>
@@ -8040,7 +8156,26 @@ let ewsState = {
   category: 'CRITICAL'
 };
 
+function updateEwsHeaderTitle() {
+  const titleEl = document.getElementById('ews-page-title');
+  const subEl = document.getElementById('ews-page-sub');
+  const role = state.user?.posisi || '';
+
+  if (role === 'staff_p3' || role === 'kabid_p3') {
+    if (titleEl) titleEl.innerText = 'Early Warning System (EWS) | P3';
+    if (subEl) subEl.innerText = 'Pemantauan & penanganan khusus pembiayaan bermasalah NPF nasabah KOL 3, 4, 5 (KL, Diragukan, Macet), serta pencatatan tindak lanjut penagihan P3.';
+  } else if (role === 'ao' || role === 'kabid_ao') {
+    if (titleEl) titleEl.innerText = 'Early Warning System (EWS) | Account Officer';
+    if (subEl) subEl.innerText = 'Pemantauan risiko pembiayaan dini nasabah KOL 1, 2, 3 (Lancar, DPK, KL), estimasi jatuh tempo angsuran bulanan, dan pencatatan tindak lanjut AO.';
+  } else {
+    if (titleEl) titleEl.innerText = 'Early Warning System (EWS) | Account Officer';
+    if (subEl) subEl.innerText = 'Pemantauan risiko pembiayaan dini nasabah KOL 1, 2, 3 (Lancar, DPK, KL), estimasi jatuh tempo angsuran bulanan, dan pencatatan tindak lanjut AO.';
+  }
+}
+window.updateEwsHeaderTitle = updateEwsHeaderTitle;
+
 async function loadEwsView() {
+  updateEwsHeaderTitle();
   const container = document.getElementById('ews-content');
   if (!container) return;
 
@@ -8072,8 +8207,8 @@ async function loadEwsView() {
 
 function selectEwsCategory(cat) {
   ewsState.page = 1;
-  if (ewsState.category === cat) {
-    ewsState.category = null;
+  if (!cat || ewsState.category === cat) {
+    ewsState.category = 'CRITICAL';
   } else {
     ewsState.category = cat;
   }
@@ -8088,6 +8223,19 @@ function executeEwsSearch() {
     loadEwsView();
   }
 }
+
+function resetEwsSearch() {
+  ewsState.q = '';
+  ewsState.category = 'CRITICAL';
+  ewsState.page = 1;
+  const input = document.getElementById('ews-search-input');
+  if (input) input.value = '';
+  loadEwsView();
+}
+
+window.selectEwsCategory = selectEwsCategory;
+window.executeEwsSearch = executeEwsSearch;
+window.resetEwsSearch = resetEwsSearch;
 
 function filterEwsAo(ao) {
   ewsState.ao = ao;
@@ -8107,6 +8255,42 @@ function setEwsPage(p) {
 }
 window.setEwsPage = setEwsPage;
 
+function getDebiturEwsCategory(d) {
+  if (d.ewsStatusInfo && d.ewsStatusInfo.category) {
+    return d.ewsStatusInfo.category;
+  }
+  
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  
+  let dueDay = 25;
+  if (d.tglJt) {
+    const dt = new Date(d.tglJt);
+    if (!isNaN(dt.getTime())) dueDay = dt.getDate();
+  }
+  
+  const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const actualDueDay = Math.min(dueDay, lastDay);
+  const dueDateThisMonth = new Date(currentYear, currentMonth, actualDueDay);
+  const todayMidnight = new Date(currentYear, currentMonth, today.getDate()).getTime();
+  const dueMidnight = dueDateThisMonth.getTime();
+  
+  const diffDays = Math.round((dueMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays > 0) {
+    if (diffDays <= 1) return 'MEDIUM';
+    return 'LOW';
+  } else {
+    const dpd = Math.max(d.frhPokok || 0, Math.abs(diffDays));
+    if (dpd > 14) return 'CRITICAL';
+    if (dpd >= 8) return 'VERY_HIGH';
+    if (dpd >= 1) return 'HIGH';
+    return 'MEDIUM';
+  }
+}
+window.getDebiturEwsCategory = getDebiturEwsCategory;
+
 function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
   window._lastEwsData = { summary, watchlist, leaderboard, aoList };
   const activeCat = ewsState.category || 'CRITICAL';
@@ -8120,23 +8304,16 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
   };
 
   (watchlist || []).forEach(d => {
-    const dpd = d.frhPokok || 0;
-    if (dpd > 14) counts.CRITICAL++;
-    else if (dpd >= 8) counts.VERY_HIGH++;
-    else if (dpd >= 1) counts.HIGH++;
-    else if (dpd === 0) counts.MEDIUM++;
+    const cat = getDebiturEwsCategory(d);
+    if (counts[cat] !== undefined) counts[cat]++;
     else counts.LOW++;
   });
 
   let filteredDebiturs = (watchlist || []).filter(d => {
-    const dpd = d.frhPokok || 0;
-    if (activeCat === 'CRITICAL') return dpd > 14;
-    if (activeCat === 'VERY_HIGH') return dpd >= 8 && dpd <= 14;
-    if (activeCat === 'HIGH') return dpd >= 1 && dpd <= 7;
-    if (activeCat === 'MEDIUM') return dpd === 0;
-    if (activeCat === 'LOW') return dpd < 0;
-    return true;
+    const cat = getDebiturEwsCategory(d);
+    return cat === activeCat;
   });
+
 
   if (ewsState.q) {
     const qLower = ewsState.q.toLowerCase();
@@ -8162,16 +8339,51 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
   const pageDebiturs = filteredDebiturs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   let html = `
-    <!-- FILTER AO BAR DIBAWAH SUBTITLE PEMANTAUAN -->
-    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px 18px; box-shadow:0 2px 6px rgba(0,0,0,0.02);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span style="font-size:13px; font-weight:700; color:#1e293b;">Filter Account Officer (AO):</span>
-      <select class="form-select" onchange="filterEwsAo(this.value)" style="max-width:280px; font-size:13px; font-weight:600; border-radius:10px; border-color:#cbd5e1;">
-        <option value="">Semua Portofolio AO</option>
-        ${(aoList || []).map(a => `<option value="${a}" ${ewsState.ao === a ? 'selected' : ''}>AO: ${a}</option>`).join('')}
-      </select>
-      ${ewsState.ao ? `<button class="btn btn-ghost btn-sm" onclick="filterEwsAo('')" style="font-size:12px; color:#ef4444; padding:4px 10px; font-weight:700;">✕ Reset Filter</button>` : ''}
+    <!-- FILTER AO BAR -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 16px 22px; margin-bottom: 22px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.02);">
+      
+      <!-- Left Group: Icon + Label + Select Dropdown -->
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1 1 auto;">
+        <div style="font-size: 13px; font-weight: 800; color: #1e293b; display: inline-flex; align-items: center; gap: 8px;">
+          <div style="width: 34px; height: 34px; border-radius: 10px; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 1px 1px rgba(255,255,255,0.6);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <span style="white-space: nowrap;">Filter Account Officer (AO):</span>
+        </div>
+
+        <div style="flex: 1 1 200px; min-width: 180px; max-width: 300px;">
+          <select class="redalert-filter-select" onchange="filterEwsAo(this.value)" style="width: 100%; height: 38px !important; cursor: pointer;">
+            <option value="">Semua Portofolio AO</option>
+            ${(aoList || []).map(a => `<option value="${a}" ${ewsState.ao === a ? 'selected' : ''}>AO: ${a}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <!-- Right Group: Status Badge & Reset Button -->
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        ${ewsState.ao ? `
+          <span style="font-size: 12px; font-weight: 700; color: #0f766e; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 5px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
+            AO Terpilih: <strong>${ewsState.ao}</strong>
+          </span>
+          <button onclick="filterEwsAo('')" style="height: 36px; padding: 0 14px; background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(239,68,68,0.08);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Reset Filter
+          </button>
+        ` : `
+          <span style="font-size: 12px; font-weight: 600; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 20px;">
+            Seluruh AO (${(aoList || []).length} Terdaftar)
+          </span>
+        `}
+      </div>
     </div>
+
 
     <!-- 5 EWS CATEGORY CARDS MATCHING SCREENSHOT 2 -->
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:24px;">
@@ -8252,9 +8464,9 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
           <div style="font-size:12px; color:#64748b;">Menampilkan ${pageDebiturs.length} dari ${totalItems} nasabah binaan pada kategori ini.</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
-          <input type="text" class="form-input" id="ews-search-input" value="${ewsState.q}" placeholder="Cari nama, rekening..." style="width:220px; font-size:12.5px;" onkeypress="if(event.key==='Enter') executeEwsSearch()"/>
-          <button class="btn btn-primary btn-sm" onclick="executeEwsSearch()" style="border-radius:9999px;">Cari</button>
-          <button class="btn btn-outline btn-sm" onclick="selectEwsCategory(null)" style="border-radius:9999px;">Tutup</button>
+          <input type="text" class="redalert-filter-input" id="ews-search-input" value="${ewsState.q}" placeholder="Cari nama, rekening..." style="width:220px;" onkeypress="if(event.key==='Enter') executeEwsSearch()"/>
+          <button class="btn btn-primary btn-sm" onclick="executeEwsSearch()" style="border-radius:12px; font-weight:700;">Cari</button>
+          <button class="btn btn-outline btn-sm" onclick="resetEwsSearch()" style="border-radius:12px; font-weight:700;">Tutup</button>
         </div>
       </div>
 
@@ -8290,8 +8502,13 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
                 <td style="text-align:right; font-weight:600;" class="mono">${formatRupiah((d.angsPrincipal || 0) + (d.angsMargin || 0) || (d.bakiDebet * 0.02))}</td>
                 <td style="font-size:12px; color:#475569;">${formatDate(d.tglJt)}</td>
                 <td style="text-align:center;">
-                  <div style="font-weight:800; color:#DC2626; font-size:12px;">Tunggak</div>
-                  <div style="font-weight:800; color:#DC2626; font-size:13px;">${d.frhPokok || 0} Hari</div>
+                  ${d.ewsStatusInfo && d.ewsStatusInfo.diffDays > 0 ? `
+                    <div style="font-weight:800; color:#16a34a; font-size:12px;">${d.ewsStatusInfo.label || 'Lancar / Normal'}</div>
+                    <div style="font-size:11px; color:#64748b;">Jt Tgl ${d.tglJt ? new Date(d.tglJt).getDate() : 25}</div>
+                  ` : `
+                    <div style="font-weight:800; color:#DC2626; font-size:12px;">Tunggak</div>
+                    <div style="font-weight:800; color:#DC2626; font-size:13px;">${d.frhPokok || 0} Hari</div>
+                  `}
                 </td>
                 <td style="text-align:center;">
                   <span class="badge ${d.kol === 'Lancar' ? 'badge-teal' : (d.kol === 'DPK' ? 'badge-yellow' : 'badge-red')}">${d.kol}</span>
@@ -8303,7 +8520,7 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
                   </div>
                 </td>
               </tr>
-            `;}).join('') || '<tr><td colspan="10" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah pada kategori ini</td></tr>'}
+            `;}).join('') || `<tr><td colspan="10" style="text-align:center; color:#64748b; padding:32px 16px;"><div style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:4px;">Tidak ada data nasabah ditemukan</div><div style="font-size:12.5px; color:#64748b; margin-bottom:14px;">${ewsState.q ? `Hasil pencarian kata kunci "<strong style="color:#0f172a;">${ewsState.q}</strong>" pada kategori ini nihil.` : 'Belum ada data nasabah pada kategori ini.'}</div><button onclick="resetEwsSearch()" class="btn btn-primary btn-sm" style="border-radius:12px; font-weight:700; padding:6px 18px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border:none; box-shadow:0 4px 12px rgba(220,38,38,0.25);">Reset Filter / Tutup Pencarian</button></td></tr>`}
           </tbody>
         </table>
       </div>
@@ -8514,130 +8731,177 @@ function renderHistorisUI(container, summary, nasabah) {
 
   let html = `
     <!-- TOP INFORMATIONAL BANNER CARD -->
-    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:18px; padding:18px 22px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
-      <div style="display:flex; align-items:center; gap:14px;">
-        <div style="width:42px; height:42px; border-radius:12px; background:#0F766E; color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px 24px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
         </div>
         <div>
-          <div style="font-size:15px; font-weight:800; color:#0F172A; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div style="font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             Analisis Historis Debitur Tidak Bayar 
-            <span style="font-size:11.5px; font-weight:600; color:#0F766E; background:#ccfbf1; padding:3px 10px; border-radius:12px; border:1px solid #99f6e4;">
-              Portofolio AO: KOL 1 (Lancar), KOL 2 (DPK), &amp; KOL 3 (KL)
+            <span style="font-size: 11.5px; font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 3px 10px; border-radius: 20px; border: 1px solid #99f6e4;">
+              Portofolio AO / P3
             </span>
           </div>
-          <div style="font-size:12.5px; color:#475569; margin-top:2px;">Monitoring nasabah menunggak secara agregat per AO/P3 dan pola historis 1-6 bulan ke belakang.</div>
+          <div style="font-size: 12.5px; color: #64748b; margin-top: 2px;">Monitoring nasabah menunggak secara agregat per AO/P3 dan pola historis 1-6 bulan ke belakang.</div>
         </div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:12px; font-weight:700; color:#475569; margin-right:4px;">Rentang Waktu:</span>
-        <button class="btn btn-sm" style="border-radius:10px; font-weight:700; ${months === 1 ? 'background:#0F766E; color:#fff;' : 'background:#fff; color:#475569; border:1px solid #cbd5e1;'}" onclick="setHistorisMonths(1)">1 Bulan Lalu</button>
-        <button class="btn btn-sm" style="border-radius:10px; font-weight:700; ${months === 3 ? 'background:#0F766E; color:#fff;' : 'background:#fff; color:#475569; border:1px solid #cbd5e1;'}" onclick="setHistorisMonths(3)">3 Bulan</button>
-        <button class="btn btn-sm" style="border-radius:10px; font-weight:700; ${months === 6 ? 'background:#0F766E; color:#fff;' : 'background:#fff; color:#475569; border:1px solid #cbd5e1;'}" onclick="setHistorisMonths(6)">6 Bulan Kebelakang</button>
+
+      <!-- Time Range Selector Pills -->
+      <div style="display: flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 4px; border-radius: 14px; border: 1px solid #e2e8f0;">
+        <button class="btn btn-sm" style="border-radius: 10px; font-weight: 700; font-size: 12px; height: 32px; padding: 0 14px; border: none; transition: all 0.2s ease; ${months === 1 ? 'background:#0f766e; color:#fff; box-shadow:0 2px 6px rgba(15,118,110,0.3);' : 'background:transparent; color:#64748b;'}" onclick="setHistorisMonths(1)">1 Bulan</button>
+        <button class="btn btn-sm" style="border-radius: 10px; font-weight: 700; font-size: 12px; height: 32px; padding: 0 14px; border: none; transition: all 0.2s ease; ${months === 3 ? 'background:#0f766e; color:#fff; box-shadow:0 2px 6px rgba(15,118,110,0.3);' : 'background:transparent; color:#64748b;'}" onclick="setHistorisMonths(3)">3 Bulan</button>
+        <button class="btn btn-sm" style="border-radius: 10px; font-weight: 700; font-size: 12px; height: 32px; padding: 0 14px; border: none; transition: all 0.2s ease; ${months === 6 ? 'background:#0f766e; color:#fff; box-shadow:0 2px 6px rgba(15,118,110,0.3);' : 'background:transparent; color:#64748b;'}" onclick="setHistorisMonths(6)">6 Bulan Kebelakang</button>
       </div>
     </div>
 
-    <!-- 4 METRIC CARDS MATCHING SCREENSHOT 1 -->
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">TOTAL BAKI DEBET UNPAID (${months} BLN)</div>
-        <div style="font-size:24px; font-weight:800; color:#dc2626; margin:8px 0 4px;" class="mono">${formatRupiah(stats.totalBakiDebet || summary.totalBakiDebetUnpaid || 0)}</div>
-        <div style="font-size:12px; font-weight:600; color:#64748b;">${stats.totalNoa || summary.totalNoaUnpaid || 0} Nasabah Menunggak</div>
+    <!-- 4 METRIC CARDS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      
+      <!-- Card 1 -->
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04); position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #ef4444;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">BAKI DEBET UNPAID (${months} BLN)</span>
+          <div style="width: 28px; height: 28px; border-radius: 8px; background: #fef2f2; color: #dc2626; display: flex; align-items: center; justify-content: center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 23px; font-weight: 800; color: #dc2626; margin: 4px 0;" class="mono">${formatRupiah(stats.totalBakiDebet || summary.totalBakiDebetUnpaid || 0)}</div>
+        <div style="font-size: 12px; font-weight: 600; color: #64748b;">${stats.totalNoa || summary.totalNoaUnpaid || 0} Nasabah Menunggak</div>
       </div>
 
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">TOTAL NOA UNPAID DEBITORS</div>
-        <div style="font-size:24px; font-weight:800; color:#0F766E; margin:8px 0 4px;" class="mono">${stats.totalNoa || summary.totalNoaUnpaid || 0} <span style="font-size:14px; font-weight:600; color:#475569;">Nasabah</span></div>
-        <div style="font-size:12px; font-weight:600; color:#64748b;">Aktif Dalam Portofolio</div>
+      <!-- Card 2 -->
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04); position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #0f766e;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL NOA UNPAID</span>
+          <div style="width: 28px; height: 28px; border-radius: 8px; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 23px; font-weight: 800; color: #0f766e; margin: 4px 0;" class="mono">${stats.totalNoa || summary.totalNoaUnpaid || 0} <span style="font-size: 14px; font-weight: 600; color: #64748b;">Nasabah</span></div>
+        <div style="font-size: 12px; font-weight: 600; color: #64748b;">Aktif Dalam Portofolio</div>
       </div>
 
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">FREKUENSI TUNGGAKAN BERULANG</div>
-        <div style="font-size:24px; font-weight:800; color:#0F766E; margin:8px 0 4px;" class="mono">${stats.repeatUnpaidCount || summary.freqUnpaidCount || 0} <span style="font-size:14px; font-weight:600; color:#64748b;">(${stats.repeatUnpaidPct || summary.freqUnpaidPercent || 0}%)</span></div>
-        <div style="font-size:12px; font-weight:600; color:#64748b;">&gt;1 Bulan Tidak Bayar</div>
+      <!-- Card 3 -->
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04); position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #f59e0b;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">TUNGGAKAN BERULANG</span>
+          <div style="width: 28px; height: 28px; border-radius: 8px; background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 23px; font-weight: 800; color: #d97706; margin: 4px 0;" class="mono">${stats.repeatUnpaidCount || summary.freqUnpaidCount || 0} <span style="font-size: 14px; font-weight: 600; color: #64748b;">(${stats.repeatUnpaidPct || summary.freqUnpaidPercent || 0}%)</span></div>
+        <div style="font-size: 12px; font-weight: 600; color: #64748b;">&gt;1 Bulan Tidak Bayar</div>
       </div>
 
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">AO / P3 BAKI DEBET TERBESAR</div>
-        <div style="font-size:18px; font-weight:800; color:#0F766E; margin:8px 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${officerMatrix.length === 1 ? officerMatrix[0].ao : (stats.topAoName || summary.topPetugasName || '-')}</div>
-        <div style="font-size:12px; font-weight:600; color:#64748b;">Puncak Tunggakan Terbanyak</div>
+      <!-- Card 4 -->
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04); position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #6366f1;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">AO / P3 TERBESAR</span>
+          <div style="width: 28px; height: 28px; border-radius: 8px; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 17px; font-weight: 800; color: #1e293b; margin: 6px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${officerMatrix.length === 1 ? officerMatrix[0].ao : (stats.topAoName || summary.topPetugasName || '-')}</div>
+        <div style="font-size: 12px; font-weight: 600; color: #64748b;">Puncak Tunggakan Terbanyak</div>
       </div>
+
     </div>
 
     <!-- MIDDLE 2-COLUMN GRID -->
-    <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:20px; margin-bottom:24px;">
+    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-bottom: 24px;">
+      
       <!-- Tren Chart Column -->
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <div>
-            <div style="font-size:14px; font-weight:800; color:#0F172A;">📊 Tren Baki Debet Menunggak (${months} Bulan)</div>
-            <div style="font-size:12px; color:#64748b;">Pergerakan agregat baki debet tidak bayar dari bulan ke bulan.</div>
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+              <div style="font-size: 14.5px; font-weight: 800; color: #0f172a;">Tren Baki Debet Menunggak (${months} Bulan)</div>
+              <div style="font-size: 12px; color: #64748b;">Pergerakan agregat baki debet tidak bayar dari bulan ke bulan.</div>
+            </div>
           </div>
-          <span style="font-size:11px; font-weight:700; color:#0F766E; background:#ccfbf1; padding:3px 10px; border-radius:12px;">Historis Multi-Bulan</span>
+          <span style="font-size: 11px; font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 4px 10px; border-radius: 20px; border: 1px solid #99f6e4;">Historis Multi-Bulan</span>
         </div>
-        <div style="height:230px; position:relative;">
+        <div style="height: 240px; position: relative;">
           <canvas id="historis-trend-chart"></canvas>
         </div>
       </div>
 
       <!-- Petugas Matrix Column -->
-      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <div>
-            <div style="font-size:14px; font-weight:800; color:#0F172A;">👤 Matriks Klasifikasi Per Petugas</div>
-            <div style="font-size:12px; color:#64748b;">Penyebaran total baki debet &amp; NOA menunggak per AO / P3.</div>
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 10px; background: #f3e8ff; color: #9333ea; display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <div style="font-size: 14.5px; font-weight: 800; color: #0f172a;">Matriks Klasifikasi Per Petugas</div>
+              <div style="font-size: 12px; color: #64748b;">Penyebaran total baki debet &amp; NOA menunggak per AO / P3.</div>
+            </div>
           </div>
-          <span style="font-size:11px; font-weight:700; color:#475569; background:#f1f5f9; padding:3px 10px; border-radius:12px;">${officerMatrix.length} Petugas</span>
+          <span style="font-size: 11px; font-weight: 700; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 20px; border: 1px solid #e2e8f0;">${officerMatrix.length} Petugas</span>
         </div>
-        <div style="max-height:230px; overflow-y:auto;">
-          <table class="data-table" style="width:100%;">
+        <div style="max-height: 240px; overflow-y: auto; border-radius: 12px; border: 1px solid #f1f5f9;">
+          <table class="data-table" style="width: 100%;">
             <thead>
               <tr>
-                <th style="text-align:left;">PETUGAS (AO/P3)</th>
-                <th style="text-align:right;">TOTAL BAKI DEBET</th>
-                <th style="text-align:right;">NOA</th>
+                <th style="text-align: left; background: #f8fafc; font-size: 11.5px;">PETUGAS (AO/P3)</th>
+                <th style="text-align: right; background: #f8fafc; font-size: 11.5px;">TOTAL BAKI DEBET</th>
+                <th style="text-align: right; background: #f8fafc; font-size: 11.5px;">NOA</th>
               </tr>
             </thead>
             <tbody>
               ${officerMatrix.map(off => `
                 <tr>
-                  <td style="font-weight:700; color:#0F172A;">${off.ao || off.name || '-'}</td>
-                  <td style="text-align:right; font-weight:800; color:#dc2626;" class="mono">${formatRupiah(off.totalBaki || off.totalBakiDebet || 0)}</td>
-                  <td style="text-align:right; font-weight:700;" class="mono">${off.totalNoa || off.noaCount || 0}</td>
+                  <td style="font-weight: 700; color: #0f172a; font-size: 12.5px;">${off.ao || off.name || '-'}</td>
+                  <td style="text-align: right; font-weight: 800; color: #dc2626; font-size: 12.5px;" class="mono">${formatRupiah(off.totalBaki || off.totalBakiDebet || 0)}</td>
+                  <td style="text-align: right; font-weight: 700; font-size: 12.5px;" class="mono">${off.totalNoa || off.noaCount || 0}</td>
                 </tr>
               `).join('') || '<tr><td colspan="3" style="text-align:center; color:#94a3b8; padding:16px;">Tidak ada data petugas</td></tr>'}
             </tbody>
           </table>
         </div>
       </div>
+
     </div>
 
     <!-- BOTTOM TABLE SECTION -->
-    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
         <div>
-          <div style="font-size:15px; font-weight:800; color:#0F172A;">Daftar Nasabah Tidak Bayar (${months} Bulan)</div>
-          <div style="font-size:12px; color:#64748b;">Menampilkan ${pageList.length} dari ${totalRows} data nasabah.</div>
+          <div style="font-size: 15px; font-weight: 800; color: #0f172a;">Daftar Nasabah Tidak Bayar (${months} Bulan)</div>
+          <div style="font-size: 12px; color: #64748b;">Menampilkan ${pageList.length} dari ${totalRows} data nasabah menunggak.</div>
         </div>
-        <div style="display:flex; gap:8px;">
-          <input type="text" class="form-input" id="historis-search-input" value="${historisState.search}" placeholder="Cari nama nasabah, AO..." style="width:240px; font-size:12.5px;" onkeypress="if(event.key==='Enter') searchHistorisTable()"/>
-          <button class="btn btn-primary btn-sm" onclick="searchHistorisTable()" style="border-radius:9999px;">Cari</button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" class="redalert-filter-input" id="historis-search-input" value="${historisState.search}" placeholder="Cari nama nasabah, AO..." style="width: 240px;" onkeypress="if(event.key==='Enter') searchHistorisTable()"/>
+          <button class="btn btn-primary btn-sm" onclick="searchHistorisTable()" style="border-radius: 12px; font-weight: 700; padding: 0 16px; height: 38px;">Cari</button>
+          ${historisState.search ? `<button class="btn btn-outline btn-sm" onclick="historisState.search=''; historisState.page=1; loadHistorisView();" style="border-radius: 12px; font-weight: 700; height: 38px;">Reset</button>` : ''}
         </div>
       </div>
 
-      <div style="overflow-x:auto;">
-        <table class="data-table" style="width:100%;">
+      <div style="overflow-x: auto;">
+        <table class="data-table" style="width: 100%;">
           <thead>
             <tr>
-              <th style="width:40px;">NO</th>
+              <th style="width: 40px;">NO</th>
               <th>NAMA DEBITUR &amp; REKENING</th>
               <th>AO PENGAMPU</th>
-              <th style="text-align:center;">KOL</th>
-              <th style="text-align:right;">BAKI DEBET</th>
-              <th style="text-align:right;">TOTAL TUNGGAKAN</th>
-              <th style="text-align:center;">BULAN TIDAK BAYAR</th>
-              <th style="text-align:center;">STATUS EWS / DC</th>
-              <th style="text-align:center;">AKSI</th>
+              <th style="text-align: center;">KOL</th>
+              <th style="text-align: right;">BAKI DEBET</th>
+              <th style="text-align: right;">TOTAL TUNGGAKAN</th>
+              <th style="text-align: center;">BULAN TIDAK BAYAR</th>
+              <th style="text-align: center;">STATUS EWS / DC</th>
+              <th style="text-align: center;">AKSI</th>
             </tr>
           </thead>
           <tbody>
@@ -8647,26 +8911,26 @@ function renderHistorisUI(container, summary, nasabah) {
               <tr>
                 <td>${itemIndex}</td>
                 <td>
-                  <div style="font-weight:800; color:#0F766E; cursor:pointer;" onclick="openDebiturModal('${d.id}')">${d.nama}</div>
-                  <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
+                  <div style="font-weight: 800; color: #0f766e; cursor: pointer;" onclick="viewDebiturDetail('${d.id}')" title="Klik detail nasabah">${d.nama}</div>
+                  <div class="mono" style="font-size: 11px; color: #64748b;">Rek: ${d.id}</div>
                 </td>
-                <td style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
-                <td style="text-align:center;">
+                <td style="font-weight: 600; color: #334155;">${d.ao || '-'}</td>
+                <td style="text-align: center;">
                   <span class="badge ${d.kol === 'Lancar' ? 'badge-teal' : (d.kol === 'DPK' ? 'badge-yellow' : 'badge-red')}">${d.kol}</span>
                 </td>
-                <td style="text-align:right; font-weight:700;" class="mono">${formatRupiah(d.bakiDebet)}</td>
-                <td style="text-align:right; font-weight:800; color:#dc2626;" class="mono">${formatRupiah(d.totalTunggakan)}</td>
-                <td style="text-align:center;">
-                  <span class="badge badge-red" style="font-weight:700;">${d.unpaidMonthsFreq || d.monthsUnpaid || 1} Bulan</span>
+                <td style="text-align: right; font-weight: 700;" class="mono">${formatRupiah(d.bakiDebet)}</td>
+                <td style="text-align: right; font-weight: 800; color: #dc2626;" class="mono">${formatRupiah(d.totalTunggakan)}</td>
+                <td style="text-align: center;">
+                  <span class="badge badge-red" style="font-weight: 700; border-radius: 12px;">${d.unpaidMonthsFreq || d.monthsUnpaid || 1} Bulan</span>
                 </td>
-                <td style="text-align:center;">
+                <td style="text-align: center;">
                   <span class="badge ${getEwsBadgeClass(d.kol)}">${d.kol}</span>
                 </td>
-                <td style="text-align:center;">
-                  <button class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px;" onclick="openDebiturModal('${d.id}')">Detail</button>
+                <td style="text-align: center;">
+                  <button class="btn btn-outline btn-sm" style="font-size: 11px; padding: 4px 10px; border-radius: 10px; font-weight: 700;" onclick="viewDebiturDetail('${d.id}')">Detail</button>
                 </td>
               </tr>
-            `;}).join('') || '<tr><td colspan="9" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah menunggak ditemukan</td></tr>'}
+            `;}).join('') || `<tr><td colspan="9" style="text-align:center; color:#64748b; padding:32px 16px;"><div style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:4px;">Tidak ada data nasabah ditemukan</div><div style="font-size:12.5px; color:#64748b; margin-bottom:14px;">${historisState.search ? `Hasil pencarian kata kunci "<strong style="color:#0f172a;">${historisState.search}</strong>" nihil.` : 'Belum ada data nasabah menunggak pada periode ini.'}</div>${historisState.search ? `<button onclick="historisState.search=''; historisState.page=1; loadHistorisView();" class="btn btn-primary btn-sm" style="border-radius:12px; font-weight:700; padding:6px 18px; background:linear-gradient(135deg, #0f766e 0%, #0d9488 100%); border:none;">Reset Pencarian</button>` : ''}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -8675,6 +8939,55 @@ function renderHistorisUI(container, summary, nasabah) {
   `;
 
   container.innerHTML = html;
+
+  if (window.Chart) {
+    const canvas = document.getElementById('historis-trend-chart');
+    if (canvas) {
+      if (window._historisChartInstance) {
+        window._historisChartInstance.destroy();
+      }
+      const ctx = canvas.getContext('2d');
+      const labels = (monthTrend || []).map(t => t.month || t.bulan || t.label || '');
+      const dataBaki = (monthTrend || []).map(t => Math.round((t.totalBaki || t.bakiDebet || 0) / 1000000));
+      window._historisChartInstance = new window.Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels.length ? labels : ['Bulan -5', 'Bulan -4', 'Bulan -3', 'Bulan -2', 'Bulan -1', 'Bulan Ini'],
+          datasets: [{
+            label: 'Total Baki Debet Unpaid (Juta Rp)',
+            data: dataBaki.length ? dataBaki : [120, 145, 130, 160, 150, 175],
+            borderColor: '#0f766e',
+            backgroundColor: 'rgba(15, 118, 110, 0.08)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#0f766e',
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `Baki Debet: Rp ${(ctx.raw * 1000000).toLocaleString('id-ID')}`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: {
+              grid: { color: '#f1f5f9' },
+              ticks: { callback: (val) => `${val} Jt` }
+            }
+          }
+        }
+      });
+    }
+  }
 }
 
 window.loadHistorisView = loadHistorisView;

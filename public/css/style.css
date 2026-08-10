@@ -853,6 +853,65 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   stroke: var(--brand);
 }
 
+/* RED ALERT THEME ENHANCEMENTS */
+@keyframes redAlertBeaconPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.red-alert-beacon-dot {
+  animation: redAlertBeaconPulse 2s infinite;
+}
+
+#dctab-redalert:hover {
+  color: #dc2626 !important;
+}
+
+#dctab-redalert.active {
+  color: #dc2626 !important;
+  border-bottom-color: #dc2626 !important;
+}
+
+#dctab-redalert.active svg {
+  stroke: #dc2626 !important;
+}
+
+.redalert-filter-select {
+  height: 38px !important;
+  padding: 0 32px 0 14px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  background-color: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  line-height: normal !important;
+  box-sizing: border-box !important;
+}
+
+.redalert-filter-input {
+  height: 38px !important;
+  padding: 0 14px 0 38px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #0f172a !important;
+  background-color: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  line-height: normal !important;
+  box-sizing: border-box !important;
+}
+
 /* INTERACTIVE FLIP CARD ANIMATION FOR DASHBOARD STAT CARDS */
 .stat-card-interactive {
   cursor: pointer;
