@@ -93,7 +93,7 @@ function fmtM(num) {
   return formatRupiah(val);
 }
 
-// Live thousand separator formatter for currency input fields (e.g. 3,000,000)
+// Live thousand separator formatter for currency input fields (e.g. 3.000.000)
 function formatCurrencyInput(inputEl) {
   if (!inputEl) return;
   let val = inputEl.value;
@@ -102,7 +102,7 @@ function formatCurrencyInput(inputEl) {
     inputEl.value = '';
     return;
   }
-  let formatted = parseInt(rawDigits, 10).toLocaleString('en-US');
+  let formatted = parseInt(rawDigits, 10).toLocaleString('id-ID');
   inputEl.value = formatted;
 }
 
@@ -173,15 +173,309 @@ function showToast(message, type = 'info') {
 
   toast.className = `toast ${typeClass}`;
   toast.innerHTML = `${iconSvg}<span>${message}</span>`;
-  zone.appendChild(toast);
-
-  setTimeout(() => {
+  zone.appendChild(toast);    setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(10px)';
     toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
   }, 4000);
 }
+
+// --- WEB SHARE API FOR FIELD STAFF ---
+async function shareDebiturSummary(nama, telepon, debiturId, totalTunggakan, alamat) {
+  const shareText = `*RINGKASAN DEBITUR - BPRS MITRA HARMONI*\n` +
+    `Nama: ${nama}\n` +
+    `No. Rekening: ${debiturId}\n` +
+    `No. Telp: ${telepon || '-'}\n` +
+    `Total Tunggakan: ${formatRupiah(totalTunggakan || 0)}\n` +
+    `Alamat: ${alamat || '-'}`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `Debitur ${nama}`,
+        text: shareText
+      });
+      showToast('Ringkasan debitur berhasil dibagikan', 'success');
+      return;
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        fallbackShareWA(shareText);
+      }
+    }
+  } else {
+    fallbackShareWA(shareText);
+  }
+}
+
+function fallbackShareWA(text) {
+  copyToClipboard(text, 'Ringkasan Debitur');
+  const encoded = encodeURIComponent(text);
+  window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+}
+
+// --- LOCALSTORAGE DRAFT PROTECTION ---
+function initDraftProtection() {
+  const dcCatatan = document.getElementById('dcf-catatan');
+  if (dcCatatan) {
+    dcCatatan.addEventListener('input', () => {
+      localStorage.setItem('draft_dc_catatan', dcCatatan.value);
+    });
+  }
+
+  const dcNominal = document.getElementById('dcf-nominal');
+  if (dcNominal) {
+    dcNominal.addEventListener('input', () => {
+      localStorage.setItem('draft_dc_nominal', dcNominal.value);
+    });
+  }
+}
+
+function restoreDeskCallDraft() {
+  const savedCatatan = localStorage.getItem('draft_dc_catatan');
+  const savedNominal = localStorage.getItem('draft_dc_nominal');
+  const dcCatatan = document.getElementById('dcf-catatan');
+  const dcNominal = document.getElementById('dcf-nominal');
+
+  let restored = false;
+  if (savedCatatan && dcCatatan && !dcCatatan.value) {
+    dcCatatan.value = savedCatatan;
+    restored = true;
+  }
+  if (savedNominal && dcNominal && !dcNominal.value) {
+    dcNominal.value = savedNominal;
+    restored = true;
+  }
+
+  if (restored) {
+    showToast('Draf catatan desk call sebelumnya dipulihkan', 'info');
+  }
+}
+
+function clearDeskCallDraft() {
+  localStorage.removeItem('draft_dc_catatan');
+  localStorage.removeItem('draft_dc_nominal');
+}
+
+function restoreP3VisitDraft(jadwalId) {
+  const savedHasil = localStorage.getItem(`draft_p3_hasil_${jadwalId}`);
+  const p3Hasil = document.getElementById('p3d-hasil');
+  if (savedHasil && p3Hasil && !p3Hasil.value) {
+    p3Hasil.value = savedHasil;
+    showToast('Draf hasil kunjungan P3 sebelumnya dipulihkan', 'info');
+  }
+
+  if (p3Hasil) {
+    p3Hasil.addEventListener('input', () => {
+      localStorage.setItem(`draft_p3_hasil_${jadwalId}`, p3Hasil.value);
+    });
+  }
+}
+
+function clearP3VisitDraft(jadwalId) {
+  localStorage.removeItem(`draft_p3_hasil_${jadwalId}`);
+}
+
+// --- TABLE DENSITY CONTROLLER (COMPACT VS NORMAL) ---
+let tableDensityState = localStorage.getItem('table_density') || 'normal';
+
+function initTableDensity() {
+  document.documentElement.setAttribute('data-table-density', tableDensityState);
+  updateTableDensityButtons();
+}
+
+function toggleTableDensity() {
+  tableDensityState = tableDensityState === 'compact' ? 'normal' : 'compact';
+  localStorage.setItem('table_density', tableDensityState);
+  document.documentElement.setAttribute('data-table-density', tableDensityState);
+  updateTableDensityButtons();
+  showToast(`Mode tampilan tabel diubah ke: ${tableDensityState === 'compact' ? 'Ringkas (Compact)' : 'Normal'}`, 'info');
+}
+
+function updateTableDensityButtons() {
+  const btns = document.querySelectorAll('.btn-density-toggle');
+  btns.forEach(btn => {
+    btn.innerText = tableDensityState === 'compact' ? 'Mode Normal' : 'Mode Ringkas';
+  });
+}
+
+// Automatically init table density on DOM load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initTableDensity);
+} else {
+  initTableDensity();
+}
+
+// --- SEARCH TERM AUTO-HIGHLIGHTING ---
+function highlightSearchTerm(text, query) {
+  if (!text) return '';
+  const str = String(text);
+  if (!query || !query.trim()) return str;
+
+  const q = query.trim();
+  const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return str.replace(regex, '<mark style="background:#FEF08A;color:#854D0E;padding:0 3px;border-radius:3px;font-weight:700;">$1</mark>');
+}
+
+// --- SMART DOUBLE-SUBMIT PREVENTION ---
+async function protectButtonSubmit(buttonEl, asyncFn) {
+  if (!buttonEl) return asyncFn();
+  if (buttonEl.disabled || buttonEl.getAttribute('data-submitting') === 'true') return;
+
+  buttonEl.disabled = true;
+  buttonEl.setAttribute('data-submitting', 'true');
+  const originalText = buttonEl.innerHTML;
+  buttonEl.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;margin-right:4px;">⏳</span> Memproses...`;
+
+  try {
+    const result = await asyncFn();
+    return result;
+  } finally {
+    setTimeout(() => {
+      buttonEl.disabled = false;
+      buttonEl.removeAttribute('data-submitting');
+      buttonEl.innerHTML = originalText;
+    }, 1000);
+  }
+}
+
+// --- QUICK DATE FILTER PRESETS ---
+function setQuickDateRange(preset, startDateId, endDateId, onApplyCallback) {
+  const startInput = document.getElementById(startDateId);
+  const endInput = document.getElementById(endDateId);
+  
+  const today = new Date();
+  const formatYMD = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  let startStr = '';
+  let endStr = formatYMD(today);
+
+  if (preset === 'today') {
+    startStr = formatYMD(today);
+  } else if (preset === 'week') {
+    const d = new Date(today);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    startStr = formatYMD(monday);
+  } else if (preset === 'month') {
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    startStr = formatYMD(firstDay);
+  }
+
+  if (startInput) startInput.value = startStr;
+  if (endInput) endInput.value = endStr;
+
+  if (typeof onApplyCallback === 'function') {
+    onApplyCallback();
+  }
+}
+
+// --- 1-CLICK COPY TO CLIPBOARD HELPER ---
+function copyToClipboard(text, label = 'Data') {
+  if (!text) return;
+  const cleanText = String(text).trim();
+  if (!cleanText) return;
+
+  const handleSuccess = () => {
+    showToast(`${label} ("${cleanText}") berhasil disalin ke clipboard`, 'success');
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(cleanText).then(handleSuccess).catch(() => {
+      fallbackCopyText(cleanText, label);
+    });
+  } else {
+    fallbackCopyText(cleanText, label);
+  }
+}
+
+function fallbackCopyText(text, label) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-999999px';
+  textArea.style.top = '-999999px';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    showToast(`${label} ("${text}") berhasil disalin ke clipboard`, 'success');
+  } catch (err) {
+    showToast(`Gagal menyalin ${label}`, 'warning');
+  }
+  document.body.removeChild(textArea);
+}
+
+// --- NETWORK OFFLINE / ONLINE DETECTOR FOR FIELD STAFF ---
+window.addEventListener('online', () => {
+  showToast('Terhubung kembali ke jaringan internet', 'success');
+});
+window.addEventListener('offline', () => {
+  showToast('Koneksi internet terputus. Pastikan sinyal Anda stabil saat menginput data penagihan.', 'warning');
+});
+
+// --- SESSION IDLE WARNING TIMER (28 mins inactive -> 2 min countdown -> Auto Logout) ---
+let idleTimer = null;
+let idleCountdownInterval = null;
+let idleCountdownSeconds = 120;
+const IDLE_LIMIT_MS = 28 * 60 * 1000; // 28 minutes
+
+function resetIdleTimer() {
+  if (!state || !state.token) return; // Only track idle timer if user is logged in
+  if (idleTimer) clearTimeout(idleTimer);
+  
+  // Do not reset timer if warning modal is currently open
+  const warningModal = document.getElementById('modal-idle-warning');
+  if (warningModal && warningModal.classList.contains('open')) return;
+
+  idleTimer = setTimeout(showIdleWarningModal, IDLE_LIMIT_MS);
+}
+
+function showIdleWarningModal() {
+  if (!state || !state.token) return;
+  const modal = document.getElementById('modal-idle-warning');
+  const countdownEl = document.getElementById('idle-countdown-secs');
+  if (!modal) return;
+
+  idleCountdownSeconds = 120;
+  if (countdownEl) countdownEl.innerText = idleCountdownSeconds;
+
+  openModal('modal-idle-warning');
+
+  if (idleCountdownInterval) clearInterval(idleCountdownInterval);
+  idleCountdownInterval = setInterval(() => {
+    idleCountdownSeconds--;
+    if (countdownEl) countdownEl.innerText = idleCountdownSeconds;
+    if (idleCountdownSeconds <= 0) {
+      clearInterval(idleCountdownInterval);
+      closeModal('modal-idle-warning');
+      showToast('Sesi Anda telah berakhir karena inaktivitas. Silakan masuk kembali.', 'warning');
+      handleLogout();
+    }
+  }, 1000);
+}
+
+function resetIdleTimerManually() {
+  if (idleCountdownInterval) clearInterval(idleCountdownInterval);
+  closeModal('modal-idle-warning');
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(showIdleWarningModal, IDLE_LIMIT_MS);
+  showToast('Sesi Anda dilanjutkan', 'success');
+}
+
+// Global user activity tracking for idle timer
+['mousemove', 'keydown', 'touchstart', 'scroll', 'click'].forEach(evt => {
+  window.addEventListener(evt, () => {
+    resetIdleTimer();
+  }, { passive: true });
+});
 
 // Modal Controls
 function openModal(id) {
@@ -781,9 +1075,9 @@ function renderNavMenu(role) {
 
   const menu = [
     { id: 'dashboard', label: 'Dashboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
-    { id: 'ews', label: 'EWS (Early Warning)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>', roles: ['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3', 'desk_call'] },
-    { id: 'historis', label: 'Historis Tunggakan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
     { id: 'debitur', label: 'Data Debitur', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
+    { id: 'ews', label: 'EWS (Early Warning)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>', roles: ['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3'] },
+    { id: 'historis', label: 'Historis Tunggakan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
     { id: 'deskcall', label: 'Desk Call', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>', roles: ['admin', 'desk_call'] },
     { id: 'p3', label: 'P3 (Lapangan)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal'] },
     { id: 'legal', label: 'Dokumen dan Arsip', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', roles: ['admin', 'kabid_p3', 'legal'] },
@@ -945,7 +1239,7 @@ async function openNotifPanel() {
           <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;flex-wrap:wrap;">
             ${n.isRedAlert ? (
               n.isRedAlertSummary ? `
-                <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');window.location.hash='#desk-call';setTimeout(() => { if (typeof switchDCTab === 'function') switchDCTab('redalert'); }, 200);" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;background:#EF4444;color:#ffffff;border:none;box-shadow:0 2px 6px rgba(239,68,68,0.3);">
+                <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notif');switchPane('deskcall');switchDCTab('redalert');" style="font-size:11.5px;padding:6px 14px;border-radius:8px;font-weight:700;background:#EF4444;color:#ffffff;border:none;box-shadow:0 2px 6px rgba(239,68,68,0.3);">
                   Buka Tab Red Alert (${n.count || 0})
                 </button>
               ` : `
@@ -1173,7 +1467,7 @@ async function loadDashboardView() {
           <div class="stat-num text-warning" id="card-npf-lar-val" style="font-size:24px;">${formatRupiah(npfBaki)}</div>
           <div class="stat-sub" id="card-npf-lar-sub" style="display:flex;justify-content:space-between;align-items:center;">
             <span>KOL 3 (KL), 4 (D), 5 (M)</span>
-            <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch LAR 🔄</span>
+            <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch LAR</span>
           </div>
         </div>
         <div class="stat-card stat-card-interactive" id="card-npf-ratio-toggle" onclick="toggleNpfRatioCard()" title="Klik untuk beralih antara NPF Ratio Sekarang dan NPF Penutupan Bulan Lalu (${lastMonthName})">
@@ -1187,7 +1481,7 @@ async function loadDashboardView() {
           <div class="stat-num" id="card-npf-ratio-val" style="color:${npfRatio > 7 ? 'var(--danger)' : 'var(--success)'}">${npfRatio.toFixed(2)}%</div>
           <div class="stat-sub" id="card-npf-ratio-sub" style="display:flex;justify-content:space-between;align-items:center;">
             <span>Batas OJK: &le; 7,00%</span>
-            <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch ${lastMonthName.split(' ')[0]} 🔄</span>
+            <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch ${lastMonthName.split(' ')[0]}</span>
           </div>
         </div>
       </div>
@@ -1369,7 +1663,7 @@ function toggleNpfLarCard() {
       if (sub) {
         sub.innerHTML = `
           <span>KOL 1 (Lancar), 2 (DPK)</span>
-          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch NPF 🔄</span>
+          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch NPF</span>
         `;
       }
     } else {
@@ -1397,7 +1691,7 @@ function toggleNpfLarCard() {
       if (sub) {
         sub.innerHTML = `
           <span>KOL 3 (KL), 4 (D), 5 (M)</span>
-          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch LAR 🔄</span>
+          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch LAR</span>
         `;
       }
     }
@@ -1441,7 +1735,7 @@ function toggleNpfRatioCard() {
       if (sub) {
         sub.innerHTML = `
           <span>Posisi Penutupan Bulan Lalu</span>
-          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch Sekarang 🔄</span>
+          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch Sekarang</span>
         `;
       }
     } else {
@@ -1469,7 +1763,7 @@ function toggleNpfRatioCard() {
       if (sub) {
         sub.innerHTML = `
           <span>Batas OJK: &le; 7,00%</span>
-          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch ${data.lastMonthName.split(' ')[0]} 🔄</span>
+          <span style="font-size:10px;color:var(--brand);font-weight:700;background:var(--brand-light);padding:1px 6px;border-radius:4px;">Switch ${data.lastMonthName.split(' ')[0]}</span>
         `;
       }
     }
@@ -1711,6 +2005,13 @@ function maskPhone(phone, isUnmasked = false) {
   return clean.substring(0, 3) + '***' + clean.substring(clean.length - 2);
 }
 
+const ICON_PDP_VISIBLE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;display:inline-block;color:#0f766e;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const ICON_PDP_INVISIBLE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;display:inline-block;color:#64748b;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+function getPDPIcon(isUnmasked) {
+  return isUnmasked ? ICON_PDP_VISIBLE : ICON_PDP_INVISIBLE;
+}
+
 function togglePDPNik(debiturId) {
   pdpState.unmaskedNikMap[debiturId] = !pdpState.unmaskedNikMap[debiturId];
   const isUnmasked = !!pdpState.unmaskedNikMap[debiturId];
@@ -1721,7 +2022,7 @@ function togglePDPNik(debiturId) {
     nikElem.innerText = maskNIK(fullNik, isUnmasked);
   }
   if (btnElem) {
-    btnElem.innerText = isUnmasked ? '🔒' : '👁️';
+    btnElem.innerHTML = getPDPIcon(isUnmasked);
     btnElem.title = isUnmasked ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor NIK';
   }
 }
@@ -1736,7 +2037,7 @@ function togglePDPPhone(debiturId) {
     phoneElem.innerText = maskPhone(fullPhone, isUnmasked);
   }
   if (btnElem) {
-    btnElem.innerText = isUnmasked ? '🔒' : '👁️';
+    btnElem.innerHTML = getPDPIcon(isUnmasked);
     btnElem.title = isUnmasked ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor No. HP';
   }
 }
@@ -1887,14 +2188,17 @@ function renderDebiturList(res) {
         <button class="search-box-btn" type="button" onclick="executeDebiturSearch()">Cari</button>
       </div>
 
-      <!-- Filter KOL Pills -->
-      <div class="kol-filter" style="margin-bottom:0;">
-        <button class="kol-pill ${debState.filter === 'all' ? 'kp-active' : ''}" onclick="setDebFilter('all')">Semua <span class="kp-count">${counts.Semua || 0}</span></button>
-        <button class="kol-pill kp-lancar ${debState.filter === 'Lancar' ? 'kp-active' : ''}" onclick="setDebFilter('Lancar')">Lancar <span class="kp-count">${counts.Lancar || 0}</span></button>
-        <button class="kol-pill kp-dpk ${debState.filter === 'DPK' ? 'kp-active' : ''}" onclick="setDebFilter('DPK')">DPK <span class="kp-count">${counts.DPK || 0}</span></button>
-        <button class="kol-pill kp-kuranglancar ${debState.filter === 'Kurang Lancar' ? 'kp-active' : ''}" onclick="setDebFilter('Kurang Lancar')">KL <span class="kp-count">${counts['Kurang Lancar'] || 0}</span></button>
-        <button class="kol-pill kp-diragukan ${debState.filter === 'Diragukan' ? 'kp-active' : ''}" onclick="setDebFilter('Diragukan')">Diragukan <span class="kp-count">${counts.Diragukan || 0}</span></button>
-        <button class="kol-pill kp-macet ${debState.filter === 'Macet' ? 'kp-active' : ''}" onclick="setDebFilter('Macet')">Macet <span class="kp-count">${counts.Macet || 0}</span></button>
+      <!-- Filter KOL Pills & Density Toggle -->
+      <div class="kol-filter" style="margin-bottom:0;display:flex;align-items:center;width:100%;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="kol-pill ${debState.filter === 'all' ? 'kp-active' : ''}" onclick="setDebFilter('all')">Semua <span class="kp-count">${counts.Semua || 0}</span></button>
+          <button class="kol-pill kp-lancar ${debState.filter === 'Lancar' ? 'kp-active' : ''}" onclick="setDebFilter('Lancar')">Lancar <span class="kp-count">${counts.Lancar || 0}</span></button>
+          <button class="kol-pill kp-dpk ${debState.filter === 'DPK' ? 'kp-active' : ''}" onclick="setDebFilter('DPK')">DPK <span class="kp-count">${counts.DPK || 0}</span></button>
+          <button class="kol-pill kp-kuranglancar ${debState.filter === 'Kurang Lancar' ? 'kp-active' : ''}" onclick="setDebFilter('Kurang Lancar')">KL <span class="kp-count">${counts['Kurang Lancar'] || 0}</span></button>
+          <button class="kol-pill kp-diragukan ${debState.filter === 'Diragukan' ? 'kp-active' : ''}" onclick="setDebFilter('Diragukan')">Diragukan <span class="kp-count">${counts.Diragukan || 0}</span></button>
+          <button class="kol-pill kp-macet ${debState.filter === 'Macet' ? 'kp-active' : ''}" onclick="setDebFilter('Macet')">Macet <span class="kp-count">${counts.Macet || 0}</span></button>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm btn-density-toggle" onclick="toggleTableDensity()" style="font-size:12px;padding:4px 12px;border-radius:9999px;margin-left:auto;">${tableDensityState === 'compact' ? 'Mode Normal' : 'Mode Ringkas'}</button>
       </div>
     </div>
 
@@ -1921,12 +2225,12 @@ function renderDebiturList(res) {
               return `
               <tr onclick="viewDebiturDetail('${d.id}')" style="cursor:pointer;">
                 <td style="text-align:center;" class="mono text-muted font-bold">${rowNo}</td>
-                <td class="mono font-bold" style="color:var(--brand);">${d.id}</td>
+                <td class="mono font-bold" style="color:var(--brand);">${highlightSearchTerm(d.id, debState.search)}</td>
                 <td>
-                  <div class="tbl-name">${d.nama}</div>
+                  <div class="tbl-name">${highlightSearchTerm(d.nama, debState.search)}</div>
                   <div class="tbl-sub" style="display:flex;align-items:center;gap:4px;">
                     <span id="pdp-phone-${d.id}" data-full-phone="${d.telepon || ''}" class="mono">${maskPhone(d.telepon, pdpState.unmaskedPhoneMap[d.id])}</span>
-                    <button type="button" id="pdp-phone-btn-${d.id}" onclick="event.stopPropagation();togglePDPPhone('${d.id}')" title="${pdpState.unmaskedPhoneMap[d.id] ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor No. HP'}" style="border:none;background:none;cursor:pointer;font-size:11px;padding:0;">${pdpState.unmaskedPhoneMap[d.id] ? '🔒' : '👁️'}</button>
+                    <button type="button" id="pdp-phone-btn-${d.id}" onclick="event.stopPropagation();togglePDPPhone('${d.id}')" title="${pdpState.unmaskedPhoneMap[d.id] ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor No. HP'}" style="border:none;background:none;cursor:pointer;font-size:11px;padding:0;display:inline-flex;align-items:center;">${getPDPIcon(pdpState.unmaskedPhoneMap[d.id])}</button>
                     <span>&middot; ${d.kota || '-'}</span>
                   </div>
                 </td>
@@ -1937,9 +2241,9 @@ function renderDebiturList(res) {
                 <td class="mono" style="font-size:12px;">${formatDate(d.tglJt)}</td>
                 <td onclick="event.stopPropagation()" style="text-align:center;">
                   <div class="tbl-acts" style="justify-content:center;">
-                    <button class="tbl-btn wa" title="WhatsApp" onclick="window.open('https://wa.me/${formatPhone(d.telepon)}')">WA</button>
-                    <button class="tbl-btn call" title="Telepon" onclick="window.open('tel:${formatPhoneForCall(d.telepon)}')">Telp</button>
-                    <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;" onclick="viewDebiturDetail('${d.id}')">Detail</button>
+                    <button class="tbl-btn wa" title="WhatsApp" onclick="event.stopPropagation();window.open('https://wa.me/${formatPhone(d.telepon)}')">WA</button>
+                    <button class="tbl-btn call" title="Telepon" onclick="event.stopPropagation();window.open('tel:${formatPhoneForCall(d.telepon)}')">Telp</button>
+                    <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;" onclick="event.stopPropagation();viewDebiturDetail('${d.id}')">Detail</button>
                   </div>
                 </td>
               </tr>
@@ -2107,7 +2411,13 @@ async function viewDebiturDetail(id) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
         <div>
           <div style="font-size:18px;font-weight:800;color:var(--text);">${d.nama}</div>
-          <div class="mono" style="font-size:12px;color:var(--text-3);margin-top:2px;">Rek: ${d.id} &middot; CIF: ${d.cif || '-'}</div>
+          <div class="mono" style="font-size:12px;color:var(--text-3);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>Rek: <strong>${d.id}</strong></span>
+            <button type="button" onclick="copyToClipboard('${d.id}', 'No. Rekening')" title="Salin No. Rekening" style="border:none;background:rgba(15,118,110,0.1);color:var(--brand);border-radius:4px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>Salin Rekening</button>
+            <span>&middot;</span>
+            <span>CIF: <strong>${d.cif || '-'}</strong></span>
+            ${d.cif ? `<button type="button" onclick="copyToClipboard('${d.cif}', 'CIF')" title="Salin CIF" style="border:none;background:rgba(15,118,110,0.1);color:var(--brand);border-radius:4px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>Salin CIF</button>` : ''}
+          </div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           <span class="badge ${getKolBadgeClass(d.kol)}" style="font-size:12px;padding:5px 12px;">KOL ${d.kol}</span>
@@ -2142,7 +2452,7 @@ async function viewDebiturDetail(id) {
           </div>
           <div class="m-field-value mono" style="display:flex;align-items:center;gap:6px;">
             <span id="pdp-nik-${d.id}" data-full-nik="${d.nik || ''}">${maskNIK(d.nik, pdpState.unmaskedNikMap[d.id])}</span>
-            <button type="button" id="pdp-nik-btn-${d.id}" onclick="togglePDPNik('${d.id}')" title="${pdpState.unmaskedNikMap[d.id] ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor NIK'}" style="border:none;background:none;cursor:pointer;font-size:12px;">${pdpState.unmaskedNikMap[d.id] ? '🔒' : '👁️'}</button>
+            <button type="button" id="pdp-nik-btn-${d.id}" onclick="togglePDPNik('${d.id}')" title="${pdpState.unmaskedNikMap[d.id] ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor NIK'}" style="border:none;background:none;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;">${getPDPIcon(pdpState.unmaskedNikMap[d.id])}</button>
           </div>
         </div>
         <div><div class="m-field-label">Tgl Lahir / Umur</div><div class="m-field-value">${formatDate(d.tglLahir)} ${ageText ? `(${ageText})` : ''}</div></div>
@@ -2153,7 +2463,8 @@ async function viewDebiturDetail(id) {
           </div>
           <div class="m-field-value font-bold" style="display:flex;align-items:center;gap:6px;">
             <span id="pdp-phone-${d.id}" data-full-phone="${d.telepon || ''}">${maskPhone(d.telepon, pdpState.unmaskedPhoneMap[d.id])}</span>
-            <button type="button" id="pdp-phone-btn-${d.id}" onclick="togglePDPPhone('${d.id}')" title="${pdpState.unmaskedPhoneMap[d.id] ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor No. HP'}" style="border:none;background:none;cursor:pointer;font-size:12px;">${pdpState.unmaskedPhoneMap[d.id] ? '🔒' : '👁️'}</button>
+            <button type="button" id="pdp-phone-btn-${d.id}" onclick="togglePDPPhone('${d.id}')" title="${pdpState.unmaskedPhoneMap[d.id] ? 'Kunci kembali (PDP Sensor)' : 'Buka sensor No. HP'}" style="border:none;background:none;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;">${getPDPIcon(pdpState.unmaskedPhoneMap[d.id])}</button>
+            ${d.telepon ? `<button type="button" onclick="copyToClipboard('${d.telepon}', 'No. HP')" title="Salin No. HP" style="border:none;background:rgba(15,118,110,0.1);color:var(--brand);border-radius:4px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>Salin HP</button>` : ''}
           </div>
         </div>
         <div><div class="m-field-label">Pekerjaan</div><div class="m-field-value">${d.pekerjaan || '-'}</div></div>
@@ -2413,7 +2724,7 @@ function renderRedAlertTab(container, res) {
             <span>PEMANTAUAN RED ALERT</span>
             <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #991b1b; background: #fee2e2; padding: 4px 12px; border-radius: 20px; border: 1px solid #fca5a5;">
               <span class="red-alert-beacon-dot" style="width: 7px; height: 7px; border-radius: 50%; background: #dc2626; display: inline-block;"></span>
-              Pergeseran KOB (KOL 1 ➔ KOL 2)
+              Pergeseran (KOL 1 ➔ KOL 2)
             </span>
             <span style="font-size: 11px; font-weight: 800; color: #b91c1c; background: #fff; padding: 3px 10px; border-radius: 12px; border: 1px solid #fca5a5; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
               DPK (Dalam Pengawasan Khusus)
@@ -2519,10 +2830,10 @@ function renderRedAlertTab(container, res) {
             ${pageList.map((d, i) => {
               const itemIndex = (currentPage - 1) * pageSize + i + 1;
               return `
-              <tr>
+              <tr onclick="viewDebiturDetail('${d.id}')" style="cursor:pointer;">
                 <td>${itemIndex}</td>
                 <td>
-                  <div style="font-weight:800; color:#0F766E; cursor:pointer;" onclick="viewDebiturDetail('${d.id}')" title="Klik untuk lihat detail nasabah">${d.nama}</div>
+                  <div style="font-weight:800; color:#0F766E;" title="Klik untuk lihat detail nasabah">${d.nama}</div>
                   <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
                   ${d.telepon ? `<div style="font-size:11.5px; color:#475569; margin-top:2px;">Telp: ${d.telepon}</div>` : ''}
                 </td>
@@ -2616,6 +2927,7 @@ function switchDCTab(tab) {
   document.getElementById(`dctab-${tab}`)?.classList.add('active');
   loadDeskCallView();
 }
+window.switchDCTab = switchDCTab;
 
 async function changeInsightPeriode(periode) {
   window._insightPeriode = periode;
@@ -2853,7 +3165,7 @@ function renderDeskCallTab(res) {
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
           <div style="flex:1;">
             <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;margin-bottom:3px;">
-              <span style="color:var(--brand);">📞 Panggilan Telepon</span>
+              <span style="color:var(--brand);">Panggilan Telepon</span>
               <span>${telpCnt} (${telpPct}%)</span>
             </div>
             <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
@@ -2862,7 +3174,7 @@ function renderDeskCallTab(res) {
           </div>
           <div style="flex:1;">
             <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;margin-bottom:3px;">
-              <span style="color:var(--success);">💬 Pesan WhatsApp</span>
+              <span style="color:var(--success);">Pesan WhatsApp</span>
               <span>${waCnt} (${waPct}%)</span>
             </div>
             <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
@@ -3160,7 +3472,7 @@ function renderDeskCallTab(res) {
         <div class="card" style="padding:18px 20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <div style="font-size:14px;font-weight:800;color:var(--text);">Jam Paling Produktif (Effective Hours)</div>
-            ${peakHour !== '-' ? `<span class="badge badge-warning" style="font-size:11px;font-weight:800;">⭐ Golden Hour: ${peakHour}</span>` : ''}
+            ${peakHour !== '-' ? `<span class="badge badge-warning" style="font-size:11px;font-weight:800;">Golden Hour: ${peakHour}</span>` : ''}
           </div>
           <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Waktu terbaik saat nasabah paling sering mengangkat telepon.</div>
           
@@ -3535,8 +3847,12 @@ function generateClientSideDeskCallHarianCSV(data, isExcelExt = false) {
   const calls = data?.calls || [];
   const escapeCsv = (str) => {
     if (str === null || str === undefined) return '""';
-    const val = String(str).replace(/"/g, '""');
-    return `"${val}"`;
+    const val = String(str);
+    // Preserves leading zeros (e.g. 0812... or 001...) in Excel without scientific notation
+    if (/^0\d+$/.test(val) || (/^\d{6,}$/.test(val) && val.startsWith('0'))) {
+      return `="""${val}"""`;
+    }
+    return `"${val.replace(/"/g, '""')}"`;
   };
 
   let csvContent = '\uFEFF';
@@ -3582,8 +3898,12 @@ function generateClientSideDeskCallBulananCSV(data, isExcelExt = false) {
   const weeklyRekap = data?.weeklyRekap || [];
   const escapeCsv = (str) => {
     if (str === null || str === undefined) return '""';
-    const val = String(str).replace(/"/g, '""');
-    return `"${val}"`;
+    const val = String(str);
+    // Preserves leading zeros (e.g. 0812... or 001...) in Excel without scientific notation
+    if (/^0\d+$/.test(val) || (/^\d{6,}$/.test(val) && val.startsWith('0'))) {
+      return `="""${val}"""`;
+    }
+    return `"${val.replace(/"/g, '""')}"`;
   };
 
   let csvContent = '\uFEFF';
@@ -4154,11 +4474,15 @@ async function loadP3View() {
       <!-- 14-DAY CALENDAR STRIP -->
       <div class="p3-cal-strip-box">
         <div style="font-size:12.5px;font-weight:800;color:var(--brand);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <div style="display:flex;align-items:center;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span>CALENDAR STRIP AGENDA PENAGIHAN (14 HARI)</span>
+            <div style="display:inline-flex;gap:4px;">
+              <button class="btn btn-outline btn-sm" onclick="selectP3CalDate(new Date().toISOString().substring(0,10))" style="font-size:10.5px;padding:2px 8px;border-radius:9999px;">Hari Ini</button>
+              <button class="btn btn-outline btn-sm" onclick="selectP3CalDate('')" style="font-size:10.5px;padding:2px 8px;border-radius:9999px;">Semua Tanggal</button>
+            </div>
           </div>
           ${p3State.selectedDate ? `
-            <button class="btn btn-ghost btn-sm" onclick="selectP3CalDate('')" style="font-size:11.5px;padding:3px 10px;">✕ Reset Filter Tanggal (${formatDate(p3State.selectedDate)})</button>
+            <button class="btn btn-ghost btn-sm" onclick="selectP3CalDate('')" style="font-size:11.5px;padding:3px 10px;">Reset Filter Tanggal (${formatDate(p3State.selectedDate)})</button>
           ` : '<span style="font-size:11.5px;color:var(--text-3);font-weight:600;">Klik tanggal untuk menyaring agenda penagihan</span>'}
         </div>
         <div style="display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px 2px;scrollbar-width:thin;">
@@ -4268,8 +4592,8 @@ async function loadP3View() {
                     <div class="mono" style="font-size:11px;color:var(--text-2);margin-top:2px;">${formatDate(s.tanggal)} &middot; ${s.waktuMulai || ''}</div>
                   </td>
                   <td class="tbl-name" style="white-space:nowrap;padding:12px 14px;">
-                    <div style="font-size:13.5px;font-weight:700;">${s.namaDebitur}</div>
-                    <div class="mono" style="font-size:11px;color:var(--text-3);margin-top:2px;">Rek: ${s.debiturId} &middot; Area: ${s.area || '-'}</div>
+                    <div style="font-size:13.5px;font-weight:700;">${highlightSearchTerm(s.namaDebitur, p3State.q)}</div>
+                    <div class="mono" style="font-size:11px;color:var(--text-3);margin-top:2px;">Rek: ${highlightSearchTerm(s.debiturId, p3State.q)} &middot; Area: ${s.area || '-'}</div>
                   </td>
                   <td style="white-space:nowrap;padding:12px 14px;">
                     <span class="badge ${getPrioBadgeClass(s.prioritas)}" style="font-size:11px;padding:4px 9px;">${s.prioritas}</span>
@@ -4371,7 +4695,11 @@ async function viewP3Detail(id) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
         <div>
           <div style="font-size:16px;font-weight:800;color:var(--text);">${s.namaDebitur}</div>
-          <div class="mono" style="font-size:12px;color:var(--text-3);margin-top:2px;">Rek: ${s.debiturId} &middot; No. Jadwal: ${s.nomorJadwal}</div>
+          <div class="mono" style="font-size:12px;color:var(--text-3);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>Rek: <strong>${s.debiturId}</strong></span>
+            <button type="button" onclick="copyToClipboard('${s.debiturId}', 'No. Rekening')" title="Salin No. Rekening" style="border:none;background:rgba(15,118,110,0.1);color:var(--brand);border-radius:4px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>Salin Rekening</button>
+            <button type="button" onclick="shareDebiturSummary('${s.namaDebitur.replace(/'/g, "\\'")}', '${s.debitur?.telepon || ''}', '${s.debiturId}', ${s.targetNominal || 0}, '${(s.alamatVisit || s.debitur?.alamat || '').replace(/'/g, "\\'")}')" title="Bagikan Ringkasan" style="border:none;background:rgba(37,99,235,0.1);color:#2563EB;border-radius:4px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Bagikan Ringkasan</button>
+          </div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <span class="badge ${getStatusBadgeClass(s.status)}">${s.status}</span>
@@ -4399,7 +4727,7 @@ async function viewP3Detail(id) {
       <!-- FORM UPDATE HASIL KUNJUNGAN -->
       <div style="background:var(--bg-card);border:1.5px solid var(--brand-light);border-radius:12px;padding:16px;margin-bottom:18px;">
         <div style="font-weight:800;font-size:13.5px;color:var(--brand);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-          <span>📝 Catat Hasil Kunjungan &amp; Update Status</span>
+          <span>Catat Hasil Kunjungan &amp; Update Status</span>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -4429,7 +4757,7 @@ async function viewP3Detail(id) {
       <!-- FOTO KUNJUNGAN SECTION (DRAG & DROP + THUMBNAILS + LIGHTBOX) -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
         <div style="font-weight:800;font-size:13.5px;color:var(--brand);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
-          <span>📷 Foto Bukti Kunjungan Lapangan (${photos.length}/5 Foto)</span>
+          <span>Foto Bukti Kunjungan Lapangan (${photos.length}/5 Foto)</span>
           <span style="font-size:11px;color:var(--text-3);">Watermark GPS &amp; Timestamp Otomatis</span>
         </div>
 
@@ -4444,13 +4772,13 @@ async function viewP3Detail(id) {
             <p style="font-size:11px;color:var(--text-3);margin-top:2px;">Otomatis di-watermark GPS, Waktu, &amp; Nama Petugas · Format PNG/JPG/WebP · Maks 8MB</p>
           </div>
           <input type="file" id="p3-photo-file-input" accept="image/*" capture="environment" multiple style="display:none;" onchange="uploadP3PhotosFromDrop('${s.id}', this.files)"/>
-        ` : '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:10px;">⚠️ Jumlah foto sudah mencapai batas maksimum (5 foto). Hapus foto lama jika ingin mengganti.</div>'}
+        ` : '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:10px;">Jumlah foto sudah mencapai batas maksimum (5 foto). Hapus foto lama jika ingin mengganti.</div>'}
 
         <!-- THUMBNAIL GRID -->
         <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(110px, 1fr));gap:10px;margin-top:10px;">
           ${photos.length === 0 ? '<div style="font-size:12px;color:var(--text-3);grid-column:1/-1;">Belum ada foto kunjungan yang diunggah.</div>' : photos.map((f, idx) => `
             <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#000;aspect-ratio:1/1;">
-              <img src="${f.filePath}" alt="Foto ${idx+1}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox('${f.filePath}', 'Foto Kunjungan P3 — ${s.nomorJadwal}')"/>
+              <img src="${f.filePath}" loading="lazy" alt="Foto ${idx+1}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox('${f.filePath}', 'Foto Kunjungan P3 — ${s.nomorJadwal}')"/>
               <button onclick="deleteP3Photo('${s.id}', '${f.id}')" title="Hapus Foto" style="position:absolute;top:4px;right:4px;background:rgba(217,45,32,0.85);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
             </div>
           `).join('')}
@@ -4518,19 +4846,19 @@ async function watermarkPhotoWithGPS(file, lat, lng, userName) {
         let textY = bannerY + fontSize + 10;
 
         // Line 1: Header / Bank Name
-        ctx.fillText(`🏢 BPRS MITRA HARMONI YOGYAKARTA — PROOF OF VISIT`, paddingX, textY);
-        textY += fontSize + 6;
+        ctx.fillText(`BPRS MITRA HARMONI YOGYAKARTA — PROOF OF VISIT`, paddingX, textY);
+        textY += fontSize + 4;
+        ctx.font = `600 ${fontSize - 1}px "Plus Jakarta Sans", sans-serif`;
 
         // Line 2: GPS & Timestamp
         const dateStr = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
-        const gpsStr = (lat && lng) ? `📍 GPS: Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}` : '📍 GPS: Geolocation Active';
-        ctx.fillText(`${gpsStr}  •  🕒 ${dateStr}`, paddingX, textY);
-        textY += fontSize + 6;
+        const gpsStr = (lat && lng) ? `GPS: Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}` : 'GPS: Geolocation Active';
+        ctx.fillText(`${gpsStr}  •  ${dateStr}`, paddingX, textY);
+        textY += fontSize + 4;
 
         // Line 3: Petugas
-        ctx.font = `600 ${fontSize * 0.9}px "Plus Jakarta Sans", sans-serif`;
         ctx.fillStyle = '#2DD4BF';
-        ctx.fillText(`Petugas P3: ${userName || 'Staff Penagihan'}`, paddingX, textY);
+        ctx.fillText(`Petugas: ${userName || 'Field Officer'} (P3)`, paddingX, textY);
 
         // Export canvas to JPEG Blob / File
         canvas.toBlob((blob) => {
@@ -4553,150 +4881,88 @@ async function watermarkPhotoWithGPS(file, lat, lng, userName) {
   });
 }
 
-// LEAFLET MAP & GEOLOCATION RUTE INTEGRATION
-let leafletMap = null;
-let leafletMarkersLayer = null;
-
-async function openP3MapModal() {
+// Interactive Map & Google Maps Routing
+function openMapModal(lat, lng, address, name) {
   openModal('modal-map-view');
   setTimeout(() => {
-    initLeafletMap();
-    renderMapMarkers();
+    initLeafletMap(lat, lng, address, name);
   }, 200);
 }
 
-function initLeafletMap() {
-  const container = document.getElementById('p3-map-container');
-  if (!container || typeof L === 'undefined') return;
+function initLeafletMap(lat, lng, address, name) {
+  const container = document.getElementById('map-container');
+  if (!container) return;
 
-  if (leafletMap) {
-    leafletMap.invalidateSize();
-    return;
+  if (window._leafletMap) {
+    window._leafletMap.remove();
+    window._leafletMap = null;
   }
 
-  // Centered at Yogyakarta (-7.7956, 110.3695)
-  leafletMap = L.map('p3-map-container').setView([-7.7956, 110.3695], 11);
+  const map = L.map('map-container').setView([lat, lng], 15);
+  window._leafletMap = map;
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap BPRS Mitra Harmoni'
-  }).addTo(leafletMap);
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
 
-  leafletMarkersLayer = L.layerGroup().addTo(leafletMap);
-}
+  const marker = L.marker([lat, lng]).addTo(map);
+  marker.bindPopup(`<b>${name || 'Lokasi Debitur'}</b><br/>${address || ''}`).openPopup();
 
-async function renderMapMarkers() {
-  if (!leafletMap || !leafletMarkersLayer) return;
-  leafletMarkersLayer.clearLayers();
-
-  const filterKol = document.getElementById('map-filter-kol')?.value || 'NPF';
-  const infoEl = document.getElementById('map-info-text');
-
-  try {
-    const res = await apiCall('/debitur?limit=200');
-    let list = res.debiturs || [];
-
-    if (filterKol === 'NPF') {
-      list = list.filter(d => ['3', '4', '5'].includes(String(d.kol)));
-    } else if (filterKol !== 'Semua') {
-      list = list.filter(d => String(d.kol) === filterKol);
-    }
-
-    if (infoEl) infoEl.innerText = `Menampilkan ${list.length} lokasi debitur (${filterKol === 'NPF' ? 'KOL 3-5 NPF' : 'Filter KOL ' + filterKol})`;
-
-    // Base coordinates for Yogyakarta districts
-    const baseCoords = {
-      'Yogyakarta': [-7.7956, 110.3695],
-      'Sleman': [-7.7156, 110.3555],
-      'Bantul': [-7.8886, 110.3295],
-      'Kulon Progo': [-7.8256, 110.1555],
-      'Gunungkidul': [-7.9656, 110.6055]
+  // Route Button
+  const routeBtn = document.getElementById('map-route-btn');
+  if (routeBtn) {
+    routeBtn.onclick = () => {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
     };
-
-    list.forEach((d, idx) => {
-      let lat = d.latitude;
-      let lng = d.longitude;
-
-      if (!lat || !lng) {
-        const base = baseCoords[d.kota] || baseCoords['Yogyakarta'];
-        const hash = (d.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + idx) % 1000;
-        const offsetLat = ((hash % 100) - 50) * 0.0018;
-        const offsetLng = (((hash * 3) % 100) - 50) * 0.0018;
-        lat = base[0] + offsetLat;
-        lng = base[1] + offsetLng;
-      }
-
-      let kolColor = '#10B981'; // Green
-      if (String(d.kol) === '5') kolColor = '#EF4444'; // Red
-      else if (String(d.kol) === '4') kolColor = '#F59E0B'; // Orange
-      else if (String(d.kol) === '3') kolColor = '#D97706'; // Amber
-
-      const markerHtml = `<div style="background:${kolColor};width:16px;height:16px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>`;
-      const customIcon = L.divIcon({
-        html: markerHtml,
-        className: 'custom-map-pin',
-        iconSize: [16, 16],
-        iconAnchor: [8, 8]
-      });
-
-      const googleRouteUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-
-      const popupContent = `
-        <div style="font-family:'Plus Jakarta Sans',sans-serif;padding:4px;min-width:200px;">
-          <div style="font-weight:800;font-size:14px;color:#0F172A;margin-bottom:2px;">${d.nama}</div>
-          <div style="font-size:11px;color:#64748B;margin-bottom:6px;">Rek: ${d.id} &middot; <span style="font-weight:700;color:${kolColor};">KOL ${d.kol}</span></div>
-          <div style="font-size:12px;color:#334155;margin-bottom:4px;">Tunggakan: <strong style="color:#DC2626;">${formatRupiah(d.totalTunggakan)}</strong></div>
-          <div style="font-size:11.5px;color:#64748B;margin-bottom:10px;">${d.alamat || '-'}, ${d.kota || ''}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <a href="${googleRouteUrl}" target="_blank" class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 10px;text-decoration:none;color:#fff;">
-              🚗 Buka Rute Google Maps
-            </a>
-            <button class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px;" onclick="closeModal('modal-map-view');viewDebiturDetail('${d.id}')">
-              Profile Debitur
-            </button>
-          </div>
-        </div>
-      `;
-
-      L.marker([lat, lng], { icon: customIcon })
-        .addTo(leafletMarkersLayer)
-        .bindPopup(popupContent);
-    });
-  } catch (e) {
-    if (infoEl) infoEl.innerText = `Gagal memuat lokasi: ${e.message}`;
   }
 }
 
-function locateUserPosition() {
-  if (!navigator.geolocation) {
-    showToast('Browser Anda tidak mendukung GPS Geolocation', 'w');
-    return;
+function getUserLocationAndShowMap(debLat, debLng, debAddress, debName) {
+  openModal('modal-map-view');
+  const routeBtn = document.getElementById('map-route-btn');
+  if (routeBtn) {
+    routeBtn.onclick = () => {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${debLat},${debLng}`, '_blank');
+    };
   }
 
-  showToast('Mendeteksi posisi GPS Anda...', 'i');
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((pos) => {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
 
-      if (leafletMap) {
-        leafletMap.setView([lat, lng], 14);
-        const userMarker = L.marker([lat, lng]).addTo(leafletMarkersLayer);
-        userMarker.bindPopup(`<b>📍 Lokasi Anda Saat Ini (Check-in)</b><br>Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`).openPopup();
+      if (window._leafletMap) {
+        window._leafletMap.remove();
+        window._leafletMap = null;
       }
+
+      const map = L.map('map-container').setView([lat, lng], 14);
+      window._leafletMap = map;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+
+      // User Marker
+      const userMarker = L.marker([lat, lng]).addTo(map);
+      userMarker.bindPopup(`<b>Lokasi Anda Saat Ini (Check-in)</b><br>Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`).openPopup();
+      
       showToast(`GPS Terdeteksi: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`, 's');
     },
     (err) => {
       showToast(`Gagal membaca GPS: ${err.message}`, 'w');
     },
     { enableHighAccuracy: true, timeout: 8000 }
-  );
+    );
+  }
 }
 
-async function saveP3VisitResult(id) {
-  const status = document.getElementById('p3d-status')?.value;
-  const nominalRealisasi = document.getElementById('p3d-realisasi')?.value;
-  const hasil = document.getElementById('p3d-hasil')?.value;
+async function saveP3VisitResult(id, btnEl) {
+  const targetBtn = btnEl || event?.target || document.querySelector('#modal-p3-detail .btn-primary');
+  return protectButtonSubmit(targetBtn, async () => {
+    const status = document.getElementById('p3d-status')?.value;
+    const nominalRealisasi = document.getElementById('p3d-realisasi')?.value;
+    const hasil = document.getElementById('p3d-hasil')?.value;
 
   const payload = {
     status,
@@ -4724,6 +4990,7 @@ async function saveP3VisitResult(id) {
   } else {
     await sendP3Update(id, payload);
   }
+  });
 }
 
 async function sendP3Update(id, payload) {
@@ -4734,6 +5001,7 @@ async function sendP3Update(id, payload) {
       body: JSON.stringify(payload)
     });
     showToast('Hasil kunjungan P3 berhasil diperbarui', 's');
+    clearP3VisitDraft(id);
     viewP3Detail(id);
     if (typeof loadP3View === 'function') loadP3View();
   } catch (err) {
@@ -7126,8 +7394,8 @@ async function loadAboutView() {
           </div>
           <div>
             <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Kepatuhan &amp; Regulasi</div>
-            <div style="font-size:13.5px;font-weight:800;color:#0f766e;margin-top:4px;">Regulasi OJK &amp; DSN-MUI</div>
-            <div style="font-size:11.5px;color:#64748b;margin-top:2px;">Standar Penanganan NPF Syariah</div>
+            <div style="font-size:13.5px;font-weight:800;color:#0f766e;margin-top:4px;">POJK 22/2023 &amp; Fatwa DSN-MUI</div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:2px;">Standar Penagihan &amp; Tata Kelola NPF Syariah</div>
           </div>
         </div>
 
@@ -7471,6 +7739,8 @@ async function openDCModal(debiturId) {
     if (dcfDeb) dcfDeb.value = '';
   }
 
+  initDraftProtection();
+  restoreDeskCallDraft();
   openModal('modal-dc-form');
 }
 
@@ -7519,8 +7789,10 @@ function selectDCDebitur(id, nama, bakiDebet) {
   if (ac) ac.style.display = 'none';
 }
 
-async function saveDC() {
-  const dcfDeb = document.getElementById('dcf-debitur')?.value || '';
+async function saveDC(btnEl) {
+  const targetBtn = btnEl || event?.target || document.querySelector('#modal-dc-form .btn-primary');
+  return protectButtonSubmit(targetBtn, async () => {
+    const dcfDeb = document.getElementById('dcf-debitur')?.value || '';
   const dcfTgl = document.getElementById('dcf-tgl')?.value || '';
   const dcfJenis = document.getElementById('dcf-jenis')?.value || 'Telepon';
   const dcfStatus = document.getElementById('dcf-status')?.value || 'Terhubung';
@@ -7616,6 +7888,7 @@ async function saveDC() {
       body: JSON.stringify(payload)
     });
     showToast('Catatan Desk Call berhasil disimpan', 's');
+    clearDeskCallDraft();
     closeModal('modal-dc-form');
     if (typeof loadDeskCallView === 'function') loadDeskCallView();
     if (typeof loadDashboardView === 'function') loadDashboardView();
@@ -7630,6 +7903,7 @@ async function saveDC() {
   } catch (err) {
     showToast(`Gagal menyimpan Desk Call: ${err.message}`, 'e');
   }
+  });
 }
 
 let selectedPayDebiturId = '';
@@ -7990,7 +8264,7 @@ async function exportSuratPDF(suratId) {
       </head>
       <body>
         <div class="no-print" style="margin-bottom: 20px; text-align: right;">
-          <button onclick="window.print()" style="background:#0F766E;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:bold;">🖨️ Cetak / Simpan PDF</button>
+          <button onclick="window.print()" style="background:#0F766E;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:bold;">Cetak / Simpan PDF</button>
         </div>
 
         <div class="kop-header">
@@ -8493,10 +8767,10 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
             ${pageDebiturs.map((d, i) => {
               const itemIndex = (currentPage - 1) * pageSize + i + 1;
               return `
-              <tr>
+              <tr onclick="viewDebiturDetail('${d.id}')" style="cursor:pointer;">
                 <td>${itemIndex}</td>
                 <td>
-                  <div style="font-weight:800; color:#0F766E; cursor:pointer;" onclick="viewDebiturDetail('${d.id}')" title="Klik untuk lihat detail nasabah">${d.nama}</div>
+                  <div style="font-weight:800; color:#0F766E;" title="Klik untuk lihat detail nasabah">${d.nama}</div>
                   <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
                 </td>
                 <td style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
@@ -8516,10 +8790,10 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
                 <td style="text-align:center;">
                   <span class="badge ${d.kol === 'Lancar' ? 'badge-teal' : (d.kol === 'DPK' ? 'badge-yellow' : 'badge-red')}">${d.kol}</span>
                 </td>
-                <td style="text-align:center;">
+                <td style="text-align:center;" onclick="event.stopPropagation()">
                   <div style="display:flex; gap:4px; justify-content:center;">
-                    <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px;" onclick="openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "&apos;")}')">+ Log</button>
-                    <button class="btn btn-outline btn-sm" onclick="sendEwsWaReminder('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.telepon}', ${d.totalTunggakan}, '${d.tglJt}')" style="font-size:11px; padding:4px 8px; border-color:#25D366; color:#25D366; border-radius:8px;" title="Kirim WA">WA</button>
+                    <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px;" onclick="event.stopPropagation(); openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "&apos;")}')">+ Log</button>
+                    <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); sendEwsWaReminder('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.telepon}', ${d.totalTunggakan}, '${d.tglJt}')" style="font-size:11px; padding:4px 8px; border-color:#25D366; color:#25D366; border-radius:8px;" title="Kirim WA">WA</button>
                   </div>
                 </td>
               </tr>
@@ -8911,10 +9185,10 @@ function renderHistorisUI(container, summary, nasabah) {
             ${pageList.map((d, i) => {
               const itemIndex = (currentPage - 1) * pageSize + i + 1;
               return `
-              <tr>
+              <tr onclick="viewDebiturDetail('${d.id}')" style="cursor:pointer;">
                 <td>${itemIndex}</td>
                 <td>
-                  <div style="font-weight: 800; color: #0f766e; cursor: pointer;" onclick="viewDebiturDetail('${d.id}')" title="Klik detail nasabah">${d.nama}</div>
+                  <div style="font-weight: 800; color: #0f766e;" title="Klik detail nasabah">${d.nama}</div>
                   <div class="mono" style="font-size: 11px; color: #64748b;">Rek: ${d.id}</div>
                 </td>
                 <td style="font-weight: 600; color: #334155;">${d.ao || '-'}</td>
@@ -8929,8 +9203,8 @@ function renderHistorisUI(container, summary, nasabah) {
                 <td style="text-align: center;">
                   <span class="badge ${getEwsBadgeClass(d.kol)}">${d.kol}</span>
                 </td>
-                <td style="text-align: center;">
-                  <button class="btn btn-outline btn-sm" style="font-size: 11px; padding: 4px 10px; border-radius: 10px; font-weight: 700;" onclick="viewDebiturDetail('${d.id}')">Detail</button>
+                <td style="text-align: center;" onclick="event.stopPropagation()">
+                  <button class="btn btn-outline btn-sm" style="font-size: 11px; padding: 4px 10px; border-radius: 10px; font-weight: 700;" onclick="event.stopPropagation(); viewDebiturDetail('${d.id}')">Detail</button>
                 </td>
               </tr>
             `;}).join('') || `<tr><td colspan="9" style="text-align:center; color:#64748b; padding:32px 16px;"><div style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:4px;">Tidak ada data nasabah ditemukan</div><div style="font-size:12.5px; color:#64748b; margin-bottom:14px;">${historisState.search ? `Hasil pencarian kata kunci "<strong style="color:#0f172a;">${historisState.search}</strong>" nihil.` : 'Belum ada data nasabah menunggak pada periode ini.'}</div>${historisState.search ? `<button onclick="historisState.search=''; historisState.page=1; loadHistorisView();" class="btn btn-primary btn-sm" style="border-radius:12px; font-weight:700; padding:6px 18px; background:linear-gradient(135deg, #0f766e 0%, #0d9488 100%); border:none;">Reset Pencarian</button>` : ''}</td></tr>`}

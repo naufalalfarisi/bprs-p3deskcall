@@ -285,123 +285,113 @@
 
 <body class="mesh-bg min-h-screen flex flex-col">
   <div id="toast-zone"></div>
-
   <!-- AUTH OVERLAY -->
-  <div id="auth-overlay" class="min-h-screen flex flex-col justify-between bg-slate-50 font-sans">
+  <div id="auth-overlay" class="h-screen w-screen flex flex-col justify-between font-sans relative overflow-hidden" style="position: fixed; inset: 0; z-index: 99999; overflow: hidden !important; background: linear-gradient(135deg, #f0fdf4 0%, #ccfbf1 35%, #e0f2fe 75%, #f8fafc 100%);">
+
+    <!-- Ambient Soft Light Orbs Background -->
+    <div class="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-teal-300/30 blur-3xl pointer-events-none animate-pulse"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-emerald-200/30 blur-3xl pointer-events-none"></div>
 
     <!-- Institutional Top Header -->
-    <header
-      class="w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-6 py-3.5 flex justify-between items-center max-w-[1440px] mx-auto flex-shrink-0">
-      <div class="flex items-center gap-3">
-        <div
-          class="w-9 h-9 rounded-xl bg-[#0F766E] text-white flex items-center justify-center font-bold text-sm shadow-md tracking-wider auth-logo">
+    <header class="w-full border-b border-slate-200/80 bg-white/85 backdrop-blur-xl px-6 py-2 flex justify-between items-center max-w-[1440px] mx-auto flex-shrink-0 relative z-20 shadow-sm">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0f766e] to-[#0d9488] text-white flex items-center justify-center font-black text-xs shadow-md shadow-teal-700/20 border border-teal-300/40 tracking-wider auth-logo">
           BM
         </div>
         <div>
-          <div class="font-extrabold text-sm text-slate-900 tracking-tight leading-none" id="auth-header-pt-name">PT
-            BPRS MITRA HARMONI YOGYAKARTA</div>
-          <div class="text-[10px] font-bold text-[#0F766E] tracking-wider uppercase mt-0.5">Sistem Informasi Penagihan
-            Terpadu AO, P3 &amp; Desk Call</div>
+          <div class="font-black text-xs md:text-sm text-slate-900 tracking-tight leading-none" id="auth-header-pt-name">PT BPRS MITRA HARMONI YOGYAKARTA</div>
+          <div class="text-[9.5px] font-bold text-[#0f766e] tracking-wider uppercase mt-0.5 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Sistem Informasi Penagihan Terpadu (AO, P3, Desk Call, &amp; Legal)
+          </div>
         </div>
       </div>
-      <div class="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
-        <div
-          class="flex items-center gap-1.5 text-teal-800 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-200/60">
-          <span class="material-symbols-outlined text-base">verified_user</span>
-          <span class="text-[11px] font-bold">Portal Keuangan Terenkripsi 256-Bit</span>
+      <div class="hidden md:flex items-center gap-4 text-xs font-semibold text-slate-700">
+        <div class="flex items-center gap-1.5 text-teal-900 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/80 shadow-sm">
+          <span class="material-symbols-outlined text-sm text-[#0f766e]">verified_user</span>
+          <span class="text-[10px] font-extrabold tracking-wide">Portal Bank Terenkripsi 256-Bit SSL</span>
         </div>
       </div>
     </header>
 
-    <!-- Main Auth Canvas (Dual-Column Enterprise Banking Card) -->
-    <main class="flex-1 flex items-center justify-center p-4 md:p-8">
-      <div
-        class="w-full max-w-[960px] bg-white rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col md:flex-row">
+    <!-- Main Auth Canvas (Proportional Enterprise Banking Card) -->
+    <main class="flex-1 flex items-center justify-center p-3 md:p-4 my-auto overflow-hidden relative z-10">
+      <div class="w-full max-w-[840px] bg-white rounded-[22px] shadow-[0_18px_50px_-15px_rgba(15,118,110,0.16),0_4px_14px_rgba(0,0,0,0.03)] border border-slate-200/80 overflow-hidden flex flex-col md:flex-row my-auto">
 
-        <!-- LEFT HERO BRAND PANEL (Emerald Banking Motif) -->
-        <div
-          class="md:w-5/12 bg-gradient-to-br from-[#074742] via-[#0F766E] to-[#115E59] p-8 md:p-10 text-white flex flex-col justify-between relative overflow-hidden">
-          <!-- Background Decorative Glow -->
-          <div class="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-teal-400/10 blur-3xl pointer-events-none">
-          </div>
-          <div
-            class="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-emerald-300/10 blur-3xl pointer-events-none">
-          </div>
+        <!-- LEFT HERO BRAND PANEL -->
+        <div class="md:w-5/12 bg-gradient-to-br from-[#0d9488] via-[#0f766e] to-[#115e59] p-6 md:p-7 text-white flex flex-col justify-between relative overflow-hidden">
+          <!-- Background Pattern Overlay -->
+          <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:18px_18px] pointer-events-none"></div>
 
           <!-- Top Hero Content -->
           <div class="relative z-10">
-            <div
-              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold mb-6 text-teal-100">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Enterprise Banking Portal</span>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-[10px] font-bold mb-3.5 text-white shadow-sm">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping"></span>
+              <span>Enterprise Banking Portal v3.2</span>
             </div>
 
-            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight leading-tight mb-3">
+            <h2 class="text-xl font-black tracking-tight leading-tight mb-2 text-white">
               Sistem Informasi Penagihan Terpadu
             </h2>
-            <p class="text-xs md:text-sm text-teal-100/90 leading-relaxed font-medium mb-6">
-              Platform manajemen data penagihan lapangan (AO &amp; P3), monitoring Desk Call, serta pengelolaan berkas
-              legal <span id="auth-pt-name">PT BPRS Mitra Harmoni Yogyakarta</span>.
+            <p class="text-[11.5px] text-teal-50/95 leading-relaxed font-medium mb-4">
+              Platform penagihan lapangan (AO &amp; P3), monitoring Desk Call, serta pengelolaan legal <span id="auth-pt-name" class="font-bold text-white underline decoration-emerald-300 decoration-2 underline-offset-2">PT BPRS Mitra Harmoni Yogyakarta</span>.
             </p>
 
-            <!-- Key Highlights -->
-            <div class="space-y-3.5 pt-2">
-              <div class="flex items-center gap-3 text-xs text-teal-50">
-                <div
-                  class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-emerald-300 flex-shrink-0">
-                  <span class="material-symbols-outlined text-base">shield_lock</span>
+            <!-- Key Highlights Cards -->
+            <div class="space-y-2 pt-0.5">
+              <div class="flex items-center gap-2.5 text-[11.5px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20">
+                <div class="w-6.5 h-6.5 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
+                  <span class="material-symbols-outlined text-sm">shield_lock</span>
                 </div>
-                <span class="font-semibold">Otentikasi Berlapis &amp; Role Management</span>
+                <span class="font-bold">Otentikasi Berlapis &amp; PDP</span>
               </div>
-              <div class="flex items-center gap-3 text-xs text-teal-50">
-                <div
-                  class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-emerald-300 flex-shrink-0">
-                  <span class="material-symbols-outlined text-base">analytics</span>
+              <div class="flex items-center gap-2.5 text-[11.5px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20">
+                <div class="w-6.5 h-6.5 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
+                  <span class="material-symbols-outlined text-sm">analytics</span>
                 </div>
-                <span class="font-semibold">Monitoring Real-Time KPI &amp; Roll Rate NPF</span>
+                <span class="font-bold">Monitoring KPI &amp; Roll Rate NPF</span>
               </div>
-              <div class="flex items-center gap-3 text-xs text-teal-50">
-                <div
-                  class="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-emerald-300 flex-shrink-0">
-                  <span class="material-symbols-outlined text-base">assignment_turned_in</span>
+              <div class="flex items-center gap-2.5 text-[11.5px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20">
+                <div class="w-6.5 h-6.5 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
+                  <span class="material-symbols-outlined text-sm">assignment_turned_in</span>
                 </div>
-                <span class="font-semibold">Dokumentasi Bukti Kunjungan P3 &amp; Audit Trail</span>
+                <span class="font-bold">Bukti Kunjungan &amp; Audit Trail</span>
               </div>
             </div>
           </div>
 
           <!-- Bottom Security Badges -->
-          <div
-            class="relative z-10 pt-8 mt-6 border-t border-white/15 flex items-center justify-between text-[11px] text-teal-100/80">
-            <div class="flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-base text-emerald-300">gpp_good</span>
-              <span class="font-semibold">Pengawasan OJK</span>
+          <div class="relative z-10 pt-3 mt-4 border-t border-white/20 flex items-center justify-between text-[10px] text-teal-50 font-semibold">
+            <div class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-emerald-200">gpp_good</span>
+              <span>Regulasi OJK &amp; DSN-MUI</span>
             </div>
-            <div class="flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-base text-emerald-300">lock</span>
-              <span class="font-semibold">SSL 256-Bit</span>
+            <div class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-emerald-200">lock</span>
+              <span>Enkripsi SSL 256-Bit</span>
             </div>
           </div>
         </div>
 
         <!-- RIGHT FORM PANEL -->
-        <div class="md:w-7/12 p-8 md:p-10 flex flex-col justify-between bg-white">
+        <div class="md:w-7/12 p-6 md:p-7 flex flex-col justify-between bg-white overflow-hidden">
           <div>
             <!-- Header -->
-            <div class="mb-6">
-              <h3 class="text-xl font-bold text-slate-900 tracking-tight mb-1">Selamat Datang Kembali</h3>
-              <p class="text-xs text-slate-500 font-medium">Silakan masuk menggunakan akun atau NIP resmi Anda.</p>
+            <div class="mb-3.5">
+              <div class="inline-block text-[9.5px] font-extrabold text-[#0F766E] uppercase tracking-wider bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/60 mb-1">Portal Otentikasi Resmi</div>
+              <h3 class="text-xl font-black text-slate-900 tracking-tight leading-snug">Selamat Datang Kembali</h3>
+              <p class="text-xs text-slate-500 font-medium">Silakan masuk menggunakan username, email, atau NIP resmi Anda.</p>
             </div>
 
             <!-- Auth Tab Switcher -->
-            <div class="flex p-1 bg-slate-100 rounded-xl mb-6 border border-slate-200/80">
+            <div class="flex p-1 bg-slate-100 rounded-xl mb-3.5 border border-slate-200/90 shadow-inner">
               <button id="tab-btn-login"
-                class="flex-1 py-2.5 text-xs font-bold rounded-lg transition-all shadow-sm bg-white text-[#0F766E]"
+                class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all shadow-md bg-white text-[#0F766E] border border-slate-200/50 cursor-pointer"
                 onclick="switchAuthTab('login')">
                 Masuk Akun
               </button>
               <button id="tab-btn-register"
-                class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900"
+                class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900 cursor-pointer"
                 onclick="switchAuthTab('register')">
                 Daftar Akun Baru
               </button>
@@ -409,172 +399,170 @@
 
             <!-- LOGIN FORM -->
             <div id="page-login">
-              <form class="space-y-4" id="loginForm" onsubmit="event.preventDefault();handleLogin();">
+              <form class="space-y-3" id="loginForm" onsubmit="event.preventDefault();handleLogin();">
                 <!-- Username -->
                 <div>
-                  <label class="block text-[11.5px] font-bold text-slate-700 uppercase tracking-wider mb-1.5"
+                  <label class="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-1"
                     for="l-user">Username / NIP</label>
                   <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <span class="material-symbols-outlined text-lg">person</span>
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <span class="material-symbols-outlined text-base text-slate-400">person</span>
                     </div>
                     <input
-                      class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:ring-4 focus:ring-[#0F766E]/12 transition-all font-medium"
+                      class="w-full pl-9 pr-3 py-2 bg-slate-50/70 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-2 focus:ring-[#0F766E]/12 transition-all font-semibold"
                       id="l-user" name="username" placeholder="Masukkan Username / NIP" required="" type="text"
-                      autocomplete="username" />
+                      autocomplete="username" style="height:40px !important;" />
                   </div>
                 </div>
 
                 <!-- Password -->
                 <div>
-                  <div class="flex justify-between items-center mb-1.5">
-                    <label class="block text-[11.5px] font-bold text-slate-700 uppercase tracking-wider"
+                  <div class="flex justify-between items-center mb-1">
+                    <label class="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider"
                       for="l-pass">Kata Sandi</label>
-                    <a class="text-xs font-bold text-[#0F766E] hover:underline" href="#"
+                    <a class="text-[11px] font-bold text-[#0F766E] hover:underline" href="#"
                       onclick="event.preventDefault();openModal('modal-forgot-pw')">Lupa Kata Sandi?</a>
                   </div>
                   <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <span class="material-symbols-outlined text-lg">lock</span>
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <span class="material-symbols-outlined text-base text-slate-400">lock</span>
                     </div>
                     <input
-                      class="w-full pl-10 pr-11 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:ring-4 focus:ring-[#0F766E]/12 transition-all font-medium"
-                      id="l-pass" name="password" placeholder="••••••••" required="" type="password" />
+                      class="w-full pl-9 pr-10 py-2 bg-slate-50/70 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-2 focus:ring-[#0F766E]/12 transition-all font-semibold"
+                      id="l-pass" name="password" placeholder="••••••••" required="" type="password" style="height:40px !important;" />
                     <button
-                      class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600"
+                      class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                       onclick="togglePw('l-pass')" type="button">
-                      <span class="material-symbols-outlined text-lg" id="l-pass-icon">visibility</span>
+                      <span class="material-symbols-outlined text-base" id="l-pass-icon">visibility</span>
                     </button>
                   </div>
                 </div>
 
                 <!-- Remember Me -->
-                <div class="flex items-center pt-1">
-                  <input
-                    class="w-4 h-4 rounded border-slate-300 text-[#0F766E] focus:ring-[#0F766E] accent-[#0F766E] cursor-pointer"
-                    id="remember" type="checkbox" />
-                  <label class="ml-2.5 text-xs text-slate-600 font-semibold cursor-pointer" for="remember">Tetap masuk
-                    di perangkat ini</label>
+                <div class="flex items-center justify-between pt-0.5">
+                  <label class="flex items-center gap-2 text-xs text-slate-600 font-semibold cursor-pointer select-none">
+                    <input
+                      class="w-3.5 h-3.5 rounded border-slate-300 text-[#0F766E] focus:ring-[#0F766E] accent-[#0F766E] cursor-pointer"
+                      id="remember" type="checkbox" />
+                    <span>Tetap masuk di perangkat ini</span>
+                  </label>
                 </div>
 
                 <!-- Error Alert -->
                 <div id="l-err"
-                  class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3 font-semibold hidden">
+                  class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2.5 font-semibold hidden">
                 </div>
 
                 <!-- Submit Button -->
                 <button
-                  class="w-full bg-[#0F766E] hover:bg-[#0D9488] active:bg-[#115E59] text-white font-bold text-sm py-3.5 rounded-xl shadow-lg shadow-[#0F766E]/20 hover:shadow-xl hover:shadow-[#0F766E]/30 transition-all flex justify-center items-center gap-2 group cursor-pointer"
+                  class="w-full bg-gradient-to-r from-[#0F766E] to-[#0D9488] hover:from-[#0D9488] hover:to-[#115E59] text-white font-extrabold text-xs py-2.5 rounded-xl shadow-md shadow-[#0F766E]/20 hover:shadow-lg hover:shadow-[#0F766E]/30 active:scale-[0.99] transition-all flex justify-center items-center gap-2 group cursor-pointer mt-1"
                   type="submit">
                   <span>Masuk ke Sistem</span>
-                  <span
-                    class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                  <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </button>
               </form>
             </div>
 
-            <!-- REGISTER FORM (Side-by-Side 2-Column Grid, Fits Without Scrollbar) -->
+            <!-- REGISTER FORM (Side-by-Side 2-Column Grid) -->
             <div id="page-register" style="display:none;">
-              <form class="space-y-3" onsubmit="event.preventDefault();handleRegister();">
-                <div class="grid grid-cols-2 gap-3">
+              <form class="space-y-2" onsubmit="event.preventDefault();handleRegister();">
+                <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="form-label" for="r-nama">Nama Lengkap</label>
-                    <input id="r-nama" class="form-input" type="text" placeholder="Sesuai KTP / SK" />
+                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-nama">Nama Lengkap</label>
+                    <input id="r-nama" class="form-input" type="text" placeholder="Sesuai KTP / SK" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
                   </div>
                   <div>
-                    <label class="form-label" for="r-user">Username / NIP</label>
-                    <input id="r-user" class="form-input" type="text" placeholder="Username / NIP" />
-                  </div>
-
-                  <div>
-                    <label class="form-label" for="r-email">Email Official</label>
-                    <input id="r-email" class="form-input" type="email" placeholder="email@bprs.co.id" />
-                  </div>
-                  <div>
-                    <label class="form-label" for="r-ttl">Tanggal Lahir</label>
-                    <input id="r-ttl" class="form-input" type="date" />
+                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-user">Username / NIP</label>
+                    <input id="r-user" class="form-input" type="text" placeholder="Username / NIP" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
                   </div>
 
                   <div>
-                    <label class="form-label" for="r-posisi">Jabatan / Peran</label>
-                    <select id="r-posisi" class="form-select" onchange="toggleRegisterAoGroup(this.value)">
-                      <option value="">— Pilih —</option>
+                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-email">Email Official</label>
+                    <input id="r-email" class="form-input" type="email" placeholder="email@bprs.co.id" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
+                  </div>
+                  <div>
+                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-ttl">Tanggal Lahir</label>
+                    <input id="r-ttl" class="form-input" type="date" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
+                  </div>
+
+                  <div class="col-span-2">
+                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-posisi">Jabatan / Peran Pengguna</label>
+                    <select id="r-posisi" class="form-select w-full" onchange="toggleRegisterAoGroup(this.value)" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;">
+                      <option value="">— Pilih Jabatan / Peran —</option>
                       <option value="ao">Account Officer (AO)</option>
                       <option value="kabid_ao">Kepala Bidang AO (Kabid AO)</option>
-                      <option value="staff_p3">Staff P3</option>
+                      <option value="staff_p3">Staff P3 (Penagihan Lapangan)</option>
                       <option value="desk_call">Staff Desk Call</option>
-                      <option value="kabid_p3">Kabid P3</option>
-                      <option value="legal">Staff Legal</option>
+                      <option value="kabid_p3">Kabid P3 &amp; Penagihan</option>
+                      <option value="legal">Staff Legal &amp; Berkas Akad</option>
                     </select>
                   </div>
                   <div id="r-ao-group" class="col-span-2 hidden" style="margin-top:2px;">
-                    <label class="form-label" for="r-ao-name" style="color:var(--brand);font-weight:700;">Pilih Anda AO
-                      Yang Mana? (Sesuai CBS) <span style="color:#EF4444;">*</span></label>
-                    <select id="r-ao-name" class="form-select">
+                    <label class="form-label text-[10.5px]" for="r-ao-name" style="color:var(--brand);font-weight:700;">Pilih Anda AO Yang Mana? (Sesuai CBS) <span style="color:#EF4444;">*</span></label>
+                    <select id="r-ao-name" class="form-select w-full" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;">
                       <option value="">— Memuat daftar nama AO dari CBS... —</option>
                     </select>
                   </div>
                   <div>
-                    <label class="form-label" for="r-pass">Kata Sandi</label>
-                    <input id="r-pass" class="form-input" type="password" placeholder="Min 8 karakter"
-                      oninput="evalStrength(this.value)" />
+                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-pass">Kata Sandi</label>
+                    <input id="r-pass" class="form-input" type="password" placeholder="Min 8 karakter" oninput="evalStrength(this.value)" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
                   </div>
 
-                  <div class="col-span-2">
-                    <label class="form-label" for="r-conf">Konfirmasi Kata Sandi</label>
-                    <input id="r-conf" class="form-input" type="password" placeholder="Ulangi Kata Sandi Anda" />
+                  <div>
+                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-conf">Konfirmasi Sandi</label>
+                    <input id="r-conf" class="form-input" type="password" placeholder="Ulangi Kata Sandi" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
                   </div>
                 </div>
 
-                <div class="str-bar mt-1.5">
+                <div class="str-bar mt-1" style="height:4px;">
                   <div id="str-fill" class="str-fill"></div>
                 </div>
-                <div id="str-label" class="str-label text-[10px] text-slate-500 min-h-[12px]"></div>
+                <div id="str-label" class="str-label text-[9.5px] text-slate-500 min-h-[10px]"></div>
 
                 <div id="r-err"
-                  class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2.5 font-semibold hidden">
+                  class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2 font-semibold hidden">
                 </div>
                 <div id="r-ok"
-                  class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 font-semibold items-center gap-2 hidden">
+                  class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-2 font-semibold items-center gap-2 hidden">
                 </div>
 
                 <button
-                  class="w-full bg-[#0F766E] hover:bg-[#0D9488] active:bg-[#115E59] text-white font-bold text-xs py-3 rounded-xl shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer mt-1"
+                  class="w-full bg-gradient-to-r from-[#0F766E] to-[#0D9488] hover:from-[#0D9488] hover:to-[#115E59] text-white font-extrabold text-xs py-2.5 rounded-xl shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer mt-1"
                   type="submit">
                   <span>Kirim Permohonan Akun Baru</span>
-                  <span class="material-symbols-outlined text-base">send</span>
+                  <span class="material-symbols-outlined text-sm">send</span>
                 </button>
               </form>
             </div>
           </div>
 
           <!-- Professional Demo Account Bar -->
-          <div class="mt-6 pt-5 border-t border-slate-200/80" id="auth-demo-bar">
-            <p class="text-[11.5px] font-bold text-slate-700 mb-2.5 flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-base text-[#0F766E]">badge</span>
+          <div class="mt-3 pt-2.5 border-t border-slate-200/80" id="auth-demo-bar">
+            <p class="text-[10.5px] font-extrabold text-slate-700 mb-1 flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-[#0F766E]">badge</span>
               <span>Akses Cepat Akun Demo:</span>
             </p>
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-wrap gap-1">
               <button type="button"
-                class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer"
+                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('admin')">Administrator</button>
               <button type="button"
-                class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer"
+                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('ao')">Account Officer</button>
               <button type="button"
-                class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer"
+                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('kabid_ao')">Kabid AO</button>
               <button type="button"
-                class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer"
+                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('kabid_p3')">Kabid P3</button>
               <button type="button"
-                class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer"
+                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('staff_p3')">Staff P3</button>
               <button type="button"
-                class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer"
+                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('desk_call')">Desk Call</button>
               <button type="button"
-                class="px-3 py-1.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer"
+                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('legal')">Staff Legal</button>
             </div>
           </div>
@@ -586,19 +574,221 @@
 
     <!-- Clean Enterprise Footer -->
     <footer
-      class="w-full py-3.5 px-6 max-w-[1440px] mx-auto border-t border-slate-200/80 bg-white/80 backdrop-blur-md flex flex-col md:flex-row justify-between items-center gap-2 flex-shrink-0 text-slate-500">
-      <div class="text-xs font-semibold text-slate-600" id="footer-copy">
+      class="w-full py-2 px-6 max-w-[1440px] mx-auto border-t border-slate-200/80 bg-white/85 backdrop-blur-xl flex flex-col md:flex-row justify-between items-center gap-1 flex-shrink-0 text-slate-600 relative z-20 shadow-sm">
+      <div class="text-[11px] font-semibold text-slate-700" id="footer-copy">
         © 2026 PT BPRS Mitra Harmoni Yogyakarta. Hak Cipta Dilindungi.
       </div>
-      <div class="flex flex-wrap justify-center gap-6 text-xs font-medium text-slate-500">
-        <a class="hover:text-[#0F766E] transition-colors" href="#" onclick="event.preventDefault();">Kebijakan
-          Privasi</a>
-        <a class="hover:text-[#0F766E] transition-colors" href="#" onclick="event.preventDefault();">Ketentuan
-          Layanan</a>
-        <a class="hover:text-[#0F766E] transition-colors" href="#" onclick="event.preventDefault();">Keamanan
-          Informasi</a>
+      <div class="flex flex-wrap justify-center gap-4 text-[11px] font-medium text-slate-600">
+        <a class="hover:text-[#0f766e] transition-colors cursor-pointer" onclick="event.preventDefault();openModal('modal-privacy');">Kebijakan Privasi</a>
+        <a class="hover:text-[#0f766e] transition-colors cursor-pointer" onclick="event.preventDefault();openModal('modal-terms');">Ketentuan Layanan</a>
+        <a class="hover:text-[#0f766e] transition-colors cursor-pointer" onclick="event.preventDefault();openModal('modal-security');">Keamanan Informasi</a>
       </div>
     </footer>
+  </div>
+
+  <!-- MODAL KEBIJAKAN PRIVASI -->
+  <div class="modal-overlay" id="modal-privacy">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-hdr">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-teal-50 border border-teal-200 text-[#0f766e] flex items-center justify-center">
+            <span class="material-symbols-outlined text-lg">shield_lock</span>
+          </div>
+          <div>
+            <h3 class="modal-title">Kebijakan Privasi &amp; Perlindungan Data</h3>
+            <p class="text-[11px] text-slate-500 font-medium">PT BPRS Mitra Harmoni Yogyakarta • UU No. 27/2022 (PDP)</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-privacy')">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+      <div class="modal-body space-y-4 text-xs text-slate-700 leading-relaxed max-h-[70vh] overflow-y-auto">
+        <div class="p-3 bg-teal-50/70 border border-teal-200/80 rounded-xl text-[11.5px] text-[#0f766e] font-semibold flex items-start gap-2">
+          <span class="material-symbols-outlined text-base flex-shrink-0 mt-0.5">verified</span>
+          <span>Komitmen Perlindungan Data: Seluruh pengelolaan data nasabah dan aktivitas penagihan di BPRS Mitra Harmoni Yogyakarta tunduk pada Regulasi Otoritas Jasa Keuangan (OJK) serta Undang-Undang Perlindungan Data Pribadi (UU PDP).</span>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 1. Data Yang Dikelola &amp; Diproses
+          </h4>
+          <p class="text-slate-600">Sistem P3DeskCall memproses data identitas nasabah pembiayaan (NAMA, NO_REK, ALAMAT, TELP), data portofolio penagihan, catatan riwayat interaksi Desk Call, bukti geotag kunjungan lapangan P3/AO, serta dokumen akad legal yang diserahkan secara resmi.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 2. Pembatasan Akses Berbasis Peran (RBAC)
+          </h4>
+          <p class="text-slate-600">Setiap pengguna hanya dapat mengakses data nasabah sesuai wewenang tugasnya (<em>Role-Based Access Control</em>). Petugas P3 dan AO hanya melihat data binaan masing-masing, Desk Call mengelola antrean panggilan, dan Staff Legal mengelola pemberkasan akad.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 3. Kerahasiaan &amp; Proteksi Data Pribadi (PDP)
+          </h4>
+          <p class="text-slate-600">Seluruh data yang dikelola dalam sistem ini bersifat rahasia perbankan syariah (<em>Bank Secrecy</em>). Pengguna dilarang keras menyebarluaskan, menggandakan, atau menyalahgunakan informasi nasabah untuk kepentingan di luar tugas operasional bank.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 4. Jejak Audit &amp; Transparansi
+          </h4>
+          <p class="text-slate-600">Setiap aksi pembaruan status, input hasil penagihan, pengiriman WhatsApp/Call, dan login sistem terekam secara permanen dalam <em>Audit Trail log</em> beserta timestamp server dan IP address pengguna.</p>
+        </div>
+      </div>
+      <div class="modal-footer p-4 border-t border-slate-200/80 bg-slate-50/50 flex justify-between items-center rounded-b-2xl">
+        <span class="text-[10.5px] text-slate-500 font-medium">Revisi Terakhir: Januari 2026</span>
+        <button class="btn btn-primary btn-sm px-4" onclick="closeModal('modal-privacy')">Saya Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KETENTUAN LAYANAN -->
+  <div class="modal-overlay" id="modal-terms">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-hdr">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-teal-50 border border-teal-200 text-[#0f766e] flex items-center justify-center">
+            <span class="material-symbols-outlined text-lg">gavel</span>
+          </div>
+          <div>
+            <h3 class="modal-title">Ketentuan Layanan Penggunaan Sistem</h3>
+            <p class="text-[11px] text-slate-500 font-medium">Syarat &amp; Ketentuan Operasional P3DeskCall BPRS MHY</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-terms')">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+      <div class="modal-body space-y-4 text-xs text-slate-700 leading-relaxed max-h-[70vh] overflow-y-auto">
+        <div class="p-3 bg-slate-100 border border-slate-200 rounded-xl text-[11.5px] text-slate-700 font-semibold flex items-start gap-2">
+          <span class="material-symbols-outlined text-base text-[#0f766e] flex-shrink-0 mt-0.5">info</span>
+          <span>Akses Terbatas Internal: Platform ini dikhususkan bagi Pegawai &amp; Petugas Penagihan Resmi PT BPRS Mitra Harmoni Yogyakarta yang terdaftar dan disetujui Administrator.</span>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 1. Integritas Data &amp; Bukti Lapangan
+          </h4>
+          <p class="text-slate-600">Setiap laporan penagihan lapangan wajib disertai bukti foto dan lokasi Geotag GPS yang asli. Pengisian laporan palsu, manipulasi koordinat, atau rekayasa data pembayaran merupakan pelanggaran disiplin berat.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 2. Kode Etik Penagihan Perbankan Syariah
+          </h4>
+          <p class="text-slate-600">Penagihan wajib dilaksanakan dengan menjunjung tinggi etika Syariah, etika OJK &amp; DSN-MUI: bersikap sopan, mengedepankan musyawarah (<em>Ishlah</em>), tidak menggunakan tekanan fisik/psikis, serta menagih sesuai jam operasional yang ditentukan.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 3. Pengelolaan Akun &amp; Sesi Login
+          </h4>
+          <p class="text-slate-600">Pengguna bertanggung jawab penuh atas keamanan kredensial akun masing-masing. Akun tidak boleh dipinjamkan. Sesi login ganda di perangkat yang tidak dikenal akan terdeteksi dan dihentikan oleh sistem keamanan (<em>Multi-Device Protection</em>).</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 4. Kerahasiaan Dokumen &amp; Akad Legal
+          </h4>
+          <p class="text-slate-600">Berkas SP1, SP2, SP3, Somasi, dan dokumen legal nasabah yang diunduh atau diproses melalui aplikasi ini bersifat rahasia dan merupakan milik sah PT BPRS Mitra Harmoni Yogyakarta.</p>
+        </div>
+      </div>
+      <div class="modal-footer p-4 border-t border-slate-200/80 bg-slate-50/50 flex justify-between items-center rounded-b-2xl">
+        <span class="text-[10.5px] text-slate-500 font-medium">Berlaku Efektif: T.A. 2026</span>
+        <button class="btn btn-primary btn-sm px-4" onclick="closeModal('modal-terms')">Setuju &amp; Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KEAMANAN INFORMASI -->
+  <div class="modal-overlay" id="modal-security">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-hdr">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-teal-50 border border-teal-200 text-[#0f766e] flex items-center justify-center">
+            <span class="material-symbols-outlined text-lg">security</span>
+          </div>
+          <div>
+            <h3 class="modal-title">Keamanan Informasi &amp; Infrastruktur</h3>
+            <p class="text-[11px] text-slate-500 font-medium">Standar Keamanan Siber Sistem Terpadu BPRS MHY</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-security')">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+      <div class="modal-body space-y-4 text-xs text-slate-700 leading-relaxed max-h-[70vh] overflow-y-auto">
+        <div class="grid grid-cols-2 gap-3 mb-2">
+          <div class="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-xl text-emerald-700">lock</span>
+            <div>
+              <div class="font-bold text-slate-900 text-[11px]">Enkripsi SSL 256-Bit</div>
+              <div class="text-[10px] text-slate-500">Transmisi data terenkripsi penuh</div>
+            </div>
+          </div>
+          <div class="p-3 bg-teal-50/80 border border-teal-200 rounded-xl flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-xl text-[#0f766e]">pin_drop</span>
+            <div>
+              <div class="font-bold text-slate-900 text-[11px]">Validated Geotagging</div>
+              <div class="text-[10px] text-slate-500">Verifikasi GPS lokasi riil</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 1. Proteksi Transmisi &amp; Penyimpanan Data
+          </h4>
+          <p class="text-slate-600">Seluruh lalu lintas data antara browser pengguna dan server BPRS MHY menggunakan enkripsi Transport Layer Security (TLS 1.3/SSL 256-bit). Password disimpan dengan algoritma hash kriptografik aman (Bcrypt/Salted Hash).</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 2. Manajemen Sesi &amp; Multi-Device Interception
+          </h4>
+          <p class="text-slate-600">Sistem memantau token sesi aktif (<em>Single Active Session</em> per pengguna). Login bersamaan dari IP atau browser berbeda akan memberikan peringatan dan memerlukan konfirmasi penghentian sesi terdahulu demi mencegah pencurian akses.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 3. Geotag Watermarking &amp; Anti-Tampering
+          </h4>
+          <p class="text-slate-600">Foto bukti penagihan lapangan diproses dengan pencatatan waktu otomatis (<em>Server Timestamp</em>), koordinat GPS akurat, dan enkode metadata sehingga tidak dapat direkayasa atau diedit secara lokal.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f766e]"></span> 4. Backup Terjadwal &amp; Recovery
+          </h4>
+          <p class="text-slate-600">Database operasional dan dokumen legal dibackup secara berkala dalam infrastruktur terpisah yang terlindungi untuk menjamin ketersediaan data (<em>High Availability</em>) dan kelangsungan operasional bank.</p>
+        </div>
+      </div>
+      <div class="modal-footer p-4 border-t border-slate-200/80 bg-slate-50/50 flex justify-between items-center rounded-b-2xl">
+        <span class="text-[10.5px] text-slate-500 font-medium">Status Keamanan: Terverifikasi Aktif</span>
+        <button class="btn btn-primary btn-sm px-4" onclick="closeModal('modal-security')">Tutup Info</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSION IDLE WARNING MODAL -->
+  <div class="modal-overlay" id="modal-idle-warning">
+    <div class="modal-box" style="max-width: 420px; text-align: center;">
+      <div class="modal-body p-6 space-y-3">
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto mb-2 shadow-sm">
+          <span class="material-symbols-outlined text-2xl">timer</span>
+        </div>
+        <h3 class="text-base font-black text-slate-900 tracking-tight">Sesi Inaktif Terdeteksi</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Sesi Anda akan berakhir dalam <strong id="idle-countdown-secs" class="text-amber-600 font-bold text-sm">120</strong> detik demi keamanan data perbankan (Sesuai Regulasi PDP &amp; OJK).
+        </p>
+      </div>
+      <div class="modal-footer p-3.5 border-t border-slate-200/80 bg-slate-50/50 flex justify-between items-center gap-2 rounded-b-2xl">
+        <button class="btn btn-ghost btn-sm flex-1 text-xs" onclick="handleLogout()">Keluar Sekarang</button>
+        <button class="btn btn-primary btn-sm flex-1 text-xs" onclick="resetIdleTimerManually()">Tetap Masuk</button>
+      </div>
+    </div>
   </div>
 
   <!-- DEVICE WARNING MODAL -->
@@ -683,8 +873,8 @@
               class="form-input" type="datetime-local" /></div>
           <div class="form-group"><label class="form-label">Jenis Kontak</label><select id="dcf-jenis"
               class="form-select">
-              <option value="Telepon">📞 Telepon</option>
-              <option value="WhatsApp">💬 WhatsApp</option>
+              <option value="Telepon">Telepon</option>
+              <option value="WhatsApp">WhatsApp</option>
             </select></div>
         </div>
         <div class="form-row">
@@ -745,7 +935,7 @@
   <div class="modal-overlay" id="modal-click-dialer">
     <div class="modal-box" style="max-width:440px;">
       <div class="modal-hdr">
-        <div class="modal-title" id="dialer-title">📞 Panggil Telepon &amp; Log Panggilan</div>
+        <div class="modal-title" id="dialer-title">Panggil Telepon &amp; Log Panggilan</div>
         <button class="modal-close" onclick="closeModal('modal-click-dialer');stopCallTimer();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -773,11 +963,11 @@
           <button type="button" class="btn btn-sm" id="dialer-start-btn"
             style="background:#2563EB;color:#fff;font-size:15px;padding:12px;border-radius:9999px;"
             onclick="startCallDialerProcess()">
-            📞 Mulai Telepon &amp; Jalan Timer
+            Mulai Telepon &amp; Jalan Timer
           </button>
           <button type="button" class="btn btn-danger btn-sm" id="dialer-end-btn"
             style="display:none;font-size:15px;padding:12px;border-radius:9999px;" onclick="endCallDialerProcess()">
-            🔴 Akhiri &amp; Catat Ke Desk Call
+            Akhiri &amp; Catat Ke Desk Call
           </button>
         </div>
       </div>
@@ -788,7 +978,7 @@
   <div class="modal-overlay" id="modal-map-view">
     <div class="modal-box" style="max-width:860px;width:95%;">
       <div class="modal-hdr">
-        <div class="modal-title">🗺️ Peta Rute Kunjungan Debitur P3 (Geo-Tagging)</div>
+        <div class="modal-title">Peta Rute Kunjungan Debitur P3 (Geo-Tagging)</div>
         <button class="modal-close" onclick="closeModal('modal-map-view')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -809,7 +999,7 @@
               <option value="3">KOL 3 (Kurang Lancar)</option>
             </select>
             <button class="btn btn-outline btn-sm" onclick="locateUserPosition()" style="font-size:12.5px;">
-              📍 Lokasi Saya (Check-in)
+              Lokasi Saya (Check-in)
             </button>
           </div>
           <div style="font-size:12px;color:var(--text-3);" id="map-info-text">Memuat peta...</div>
@@ -1204,7 +1394,7 @@
           <span class="mono">jumlah</span> — Jumlah Bayar (angka) *<br />
           <span class="mono">kol</span>, <span class="mono">metode</span>, <span class="mono">petugas</span>, <span
             class="mono">keterangan</span> — opsional<br />
-          <span style="color:var(--text-3);">✳️ Kolom * wajib. Baris tidak valid dilewati. Header baris pertama harus
+          <span style="color:var(--text-3);">* Kolom bertanda * wajib. Baris tidak valid dilewati. Header baris pertama harus
             sesuai nama kolom.</span>
         </div>
         <div id="import-preview-area" style="display:none;">
@@ -2057,10 +2247,10 @@
             <div class="form-group">
               <label class="form-label">Jenis Aktivitas <span style="color:#EF4444;">*</span></label>
               <select id="aolog-jenis" class="form-select" required>
-                <option value="Telepon">📞 Telepon</option>
-                <option value="WhatsApp">💬 WhatsApp</option>
-                <option value="Kunjungan Langsung">🚗 Kunjungan Langsung</option>
-                <option value="Email">✉️ Email / Surat</option>
+                <option value="Telepon">Telepon</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Kunjungan Langsung">Kunjungan Langsung</option>
+                <option value="Email">Email / Surat</option>
               </select>
             </div>
             <div class="form-group">
