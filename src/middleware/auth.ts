@@ -2,6 +2,7 @@ import { Context, Next } from 'hono';
 import { jwtVerify, SignJWT } from 'jose';
 import { config } from '../config.js';
 import { prisma } from '../db.js';
+import { requestContextStorage } from '../utils/context.js';
 
 const encoder = new TextEncoder();
 const secretKey = encoder.encode(config.jwtSecret);
@@ -30,12 +31,27 @@ export async function verifyAccessToken(token: string): Promise<TokenPayload | n
 }
 
 export async function authMiddleware(c: Context, next: Next) {
+  let token: string | undefined;
+
+  // Priority 1: Authorization Bearer header (existing frontend behavior)
   const authHeader = c.req.header('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  }
+
+  // Priority 2: HttpOnly cookie fallback (enhanced security)
+  if (!token) {
+    const cookieHeader = c.req.header('Cookie') || '';
+    const match = cookieHeader.match(/(?:^|;\s*)bprs_token=([^;]+)/);
+    if (match) {
+      token = match[1];
+    }
+  }
+
+  if (!token) {
     return c.json({ error: 'Unauthorized: Missing or invalid token format' }, 401);
   }
 
-  const token = authHeader.substring(7);
   const payload = await verifyAccessToken(token);
   if (!payload) {
     return c.json({ error: 'Unauthorized: Token is expired or invalid' }, 401);
@@ -52,6 +68,19 @@ export async function authMiddleware(c: Context, next: Next) {
 
   // Attach user to context
   c.set('user', user);
+
+  // Sync to AsyncLocalStorage request context
+  const ipAddress =
+    c.req.header('x-forwarded-for')?.split(',')[0].trim() ||
+    c.req.header('x-real-ip') ||
+    '127.0.0.1';
+
+  const store = requestContextStorage.getStore();
+  if (store) {
+    store.userId = user.id;
+    store.ipAddress = ipAddress;
+  }
+
   await next();
 }
 

@@ -1,8 +1,9 @@
 import { Context } from 'hono';
-import { prisma } from '../db.js';
+import { rawPrisma } from '../db.js';
+import { logger } from './logger.js';
 
 export async function logAudit(
-  c: Context,
+  c: Context | null,
   action: string,
   tableName: string,
   recordId: string,
@@ -10,17 +11,21 @@ export async function logAudit(
   newValue: any | null = null
 ) {
   try {
-    const user = c.get('user' as any) as any;
-    const userId = user ? user.id : 'system';
-    
-    // Get client IP address
-    const ipAddress = c.req.header('x-forwarded-for')?.split(',')[0].trim() || 
-                      c.req.header('x-real-ip') || 
-                      '127.0.0.1';
+    let userId = 'system';
+    let ipAddress = '127.0.0.1';
 
-    await prisma.auditLog.create({
+    if (c) {
+      const user = c.get('user' as any) as any;
+      userId = user ? user.id : 'system';
+      ipAddress =
+        c.req.header('x-forwarded-for')?.split(',')[0].trim() ||
+        c.req.header('x-real-ip') ||
+        '127.0.0.1';
+    }
+
+    await rawPrisma.auditLog.create({
       data: {
-        userId: userId,
+        userId,
         action,
         tableName,
         recordId,
@@ -29,7 +34,7 @@ export async function logAudit(
         ipAddress
       }
     });
-  } catch (err) {
-    console.error('Failed to write audit log:', err);
+  } catch (err: any) {
+    logger.error({ err }, 'Failed to write audit log');
   }
 }

@@ -1,8 +1,55 @@
 import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
+import { z } from 'zod';
 import { prisma } from '../db.js';
+import { config } from '../config.js';
 import { createAccessToken, authMiddleware } from '../middleware/auth.js';
 import { logAudit } from '../utils/audit.js';
+
+// --- Zod Validation Schemas ---
+const loginSchema = z.object({
+  username: z.string().min(1, 'Username wajib diisi'),
+  password: z.string().min(1, 'Password wajib diisi'),
+  force: z.boolean().optional()
+});
+
+const registerSchema = z.object({
+  username: z.string().min(3, 'Username minimal 3 karakter'),
+  password: z.string().min(8, 'Password minimal 8 karakter'),
+  nama: z.string().min(1, 'Nama wajib diisi'),
+  email: z.string().email('Format email tidak valid'),
+  tgl_lahir: z.string().min(1, 'Tanggal lahir wajib diisi'),
+  posisi: z.enum(['desk_call', 'ao', 'p3', 'legal'], { message: 'Posisi tidak valid' }),
+  ao_name_ref: z.string().optional()
+});
+
+const forgotPasswordSchema = z.object({
+  username: z.string().min(1, 'Username wajib diisi'),
+  tgl_lahir: z.string().min(1, 'Tanggal lahir wajib diisi'),
+  newPassword: z.string().min(8, 'Password baru minimal 8 karakter')
+});
+
+const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, 'Password lama wajib diisi'),
+  newPassword: z.string().min(8, 'Password baru minimal 8 karakter')
+});
+
+// Helper: build Set-Cookie header value
+function buildTokenCookie(token: string, maxAgeSeconds: number): string {
+  const parts = [
+    `bprs_token=${token}`,
+    `Path=/`,
+    `HttpOnly`,
+    `SameSite=Strict`,
+    `Max-Age=${maxAgeSeconds}`
+  ];
+  if (config.cookieSecure) parts.push('Secure');
+  return parts.join('; ');
+}
+
+function buildClearCookie(): string {
+  return 'bprs_token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0';
+}
 
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -36,23 +83,15 @@ authRouter.get('/ao-list', async (c) => {
 authRouter.post('/register', async (c) => {
   try {
     const body = await c.req.json();
-    const { username, password, nama, email, tgl_lahir, posisi, ao_name_ref } = body;
-
-    if (!username || !password || !nama || !email || !tgl_lahir || !posisi) {
-      return c.json({ error: 'Semua field wajib diisi' }, 400);
+    const parsed = registerSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || 'Data tidak valid';
+      return c.json({ error: firstError }, 400);
     }
+    const { username, password, nama, email, tgl_lahir, posisi, ao_name_ref } = parsed.data;
 
     if (posisi === 'ao' && !ao_name_ref) {
       return c.json({ error: 'Pilihan nama AO wajib diisi untuk posisi Account Officer' }, 400);
-    }
-
-    if (password.length < 8) {
-      return c.json({ error: 'Password minimal 8 karakter' }, 400);
-    }
-
-    // Role admin cannot be registered
-    if (posisi === 'admin') {
-      return c.json({ error: 'Role admin tidak dapat didaftarkan secara publik' }, 403);
     }
 
     const tglLahirDate = new Date(tgl_lahir);
@@ -150,12 +189,13 @@ authRouter.post('/register', async (c) => {
 authRouter.post('/login', async (c) => {
   try {
     const body = await c.req.json();
-    const { username, password, force } = body;
-    const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
-
-    if (!username || !password) {
-      return c.json({ error: 'Username dan password wajib diisi' }, 400);
+    const parsed = loginSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || 'Data tidak valid';
+      return c.json({ error: firstError }, 400);
     }
+    const { username, password, force } = parsed.data;
+    const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
 
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) {
@@ -269,6 +309,9 @@ authRouter.post('/login', async (c) => {
       }
     });
 
+    // Set HttpOnly cookie for enhanced security (dual-mode: cookie + JSON)
+    c.header('Set-Cookie', buildTokenCookie(accessToken, 8 * 60 * 60));
+
     return c.json({
       accessToken,
       refreshToken: refreshToken.id,
@@ -290,15 +333,14 @@ authRouter.post('/login', async (c) => {
 authRouter.post('/forgot-password', async (c) => {
   try {
     const body = await c.req.json();
-    const { username, tgl_lahir, newPassword } = body;
-
-    if (!username || !tgl_lahir || !newPassword) {
-      return c.json({ error: 'Username, tanggal lahir, dan password baru wajib diisi' }, 400);
+    const parsed = forgotPasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || 'Data tidak valid';
+      return c.json({ error: firstError }, 400);
     }
+    const { username, tgl_lahir, newPassword } = parsed.data;
 
-    if (newPassword.length < 8) {
-      return c.json({ error: 'Password baru minimal 8 karakter' }, 400);
-    }
+    // Password length already validated by Zod schema
 
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) {
@@ -355,6 +397,9 @@ authRouter.post('/logout', authMiddleware, async (c) => {
 
     const user = (c as any).get('user');
     await logAudit(c, 'logout', 'users', user.id);
+
+    // Clear HttpOnly cookie
+    c.header('Set-Cookie', buildClearCookie());
 
     return c.json({ message: 'Logout berhasil' });
   } catch (err: any) {
@@ -502,15 +547,12 @@ authRouter.put('/change-password', authMiddleware, async (c) => {
   try {
     const userSession = (c as any).get('user');
     const body = await c.req.json();
-    const { oldPassword, newPassword } = body;
-
-    if (!oldPassword || !newPassword) {
-      return c.json({ error: 'Password lama dan password baru wajib diisi' }, 400);
+    const parsed = changePasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || 'Data tidak valid';
+      return c.json({ error: firstError }, 400);
     }
-
-    if (newPassword.length < 8) {
-      return c.json({ error: 'Password baru minimal 8 karakter' }, 400);
-    }
+    const { oldPassword, newPassword } = parsed.data;
 
     const user = await prisma.user.findUnique({ where: { id: userSession.id } });
     if (!user) {

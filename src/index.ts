@@ -24,13 +24,62 @@ import { historisRouter } from './controllers/historis.js';
 import { qontakRouter } from './controllers/qontak.js';
 import { portalRouter } from './controllers/portal.js';
 
+import { logger } from './utils/logger.js';
+import { requestContextStorage } from './utils/context.js';
+
 const app = new Hono();
 
-// Middlewares
+// Request Context & Structured Logging Middleware
+app.use('*', async (c, next) => {
+  const ipAddress =
+    c.req.header('x-forwarded-for')?.split(',')[0].trim() ||
+    c.req.header('x-real-ip') ||
+    '127.0.0.1';
+
+  return requestContextStorage.run({ ipAddress }, async () => {
+    const start = Date.now();
+    await next();
+    const duration = Date.now() - start;
+
+    // Log API requests
+    if (c.req.path.startsWith('/api')) {
+      logger.info({
+        method: c.req.method,
+        path: c.req.path,
+        status: c.res.status,
+        durationMs: duration,
+        ip: ipAddress
+      }, `${c.req.method} ${c.req.path} - ${c.res.status} (${duration}ms)`);
+    }
+  });
+});
+
+// Middlewares — CORS with restricted origin
 app.use('*', cors({
-  origin: '*',
+  origin: (origin) => {
+    // Always allow same-origin requests (no Origin header)
+    if (!origin) return '*';
+    // Allow configured production domains from .env
+    if (config.allowedOrigins.length > 0 && config.allowedOrigins.includes(origin)) {
+      return origin;
+    }
+    // Dev fallback: allow localhost, 127.0.0.1, and ngrok tunnels
+    if (
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      origin.includes('.ngrok') ||
+      origin.includes('.loca.lt')
+    ) {
+      return origin;
+    }
+    // If no configured origins and not dev, allow all (backward-compatible)
+    if (config.allowedOrigins.length === 0) return origin;
+    // Reject unknown origins
+    return null as any;
+  },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization']
+  allowHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 app.use('*', async (c, next) => {
   c.header('X-Frame-Options', 'SAMEORIGIN');
@@ -69,16 +118,16 @@ app.route('/api/portal', portalRouter);
 
 // Global Error Handler
 app.onError((err, c) => {
-  console.error('Unhandled Server Error:', err);
+  logger.error({ err, path: c.req.path, method: c.req.method }, 'Unhandled Server Error');
   return c.json({ error: 'Internal Server Error', message: err.message }, 500);
 });
 
-console.log(`BPRS NPF Dashboard server starting on port ${config.port}...`);
+logger.info(`BPRS NPF Dashboard server starting on port ${config.port}...`);
 serve({
   fetch: app.fetch,
   port: config.port,
   hostname: '0.0.0.0'
 }, (info) => {
-  console.log(`BPRS NPF Dashboard server listening on http://localhost:${info.port}`);
+  logger.info(`BPRS NPF Dashboard server listening on http://localhost:${info.port}`);
 });
 export default app;

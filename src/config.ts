@@ -8,5 +8,9 @@ export const config = {
   port: parseInt(process.env.PORT || '3001', 10),
   jwtSecret: process.env.JWT_SECRET || 'bprs-super-secret-key-npf-dashboard',
   databaseUrl: process.env.DATABASE_URL || 'file:./dev.db',
-  timezone: 'Asia/Jakarta'
+  timezone: 'Asia/Jakarta',
+  // Security: Allowed CORS origins (comma-separated in .env)
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
+  // Security: Set true in production for Secure cookie flag
+  cookieSecure: process.env.COOKIE_SECURE === 'true'
 };
