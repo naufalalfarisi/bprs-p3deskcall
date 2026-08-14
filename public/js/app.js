@@ -325,7 +325,7 @@ async function protectButtonSubmit(buttonEl, asyncFn) {
   buttonEl.disabled = true;
   buttonEl.setAttribute('data-submitting', 'true');
   const originalText = buttonEl.innerHTML;
-  buttonEl.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;margin-right:4px;">⏳</span> Memproses...`;
+  buttonEl.innerHTML = `<svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px;animation:spin 1s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg> Memproses...`;
 
   try {
     const result = await asyncFn();
@@ -5523,9 +5523,11 @@ function renderLegalView() {
         <div class="card mb-4" style="padding:20px;border-radius:18px;background:linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(245, 158, 11, 0.06));border:1.5px solid rgba(239, 68, 68, 0.25);">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
             <div style="display:flex;align-items:center;gap:10px;">
-              <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:var(--danger);color:#fff;font-weight:900;font-size:16px;">⚡</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:var(--danger);color:#fff;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="12" y1="9" x2="12.01" y2="9"/></svg>
+              </span>
               <div>
-                <h4 style="margin:0;font-size:15px;font-weight:800;color:var(--text-1);">Rekoomendasi Pemicu Otomatis Surat Peringatan (Auto-Trigger SP Engine)</h4>
+                <h4 style="margin:0;font-size:15px;font-weight:800;color:var(--text-1);">Rekomendasi Pemicu Otomatis Surat Peringatan (Auto-Trigger SP Engine)</h4>
                 <p style="margin:2px 0 0 0;font-size:12px;color:var(--text-2);">Sistem mendeteksi <strong>${legalState.eligibleSp.length} debitur</strong> dengan hari tunggakan (DPD >= 30) yang siap dibuatkan Surat Peringatan secara instan.</p>
               </div>
             </div>
@@ -5542,11 +5544,11 @@ function renderLegalView() {
                     <span class="mono">Rek: ${item.debiturId}</span> | KOL: <strong>${item.kol}</strong> | Tunggakan: <strong class="text-danger">${formatRupiah(item.totalTunggakan)}</strong>
                   </div>
                   <div style="font-size:12px;background:rgba(239,68,68,0.08);color:var(--danger);padding:6px 10px;border-radius:8px;font-weight:600;">
-                    ⏱️ Tunggakan <strong>${item.frhPokok} Hari</strong>: ${item.reason}
+                    Tunggakan <strong>${item.frhPokok} Hari</strong>: ${item.reason}
                   </div>
                 </div>
                 <button class="btn btn-primary btn-sm" onclick="autoGenerateSpAction('${item.debiturId}', '${item.recommendedJenisSurat}')" style="width:100%;font-size:12.5px;padding:7px 12px;border-radius:10px;justify-content:center;">
-                  ⚡ Terbitkan &amp; Cetak ${item.recommendedJenisSurat} Instan
+                  Terbitkan &amp; Cetak ${item.recommendedJenisSurat}
                 </button>
               </div>
             `).join('')}
@@ -7455,7 +7457,7 @@ async function loadCbsImportHistory() {
                   <td style="text-align:right;">
                     <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
                       <button class="btn btn-ghost btn-sm" onclick="viewBatchChanges('${item.id}', 'all')" style="font-size:11.5px;padding:3px 8px;" title="Lihat Rincian Data Berubah">
-                        🔍 Detail
+                        Detail
                       </button>
                       ${item.status === 'pending_review' ? `
                         <button class="btn btn-primary btn-sm" onclick="commitCbsImport('${item.id}')" style="font-size:11px;padding:4px 10px;">
@@ -7616,13 +7618,13 @@ function renderBatchChangesTab(activeTab = 'update') {
     <!-- SUBTAB NAVIGATOR -->
     <div style="display:flex;gap:10px;border-bottom:2px solid var(--border);margin-bottom:16px;flex-wrap:wrap;">
       <button onclick="renderBatchChangesTab('update')" style="padding:8px 16px;border:none;background:none;font-size:13px;cursor:pointer;font-weight:${activeTab==='update'?'800':'600'};color:${activeTab==='update'?'var(--brand)':'var(--text-2)'};border-bottom:3px solid ${activeTab==='update'?'var(--brand)':'transparent'};">
-        🔄 Perubahan Kolektibilitas (${kolChanges.length})
+        Perubahan Kolektibilitas (${kolChanges.length})
       </button>
       <button onclick="renderBatchChangesTab('new')" style="padding:8px 16px;border:none;background:none;font-size:13px;cursor:pointer;font-weight:${activeTab==='new'?'800':'600'};color:${activeTab==='new'?'#10B981':'var(--text-2)'};border-bottom:3px solid ${activeTab==='new'?'#10B981':'transparent'};">
-        🟢 Debitur Baru (${newDebiturs.length})
+        Debitur Baru (${newDebiturs.length})
       </button>
       <button onclick="renderBatchChangesTab('missing')" style="padding:8px 16px;border:none;background:none;font-size:13px;cursor:pointer;font-weight:${activeTab==='missing'?'800':'600'};color:${activeTab==='missing'?'#EF4444':'var(--text-2)'};border-bottom:3px solid ${activeTab==='missing'?'#EF4444':'transparent'};">
-        🔴 Debitur Lunas / Non-Aktif (${missingDebiturs.length})
+        Debitur Lunas / Non-Aktif (${missingDebiturs.length})
       </button>
     </div>
 
@@ -7767,215 +7769,229 @@ async function loadAboutView() {
   const ptName = state.settings?.pt_name || 'PT BPRS Mitra Harmoni Yogyakarta';
 
   container.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:24px;max-width:1100px;margin:0 auto;padding-bottom:30px;">
+    <div style="display:flex;flex-direction:column;gap:28px;max-width:1150px;margin:0 auto;padding-bottom:40px;">
       
-      <!-- HERO CARD: IDENTITY & DEVELOPER CREDIT -->
-      <div class="card" style="padding:30px;border-radius:24px;background:linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);border:1px solid var(--border);box-shadow:0 8px 25px -5px rgba(15,23,42,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:18px;margin-bottom:24px;">
-          <div style="display:flex;align-items:center;gap:18px;">
-            <div style="width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg, #0f766e 0%, #0d9488 100%);color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:24px;box-shadow:0 8px 20px rgba(15,118,110,0.28);flex-shrink:0;">
-              ${state.settings.logo_url ? `<img src="${state.settings.logo_url}" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:16px;"/>` : 'BM'}
+      <!-- HERO CARD: IDENTITY & GOVERNANCE -->
+      <div class="card" style="padding:32px;border-radius:24px;background:linear-gradient(135deg, rgba(15,118,110,0.06) 0%, rgba(13,148,136,0.02) 100%), var(--card-bg);border:1px solid var(--border);box-shadow:0 10px 30px -5px rgba(15,23,42,0.05);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle, rgba(15,118,110,0.12) 0%, rgba(15,118,110,0) 70%);pointer-events:none;"></div>
+        
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;margin-bottom:28px;">
+          <div style="display:flex;align-items:center;gap:20px;">
+            <div style="width:68px;height:68px;border-radius:20px;background:linear-gradient(135deg, #0f766e 0%, #0d9488 100%);color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:26px;box-shadow:0 10px 25px rgba(15,118,110,0.3);flex-shrink:0;border:2px solid rgba(255,255,255,0.2);">
+              ${state.settings.logo_url ? `<img src="${state.settings.logo_url}" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:18px;"/>` : 'BM'}
             </div>
             <div>
-              <div style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.4px;">Sistem Informasi Penagihan Terpadu (SISPENG)</div>
-              <div style="font-size:13.5px;font-weight:700;color:var(--brand);margin-top:2px;">${ptName}</div>
-              <div style="font-size:12px;color:var(--text-3);margin-top:2px;">Portal Perbankan Syariah Terintegrasi (Account Officer, P3, Desk Call, &amp; Legal)</div>
+              <div style="font-size:22px;font-weight:900;color:var(--text);letter-spacing:-0.5px;display:flex;align-items:center;gap:10px;">
+                Sistem Informasi Penagihan Terpadu (SISPENG)
+              </div>
+              <div style="font-size:14.5px;font-weight:800;color:var(--brand);margin-top:3px;letter-spacing:0.2px;">${ptName}</div>
+              <div style="font-size:12.5px;color:var(--text-3);margin-top:3px;font-weight:500;">Portal Perbankan Syariah Terintegrasi (Account Officer, P3, Desk Call, &amp; Legal)</div>
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-            <span class="badge" style="font-size:11.5px;padding:5px 14px;font-weight:800;border-radius:20px;background:#ccfbf1;color:#0f766e;border:1px solid #99f6e4;">
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+            <span class="badge" style="font-size:12px;padding:6px 16px;font-weight:800;border-radius:30px;background:#ccfbf1;color:#0f766e;border:1px solid #99f6e4;box-shadow:0 2px 8px rgba(15,118,110,0.15);">
               v3.2.0 Enterprise Build
             </span>
-            <span style="font-size:11px;color:var(--text-3);font-weight:600;">System Status: Operational / Active</span>
+            <span style="font-size:11.5px;color:var(--text-3);font-weight:700;display:flex;align-items:center;gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;box-shadow:0 0 8px #10b981;"></span>
+              System Status: Operational / Active
+            </span>
           </div>
         </div>
 
         <!-- DEVELOPER & INSTITUTION GRID -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));gap:16px;padding:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;margin-bottom:22px;">
-          <div>
-            <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Pengembang Utama</div>
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:4px;display:flex;align-items:center;gap:7px;">
-              <div style="width:24px;height:24px;border-radius:50%;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">MN</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:16px;padding:22px;background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:18px;margin-bottom:24px;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:0.8px;">Pengembang Utama</div>
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;">
+              <div style="width:26px;height:26px;border-radius:50%;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:900;">MN</div>
               Muhammad Naufal AlFarisi
             </div>
-            <div style="font-size:11.5px;color:#64748b;margin-top:2px;margin-left:31px;">Tim TI BPRS Mitra Harmoni</div>
+            <div style="font-size:12px;color:var(--text-3);margin-left:34px;font-weight:500;">Tim TI BPRS Mitra Harmoni</div>
           </div>
-          <div>
-            <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Institusi Perbankan</div>
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:4px;">${ptName}</div>
-            <div style="font-size:11.5px;color:#64748b;margin-top:2px;">Kantor Pusat Yogyakarta</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:0.8px;">Institusi Perbankan</div>
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);">${ptName}</div>
+            <div style="font-size:12px;color:var(--text-3);font-weight:500;">Kantor Pusat Yogyakarta</div>
           </div>
-          <div>
-            <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Kepatuhan &amp; Regulasi</div>
-            <div style="font-size:13.5px;font-weight:800;color:#0f766e;margin-top:4px;">POJK 22/2023 &amp; Fatwa DSN-MUI</div>
-            <div style="font-size:11.5px;color:#64748b;margin-top:2px;">Standar Penagihan &amp; Tata Kelola NPF Syariah</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:0.8px;">Kepatuhan &amp; Regulasi</div>
+            <div style="font-size:14px;font-weight:800;color:#0f766e;display:flex;align-items:center;gap:6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              POJK 22/2023 &amp; Fatwa DSN-MUI
+            </div>
+            <div style="font-size:12px;color:var(--text-3);font-weight:500;">Standar Penagihan &amp; Tata Kelola NPF Syariah</div>
           </div>
         </div>
 
-        <div style="font-size:13.5px;line-height:1.7;color:#334155;">
-          <strong>SISPENG (Sistem Informasi Penagihan Terpadu)</strong> dirancang secara khusus untuk mengelola, melacak, dan mengoptimalkan seluruh ekosistem penagihan pembiayaan (NPF) secara presisi dan akuntabel. Sistem menghubungkan kerja kolaboratif antara <strong>Account Officer (AO)</strong> untuk pemantauan dini, <strong>Penagihan Pihak Ke-3 (P3)</strong> untuk kunjungan penagihan fisik NPF, <strong>Desk Call</strong> untuk komunikasi jarak jauh, serta <strong>Legal</strong> untuk penanganan dokumen legalitas akad dan AYDA.
+        <div style="font-size:13.5px;line-height:1.75;color:var(--text-2);background:var(--card-bg);padding:18px 22px;border-radius:14px;border:1px solid var(--border);">
+          <strong>SISPENG (Sistem Informasi Penagihan Terpadu)</strong> dirancang secara khusus untuk mengelola, melacak, dan mengoptimalkan seluruh ekosistem penagihan pembiayaan (NPF) secara presisi, terukur, dan akuntabel. Sistem menghubungkan kerja kolaboratif lintas divisi antara <strong>Account Officer (AO)</strong> untuk pemantauan dini portofolio binaan, <strong>Penagihan Pihak Ke-3 (P3)</strong> untuk kunjungan lapangan fisik debitur NPF, <strong>Desk Call</strong> untuk komunikasi penagihan jarak jauh, serta <strong>Legal</strong> untuk audit dokumen legalitas akad dan penanganan Agunan Yang Diambil Alih (AYDA).
         </div>
       </div>
 
-      <!-- CARD 2: MATRIKS HAK AKSES DAN PERAN USER (ROLE PERMISSIONS) -->
-      <div class="card" style="padding:26px;border-radius:20px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 20px -2px rgba(15,23,42,0.04);">
-        <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-          <div style="width:32px;height:32px;border-radius:10px;background:#e0e7ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <!-- CARD 2: MATRIKS HAK AKSES DAN PERAN USER -->
+      <div class="card" style="padding:28px;border-radius:22px;background:var(--card-bg);border:1px solid var(--border);box-shadow:0 6px 25px -4px rgba(15,23,42,0.04);">
+        <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:10px;background:#e0e7ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           Klasifikasi Peran Pengguna (User Role Matrix) &amp; Cakupan Fokus
         </div>
-        <div style="font-size:12.5px;color:#64748b;margin-bottom:18px;">Setiap peran pengguna memiliki cakupan akses data dan tanggung jawab yang disesuaikan dengan alur kerja perbankan.</div>
+        <div style="font-size:13px;color:var(--text-3);margin-bottom:20px;">Setiap peran pengguna memiliki batasan wewenang data dan tanggung jawab operasional yang disesuaikan dengan alur kerja perbankan syariah.</div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:16px;">
           
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-              <span class="badge" style="background:#dbeafe;color:#1e40af;font-weight:800;font-size:11px;padding:3px 10px;border-radius:12px;">Account Officer (AO)</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s ease;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="badge" style="background:#dbeafe;color:#1e40af;font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Account Officer (AO)</span>
+              <span style="font-size:11px;font-weight:700;color:#3b82f6;">KOL 1, 2, 3</span>
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.55;">
-              Berfokus pada pemantauan dini <strong>KOL 1 (Lancar)</strong>, <strong>KOL 2 (DPK)</strong>, dan <strong>KOL 3 (Kurang Lancar)</strong>. Bertanggung jawab terhadap edukasi kelancaran angsuran nasabah sebelum masuk kategori NPF berat.
-            </div>
-          </div>
-
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-              <span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800;font-size:11px;padding:3px 10px;border-radius:12px;">Penagihan (P3)</span>
-            </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.55;">
-              Berfokus pada pembiayaan bermasalah NPF <strong>KOL 3 (Kurang Lancar)</strong>, <strong>KOL 4 (Diragukan)</strong>, dan <strong>KOL 5 (Macet)</strong>. Mengelola penagihan fisik di lapangan, pengunggahan foto geotag, dan berita acara.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+              Berfokus pada pemantauan dini nasabah binaan sendiri pada <strong>KOL 1 (Lancar)</strong>, <strong>KOL 2 (DPK)</strong>, dan <strong>KOL 3 (Kurang Lancar)</strong>. Bertanggung jawab memberikan edukasi dan pendampingan kelancaran angsuran sebelum masuk kategori NPF berat.
             </div>
           </div>
 
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-              <span class="badge" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:11px;padding:3px 10px;border-radius:12px;">Desk Call</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s ease;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Penagihan Lapangan (P3)</span>
+              <span style="font-size:11px;font-weight:700;color:#ef4444;">KOL 3, 4, 5</span>
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.55;">
-              Melakukan komunikasi penagihan jarak jauh via Telepon/WhatsApp, mencatat status panggilan, janji bayar nasabah (PTP), mengelola pengingat notifikasi otomatis, dan menganalisis waktu produktif panggilan.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+              Berfokus pada eksekusi penagihan pembiayaan bermasalah <strong>KOL 3 (Kurang Lancar)</strong>, <strong>KOL 4 (Diragukan)</strong>, dan <strong>KOL 5 (Macet)</strong>. Mengelola jadwal kunjungan fisik lapangan, validasi foto geotag lokasi, dan berita acara penagihan.
             </div>
           </div>
 
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-              <span class="badge" style="background:#f3e8ff;color:#6b21a8;font-weight:800;font-size:11px;padding:3px 10px;border-radius:12px;">Legal &amp; Admin</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s ease;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="badge" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Petugas Desk Call</span>
+              <span style="font-size:11px;font-weight:700;color:#f59e0b;">Telepon &amp; WA</span>
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.55;">
-              Memeriksa 14 checklist kelengkapan dokumen legalitas akad pembiayaan, mengelola aset jaminan (AYDA), otorisasi manajemen user, branding aplikasi, serta import data Core Banking System.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+              Melakukan komunikasi penagihan jarak jauh melalui Telepon dan WhatsApp resmi, mencatat komitmen janji bayar nasabah (PTP), mengelola pengingat otomatis berjenjang, serta mengevaluasi jam panggilan produktif (*Golden Hour*).
+            </div>
+          </div>
+
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s ease;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="badge" style="background:#f3e8ff;color:#6b21a8;font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Legal, Kabid &amp; Admin</span>
+              <span style="font-size:11px;font-weight:700;color:#8b5cf6;">Tata Kelola &amp; Audit</span>
+            </div>
+            <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
+              Mengaudit 14 checklist kelengkapan berkas akad dan agunan, mengelola aset jaminan lelang (AYDA), otorisasi manajemen akun pengguna, sinkronisasi import CBS, serta penerbitan surat peringatan (SP1, SP2, Somasi).
             </div>
           </div>
 
         </div>
       </div>
 
-      <!-- CARD 3: PANDUAN PENGGUNAAN & ALUR KERJA OPERASIONAL MODUL -->
-      <div class="card" style="padding:26px;border-radius:20px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 20px -2px rgba(15,23,42,0.04);">
-        <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-          <div style="width:32px;height:32px;border-radius:10px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <!-- CARD 3: PANDUAN PENGGUNAAN & ALUR KERJA 9 MODUL UTAMA -->
+      <div class="card" style="padding:28px;border-radius:22px;background:var(--card-bg);border:1px solid var(--border);box-shadow:0 6px 25px -4px rgba(15,23,42,0.04);">
+        <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:10px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           </div>
           Panduan Penggunaan Sistem &amp; Alur Kerja 9 Modul Utama
         </div>
-        <div style="font-size:12.5px;color:#64748b;margin-bottom:20px;">Petunjuk teknis dan fungsi-fungsi operasional bagi pengguna aplikasi.</div>
+        <div style="font-size:13px;color:var(--text-3);margin-bottom:22px;">Petunjuk teknis dan fungsi-fungsi operasional bagi seluruh lini penagihan perbankan.</div>
 
-        <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;flex-direction:column;gap:16px;">
           
           <!-- Modul 1 -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">1</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all 0.2s ease;">
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:9px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;box-shadow:0 3px 8px rgba(15,118,110,0.25);">1</span>
               Modul Early Warning System (EWS) &amp; Red Alert
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
-              Memantau risiko pembiayaan secara dini sebelum jatuh ke tunggakan berat. Menampilkan kategori risiko potensi tunggakan (<em>High Risk</em> / <em>Medium Risk</em> / <em>Low Risk</em>), estimasi H-X jatuh tempo angsuran bulanan yang dihitung dinamis setiap tanggal jatuh tempo bulan berjalan, filter khusus per Account Officer (AO), serta fitur pencatatan tindak lanjut.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-left:40px;">
+              Mendeteksi potensi penurunan kualitas pembiayaan secara dini sebelum jatuh ke NPF berat. Menyajikan kategori risiko (<em>Low / Medium / High / Critical Risk</em>), estimasi H-X jatuh tempo angsuran dinamis setiap bulan, filter portofolio binaan khusus Account Officer (AO), serta fasilitas pencatatan <em>Collection Log</em> harian.
             </div>
           </div>
 
           <!-- Modul 2 -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">2</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all 0.2s ease;">
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:9px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;box-shadow:0 3px 8px rgba(15,118,110,0.25);">2</span>
               Modul Data Debitur &amp; Monitoring Portofolio Pembiayaan
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
-              Digunakan untuk memantau seluruh portofolio nasabah pembiayaan aktif, tunggakan pokok &amp; margin, baki debet, serta tingkat kolektibilitas (KOL 1 - 5). Dilengkapi tombol penyaring cepat (<em>Quick Filter Pills</em>) untuk menyaring nasabah berdasarkan AO, status kolektibilitas, dan rentang jatuh tempo.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-left:40px;">
+              Menyajikan basis data komprehensif debitur aktif, total baki debet, rincian tunggakan pokok &amp; margin, serta tingkat kolektibilitas (KOL 1–5). Dilengkapi fitur <em>Quick Filter Pills</em> untuk penyaringan instan berdasarkan AO pembina, status kolektibilitas, dan periode jatuh tempo.
             </div>
           </div>
 
           <!-- Modul 3 -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">3</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all 0.2s ease;">
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:9px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;box-shadow:0 3px 8px rgba(15,118,110,0.25);">3</span>
               Modul Desk Call &amp; Customer Behavior Insight
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
-              Mencatat setiap riwayat komunikasi via Telepon atau WhatsApp (Terhubung, Tidak Diangkat, Sibuk, Salah Nomor). Sistem secara otomatis mengkalkulasi <strong>Golden Hour</strong> (waktu paling responsif nasabah), menganalisis efektivitas kanal kontak, serta memantau <strong>Success Rate Janji Bayar (PTP)</strong>.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-left:40px;">
+              Pencatatan riwayat penagihan jarak jauh (Telepon &amp; WhatsApp) dengan kategorisasi respon kontak (Terhubung, Tidak Diangkat, Sibuk, Tidak Aktif). Sistem secara otomatis menghitung <strong>Golden Hour</strong> (jam paling produktif nasabah mengangkat telepon) dan memantau <strong>Promise to Pay (PTP) Resolution Rate</strong>.
             </div>
           </div>
 
           <!-- Modul 4 -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">4</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all 0.2s ease;">
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:9px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;box-shadow:0 3px 8px rgba(15,118,110,0.25);">4</span>
               Modul Follow-Up Notifikasi Janji Bayar
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
-              Notifikasi otomatis aktif di header aplikasi untuk pengingat H-1 dan Hari-H jatuh tempo janji bayar. Petugas dapat memperbarui status menjadi <em>"Sudah Bayar"</em> langsung dari modal notifikasi hingga 3 kali follow-up per nasabah, yang mana otomatis membersihkan notifikasi tanpa mengubah tanggal entri penagihan awal.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-left:40px;">
+              Sistem alarm otomatis di header aplikasi untuk pengingat H-1 dan Hari-H jatuh tempo janji bayar. Petugas dapat menindaklanjuti dan mengonfirmasi status <em>"Sudah Bayar"</em> langsung dari modal notifikasi hingga kuota 3x follow-up per nasabah dengan tetap menjaga keaslian tanggal entri riwayat awal.
             </div>
           </div>
 
           <!-- Modul 5 -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">5</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all 0.2s ease;">
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:9px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;box-shadow:0 3px 8px rgba(15,118,110,0.25);">5</span>
               Modul Penagihan Lapangan (P3 / Penagihan Pihak Ke-3)
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
-              Tim penagihan lapangan dapat melihat agenda kunjungan pada kalender interaktif 14 hari, mengunggah foto bukti lokasi kunjungan ber-geotag koordinat lokasi dengan kompresi gambar otomatis, serta membuat berita acara hasil penagihan fisik nasabah.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-left:40px;">
+              Manajemen penagihan lapangan presisi dengan agenda kalender kunjungan 14 hari, validasi check-in GPS lokasi, dokumentasi foto bukti kunjungan ber-geotag lintang-bujur dengan kompresi gambar otomatis, serta penerbitan Berita Acara hasil kunjungan.
             </div>
           </div>
 
           <!-- Modul 6 -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">6</span>
-              Modul Historis Tunggakan (1 - 6 Bulan Kebelakang)
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all 0.2s ease;">
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:9px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;box-shadow:0 3px 8px rgba(15,118,110,0.25);">6</span>
+              Modul Historis Tunggakan &amp; Tren Arrears (1 - 6 Bulan)
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
-              Menyajikan analisis multi-bulan nasabah arrears, grafik tren baki debet menggunakan Chart.js interaktif, filter rentang waktu (1, 3, atau 6 bulan), serta matriks rekapitulasi klasifikasi per Account Officer (AO) dan Penagihan (P3).
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-left:40px;">
+              Analisis multi-bulan nasabah menunggak dengan visualisasi grafik interaktif tren baki debet (Chart.js), filter rentang waktu (1, 3, atau 6 bulan terakhir), serta matriks rekapitulasi performa penanganan per Account Officer dan petugas P3.
             </div>
           </div>
 
           <!-- Modul 7 -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">7</span>
-              Modul Berkas Legalitas &amp; Agunan (AYDA)
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all 0.2s ease;">
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:9px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;box-shadow:0 3px 8px rgba(15,118,110,0.25);">7</span>
+              Modul Berkas Legalitas Akad &amp; Agunan (AYDA)
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
-              Memfasilitasi pemeriksaan 14 checklist kelengkapan berkas legalitas (KTP, SKU, Akad Pembiayaan, APHT, Fidusia, Sertifikat, dll.) serta pemantauan aset jaminan lelang / Aset Yang Diambil Alih (AYDA) untuk penyelesaian kredit bermasalah.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-left:40px;">
+              Audit kelengkapan 14 checklist dokumen legalitas pembiayaan (KTP, SKU, Akad Murabahah/Musyarakah/Mudharabah, APHT, SKMHT, Fidusia, Sertifikat Agunan) dan pengawasan Aset Yang Diambil Alih (AYDA) untuk percepatan penyelesaian sengketa jaminan.
             </div>
           </div>
 
           <!-- Modul 8 -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">8</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all 0.2s ease;">
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:9px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;box-shadow:0 3px 8px rgba(15,118,110,0.25);">8</span>
               Modul Riwayat Pembayaran &amp; Cetak PDF Laporan
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
-              Mencatat penerimaan pembayaran angsuran tunai/transfer, pengunggahan masal via Excel/CSV, serta penerbitan <strong>Cetak PDF Laporan Rekapitulasi Pembayaran Harian</strong> resmi ber-kop surat bank lengkap dengan kolom tanda tangan otorisasi.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-left:40px;">
+              Pencatatan realisasi angsuran pembiayaan tunai dan transfer bank, integrasi import data transaksi CBS via Excel/CSV, serta penerbitan <strong>Cetak PDF Laporan Rekapitulasi Pembayaran Harian</strong> resmi ber-kop PT BPRS Mitra Harmoni Yogyakarta lengkap dengan otorisasi pejabat bank.
             </div>
           </div>
 
           <!-- Modul 9 -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-              <span style="width:26px;height:26px;border-radius:8px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">9</span>
+          <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all 0.2s ease;">
+            <div style="font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+              <span style="width:28px;height:28px;border-radius:9px;background:#0f766e;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;box-shadow:0 3px 8px rgba(15,118,110,0.25);">9</span>
               Modul KPI Scorecard &amp; Target Rencana Bisnis Bank (RBB)
             </div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.65;margin-left:36px;">
-              Memantau 16 indikator kinerja utama penagihan (seperti NPF Gross, Recovery Rate, Cure Rate, Collection Rate, Promise Kept Rate, Roll Rate, dan Coverage Ratio) untuk memastikan ketercapaian target RBB bulanan bank.
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-left:40px;">
+              Evaluasi kinerja komprehensif mengacu pada 16 indikator standar perbankan (NPF Gross, Recovery Rate, Cure Rate, Collection Rate, Promise Kept Rate, Roll-Over &amp; Roll-Cure Matrix) untuk memastikan ketercapaian target RBB tahunan bank secara akurat.
             </div>
           </div>
 
@@ -7983,24 +7999,31 @@ async function loadAboutView() {
       </div>
 
       <!-- CARD 4: SPESIFIKASI TEKNIS & KEAMANAN -->
-      <div class="card" style="padding:24px;border-radius:20px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 20px -2px rgba(15,23,42,0.04);">
-        <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:14px;">Spesifikasi Arsitektur Teknologi &amp; Keamanan Sistem</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;font-size:12px;">
-          <div style="background:#f8fafc;padding:12px 14px;border-radius:12px;border:1px solid #e2e8f0;">
-            <div style="color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">BACKEND ENGINE</div>
-            <div style="font-weight:800;color:#0f172a;margin-top:3px;">Node.js &amp; Hono REST API</div>
+      <div class="card" style="padding:28px;border-radius:22px;background:var(--card-bg);border:1px solid var(--border);box-shadow:0 6px 25px -4px rgba(15,23,42,0.04);">
+        <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          Spesifikasi Arsitektur Teknologi &amp; Keamanan Sistem
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:14px;font-size:12.5px;">
+          <div style="background:var(--bg-subtle, #f8fafc);padding:16px;border-radius:14px;border:1px solid var(--border);">
+            <div style="color:var(--text-3);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">BACKEND ENGINE</div>
+            <div style="font-weight:800;color:var(--text);margin-top:4px;">Node.js &amp; Hono REST API</div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">Ultra-fast &amp; Low-memory footprint</div>
           </div>
-          <div style="background:#f8fafc;padding:12px 14px;border-radius:12px;border:1px solid #e2e8f0;">
-            <div style="color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">DATABASE &amp; ORM</div>
-            <div style="font-weight:800;color:#0f172a;margin-top:3px;">SQLite / MySQL via Prisma ORM</div>
+          <div style="background:var(--bg-subtle, #f8fafc);padding:16px;border-radius:14px;border:1px solid var(--border);">
+            <div style="color:var(--text-3);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">DATABASE &amp; ORM</div>
+            <div style="font-weight:800;color:var(--text);margin-top:4px;">SQLite / MySQL via Prisma ORM</div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">Type-safe Query &amp; Audit Logging</div>
           </div>
-          <div style="background:#f8fafc;padding:12px 14px;border-radius:12px;border:1px solid #e2e8f0;">
-            <div style="color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">PROCESSING &amp; IO</div>
-            <div style="font-weight:800;color:#0f172a;margin-top:3px;">Sharp, PDFKit, ExcelJS, Chart.js</div>
+          <div style="background:var(--bg-subtle, #f8fafc);padding:16px;border-radius:14px;border:1px solid var(--border);">
+            <div style="color:var(--text-3);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">MEDIA, REPORT &amp; IO</div>
+            <div style="font-weight:800;color:var(--text);margin-top:4px;">Sharp, PDFKit, ExcelJS, Chart.js</div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">Image Compression &amp; Formal Reporting</div>
           </div>
-          <div style="background:#f8fafc;padding:12px 14px;border-radius:12px;border:1px solid #e2e8f0;">
-            <div style="color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">FRONTEND PLATFORM</div>
-            <div style="font-weight:800;color:#0f172a;margin-top:3px;">Progressive Web App (PWA Standalone)</div>
+          <div style="background:var(--bg-subtle, #f8fafc);padding:16px;border-radius:14px;border:1px solid var(--border);">
+            <div style="color:var(--text-3);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">FRONTEND &amp; OFFLINE</div>
+            <div style="font-weight:800;color:var(--text);margin-top:4px;">Progressive Web App (PWA Standalone)</div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">Cross-Platform Desktop/Android/iOS</div>
           </div>
         </div>
       </div>
@@ -8056,7 +8079,7 @@ function startCallDialerProcess() {
 
   if (startBtn) startBtn.style.display = 'none';
   if (endBtn) endBtn.style.display = 'block';
-  if (statusEl) statusEl.innerText = 'Panggilan berlangsung... Timer berjalan ⏱️';
+  if (statusEl) statusEl.innerText = 'Panggilan berlangsung... Timer berjalan';
 
   dialerSeconds = 0;
   stopCallTimer();
@@ -8394,7 +8417,7 @@ async function saveFollowUpJB(btnEl) {
         method: 'POST',
         body: JSON.stringify(payload)
       });
-      showToast(fjbTindak === 'Sudah Bayar' ? 'Pembayaran berhasil dicatat! 🎉' : 'Follow-up berhasil disimpan', 's');
+      showToast(fjbTindak === 'Sudah Bayar' ? 'Pembayaran berhasil dicatat' : 'Follow-up berhasil disimpan', 's');
       closeModal('modal-followup-jb');
       if (typeof loadDeskCallView === 'function') loadDeskCallView();
       if (typeof loadDashboardView === 'function') loadDashboardView();
@@ -8880,7 +8903,7 @@ async function deleteSuratLegal(suratId) {
 
 async function autoGenerateSpAction(debiturId, jenisSurat) {
   try {
-    showToast(`⚡ Menggenerasi ${jenisSurat} secara otomatis...`, 'i');
+    showToast(`Memproses ${jenisSurat || 'Surat Peringatan'} secara otomatis...`, 'i');
     const newSurat = await apiCall('/legal/surat/auto-generate', {
       method: 'POST',
       body: JSON.stringify({ debiturId, jenisSurat })
@@ -9411,9 +9434,11 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
     ${!activeCat ? `
       <!-- CLOSED PLACEHOLDER STATE -->
       <div style="background:#ffffff; border:1.5px dashed #cbd5e1; border-radius:18px; padding:38px 20px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
-        <div style="width:50px; height:50px; border-radius:50%; background:#f1f5f9; color:#475569; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; font-size:22px; font-weight:bold;">📂</div>
+        <div style="width:50px; height:50px; border-radius:50%; background:#f1f5f9; color:#475569; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </div>
         <div style="font-size:16px; font-weight:800; color:#0f172a; margin-bottom:4px;">Kategori EWS Dalam Keadaan Tertutup</div>
-        <div style="font-size:13px; color:#64748b; max-width:520px; margin:0 auto;">Silakan klik tombol <strong>▼ Expand</strong> pada salah satu kartu kategori risiko di atas (CRITICAL, VERY HIGH, HIGH, MEDIUM, atau LOW) untuk menampilkan daftar nasabah.</div>
+        <div style="font-size:13px; color:#64748b; max-width:520px; margin:0 auto;">Silakan klik tombol <strong>▼ Expand</strong> pada salah satu kartu kategori risiko di atas untuk menampilkan daftar nasabah.</div>
       </div>
     ` : `
       <!-- EWS TABLE CONTAINER -->
@@ -9476,7 +9501,7 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
                   <td style="text-align:center;" onclick="event.stopPropagation()">
                     <div style="display:flex; gap:4px; justify-content:center;">
                       <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px;" onclick="event.stopPropagation(); openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "&apos;")}')">+ Log</button>
-                      ${d.frhPokok >= 30 ? `<button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px; background:#EF4444; border:none;" onclick="event.stopPropagation(); autoGenerateSpAction('${d.id}')" title="Terbitkan Surat Peringatan (Auto SP)">⚡ SP</button>` : ''}
+                      ${d.frhPokok >= 30 ? `<button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px; background:#EF4444; border:none;" onclick="event.stopPropagation(); autoGenerateSpAction('${d.id}')" title="Terbitkan Surat Peringatan (Auto SP)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> SP</button>` : ''}
                       <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); sendEwsWaReminder('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.telepon}', ${d.totalTunggakan}, '${d.tglJt}')" style="font-size:11px; padding:4px 8px; border-color:#25D366; color:#25D366; border-radius:8px;" title="Kirim WA">WA</button>
                     </div>
                   </td>

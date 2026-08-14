@@ -218,7 +218,7 @@ export async function protectButtonSubmit(buttonEl, asyncFn) {
   buttonEl.disabled = true;
   buttonEl.setAttribute('data-submitting', 'true');
   const originalText = buttonEl.innerHTML;
-  buttonEl.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;margin-right:4px;">⏳</span> Memproses...`;
+  buttonEl.innerHTML = `<svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px;animation:spin 1s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg> Memproses...`;
 
   try {
     const result = await asyncFn();
