@@ -2820,25 +2820,27 @@ function renderRedAlertTab(container, res) {
               <th>NAMA DEBITUR &amp; REKENING</th>
               <th>AO PENGAMPU</th>
               <th style="text-align:center;">PERGESERAN KOL</th>
+              <th style="text-align:center;">TGL PERGESERAN</th>
               <th style="text-align:right;">BAKI DEBET</th>
               <th style="text-align:right;">TOTAL TUNGGAKAN</th>
-              <th style="text-align:center;">DPD (HARI)</th>
-              <th style="text-align:center;">STATUS DESKCALL</th>
+              <th style="text-align:center;">DPD</th>
+              <th style="text-align:center;">STATUS CALL</th>
+              <th style="text-align:center;">AKSI</th>
             </tr>
           </thead>
           <tbody>
             ${pageList.map((d, i) => {
               const itemIndex = (currentPage - 1) * pageSize + i + 1;
               return `
-              <tr onclick="viewDebiturDetail('${d.id}')" style="cursor:pointer;">
-                <td>${itemIndex}</td>
-                <td>
+              <tr style="cursor:pointer;">
+                <td onclick="viewDebiturDetail('${d.id}')">${itemIndex}</td>
+                <td onclick="viewDebiturDetail('${d.id}')">
                   <div style="font-weight:800; color:#0F766E;" title="Klik untuk lihat detail nasabah">${d.nama}</div>
                   <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
                   ${d.telepon ? `<div style="font-size:11.5px; color:#475569; margin-top:2px;">Telp: ${d.telepon}</div>` : ''}
                 </td>
-                <td style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
-                <td style="text-align:center;">
+                <td onclick="viewDebiturDetail('${d.id}')" style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
+                <td onclick="viewDebiturDetail('${d.id}')" style="text-align:center;">
                   <div style="display:inline-flex; align-items:center; gap:6px; background:#fff5f5; border:1px solid #fca5a5; padding:4px 10px; border-radius:30px; box-shadow:0 1px 3px rgba(239,68,68,0.06);">
                     <span style="font-size:10.5px; font-weight:700; color:#15803d; background:#dcfce7; border:1px solid #86efac; padding:2px 7px; border-radius:12px; text-decoration:line-through; opacity:0.85;" title="Kolektibilitas Asal (Lancar)">KOL 1</span>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2848,19 +2850,30 @@ function renderRedAlertTab(container, res) {
                     <span style="font-size:11px; font-weight:800; color:#fff; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding:2px 9px; border-radius:12px; box-shadow:0 2px 6px rgba(220,38,38,0.3);" title="Kolektibilitas Baru (DPK)">KOL 2 (DPK)</span>
                   </div>
                 </td>
-                <td style="text-align:right; font-weight:700;" class="mono">${formatRupiah(d.bakiDebet)}</td>
-                <td style="text-align:right; font-weight:800; color:#dc2626;" class="mono">${formatRupiah(d.totalTunggakan)}</td>
-                <td style="text-align:center;">
-                  <span class="badge badge-red" style="font-weight:800; font-size:12px;">${d.frhPokok || 1} Hari</span>
+                <td onclick="viewDebiturDetail('${d.id}')" style="text-align:center;">
+                  <span style="font-size:11.5px; font-weight:700; color:#991b1b; background:#fee2e2; padding:3px 9px; border-radius:12px; border:1px solid #fca5a5;">
+                    ${d.tanggalShift && d.tanggalShift !== '-' ? d.tanggalShift : 'Import CBS Terbaru'}
+                  </span>
                 </td>
-                <td style="text-align:center;">
+                <td onclick="viewDebiturDetail('${d.id}')" style="text-align:right; font-weight:700;" class="mono">${formatRupiah(d.bakiDebet)}</td>
+                <td onclick="viewDebiturDetail('${d.id}')" style="text-align:right; font-weight:800; color:#dc2626;" class="mono">${formatRupiah(d.totalTunggakan)}</td>
+                <td onclick="viewDebiturDetail('${d.id}')" style="text-align:center;">
+                  <span class="badge badge-red" style="font-weight:800; font-size:12px;">${d.frhPokok || 1} H</span>
+                </td>
+                <td onclick="viewDebiturDetail('${d.id}')" style="text-align:center;">
                   <span class="badge ${d.isCalledToday ? 'badge-teal' : 'badge-yellow'}" style="font-size:11px;">
-                    ${d.isCalledToday ? 'Sudah Di-Call Hari Ini' : 'Belum Di-Call Hari Ini'}
+                    ${d.isCalledToday ? 'Sudah Di-Call Hari Ini' : 'Belum Di-Call'}
                   </span>
                   <div style="font-size:11px; color:#64748b; margin-top:3px;">${d.lastCallOutcome || '-'}</div>
                 </td>
+                <td style="text-align:center;">
+                  <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openDeskCallModalForDebitur('${d.id}')" style="font-size:11px; padding:5px 10px; font-weight:700; display:inline-flex; align-items:center; gap:4px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border:none; box-shadow:0 3px 8px rgba(220,38,38,0.25);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    Call Now
+                  </button>
+                </td>
               </tr>
-            `;}).join('') || '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah bergeser KOL 1 ➔ KOL 2 ditemukan untuk kriteria filter ini</td></tr>'}
+            `;}).join('') || '<tr><td colspan="10" style="text-align:center; color:#94a3b8; padding:24px;">Tidak ada nasabah bergeser KOL 1 ➔ KOL 2 ditemukan untuk kriteria filter ini</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -2942,6 +2955,9 @@ async function changeInsightPeriode(periode) {
 }
 
 window._ptpActiveFilter = 'all';
+window._ptpCurrentPage = 1;
+window._ptpPageSize = 20;
+window._ptpFilteredData = [];
 
 function filterPtpTable(filterType) {
   window._ptpActiveFilter = filterType || 'all';
@@ -3000,42 +3016,9 @@ function filterPtpTable(filterType) {
     `;
   }
 
-  const tbodyEl = document.getElementById('ptp-table-tbody');
-  if (!tbodyEl) return;
-
-  if (filtered.length === 0) {
-    tbodyEl.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-3);font-size:12.5px;">Tidak ada data nasabah pada kategori ini</td></tr>`;
-    return;
-  }
-
-  tbodyEl.innerHTML = filtered.map((d, idx) => {
-    let tagClass = 'badge-brand';
-    let dotStyle = 'background:#0F766E;';
-    if (d.statusCategory.includes('Selesai')) {
-      tagClass = 'badge-success';
-      dotStyle = 'background:#10B981;';
-    } else if (d.statusCategory.includes('Ingkar')) {
-      tagClass = 'badge-danger';
-      dotStyle = 'background:#EF4444;';
-    }
-    const tglStr = d.tanggalJanjiBayar ? new Date(d.tanggalJanjiBayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-
-    return `
-      <tr>
-        <td style="text-align:center;font-weight:800;color:var(--text-3);">${idx + 1}</td>
-        <td style="font-weight:700;color:var(--text);">${d.namaDebitur}</td>
-        <td class="mono" style="font-size:11.5px;color:var(--text-3);">${d.debiturId}</td>
-        <td style="text-align:right;" class="mono font-bold">${formatRupiah(d.nominalJanji)}</td>
-        <td style="text-align:center;">${tglStr}</td>
-        <td style="text-align:center;">
-          <span class="badge ${tagClass}" style="font-size:10.5px;padding:3px 10px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
-            <span style="width:6px;height:6px;border-radius:50%;${dotStyle}display:inline-block;"></span>
-            ${d.statusCategory}
-          </span>
-        </td>
-      </tr>
-    `;
-  }).join('');
+  window._ptpFilteredData = filtered;
+  window._ptpCurrentPage = 1;
+  ptpRenderPage(1);
 }
 
 function renderDeskCallTab(res) {
@@ -3394,12 +3377,31 @@ function renderDeskCallTab(res) {
         </div>
 
         <!-- Debtor Table Section -->
-        ${(ptpMetrics.debtorList && ptpMetrics.debtorList.length > 0) ? `
+        ${(() => {
+          if (!ptpMetrics.debtorList || ptpMetrics.debtorList.length === 0) return '';
+          window._ptpFilteredData = ptpMetrics.debtorList;
+          window._ptpCurrentPage = 1;
+          const ps = 20;
+          const firstPage = ptpMetrics.debtorList.slice(0, ps);
+          const totalPg = Math.ceil(ptpMetrics.debtorList.length / ps);
+          const rowsInit = firstPage.map((d, idx) => {
+            let tagClass = 'badge-brand';
+            let dotStyle = 'background:#0F766E;';
+            if (d.statusCategory.includes('Selesai')) { tagClass = 'badge-success'; dotStyle = 'background:#10B981;'; }
+            else if (d.statusCategory.includes('Ingkar')) { tagClass = 'badge-danger'; dotStyle = 'background:#EF4444;'; }
+            const tglStr = d.tanggalJanjiBayar ? new Date(d.tanggalJanjiBayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+            return `<tr><td style="text-align:center;font-weight:800;color:var(--text-3);">${idx + 1}</td><td style="font-weight:700;color:var(--text);">${d.namaDebitur}</td><td class="mono" style="font-size:11.5px;color:var(--text-3);">${d.debiturId}</td><td style="text-align:right;" class="mono font-bold">${formatRupiah(d.nominalJanji)}</td><td style="text-align:center;">${tglStr}</td><td style="text-align:center;"><span class="badge ${tagClass}" style="font-size:10.5px;padding:3px 10px;font-weight:700;display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;border-radius:50%;${dotStyle}display:inline-block;"></span>${d.statusCategory}</span></td></tr>`;
+          }).join('');
+          const pagBtns = totalPg > 1 ? Array.from({length: totalPg}, (_, i) => {
+            const p = i + 1;
+            return `<button onclick="ptpGoToPage(${p})" class="rjb-page-btn${p === 1 ? ' active' : ''}" style="min-width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:${p === 1 ? 'var(--brand)' : 'var(--bg)'};color:${p === 1 ? '#fff' : 'var(--text-2)'};font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">${p}</button>`;
+          }).join('') : '';
+          return `
           <div>
             <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;" id="ptp-table-title">
               <div style="display:flex;align-items:center;gap:8px;">
                 <span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block;"></span>
-                <span style="font-weight:800;color:var(--text);">Daftar Nasabah:</span> 
+                <span style="font-weight:800;color:var(--text);">Daftar Nasabah:</span>
                 <span style="font-weight:700;color:var(--text-2);">Semua Nasabah Janji Bayar (${ptpMetrics.debtorList.length} Nasabah)</span>
               </div>
             </div>
@@ -3417,40 +3419,18 @@ function renderDeskCallTab(res) {
                     </tr>
                   </thead>
                   <tbody id="ptp-table-tbody">
-                    ${ptpMetrics.debtorList.map((d, idx) => {
-                      let tagClass = 'badge-brand';
-                      let dotStyle = 'background:#0F766E;';
-                      if (d.statusCategory.includes('Selesai')) {
-                        tagClass = 'badge-success';
-                        dotStyle = 'background:#10B981;';
-                      } else if (d.statusCategory.includes('Ingkar')) {
-                        tagClass = 'badge-danger';
-                        dotStyle = 'background:#EF4444;';
-                      }
-                      const tglStr = d.tanggalJanjiBayar ? new Date(d.tanggalJanjiBayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-
-                      return `
-                        <tr>
-                          <td style="text-align:center;font-weight:800;color:var(--text-3);">${idx + 1}</td>
-                          <td style="font-weight:700;color:var(--text);">${d.namaDebitur}</td>
-                          <td class="mono" style="font-size:11.5px;color:var(--text-3);">${d.debiturId}</td>
-                          <td style="text-align:right;" class="mono font-bold">${formatRupiah(d.nominalJanji)}</td>
-                          <td style="text-align:center;">${tglStr}</td>
-                          <td style="text-align:center;">
-                            <span class="badge ${tagClass}" style="font-size:10.5px;padding:3px 10px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
-                              <span style="width:6px;height:6px;border-radius:50%;${dotStyle}display:inline-block;"></span>
-                              ${d.statusCategory}
-                            </span>
-                          </td>
-                        </tr>
-                      `;
-                    }).join('')}
+                    ${rowsInit}
                   </tbody>
                 </table>
               </div>
             </div>
-          </div>
-        ` : ''}
+            ${totalPg > 1 ? `
+            <div id="ptp-pagination" style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px;">
+              <span id="ptp-page-info" style="font-size:11px;color:var(--text-3);">Menampilkan 1-${Math.min(ps, ptpMetrics.debtorList.length)} dari ${ptpMetrics.debtorList.length} nasabah</span>
+              <div style="display:flex;gap:4px;align-items:center;" id="ptp-page-btns">${pagBtns}</div>
+            </div>` : `<div style="margin-top:8px;font-size:11px;color:var(--text-3);">Menampilkan ${ptpMetrics.debtorList.length} nasabah</div>`}
+          </div>`;
+        })()}
       </div>
     `;
 
@@ -3630,6 +3610,159 @@ function renderDeskCallTab(res) {
           </div>
         </div>
       </div>
+
+      ${(() => {
+        const rjb = res?.rekapJanjiBayar || {};
+        const rjbList = rjb.list || [];
+        const totalJanji = rjb.totalJanjiDebitur || 0;
+        const sudahBayar = rjb.sudahBayarCount || 0;
+        const ingkarJanji = rjb.ingkarJanjiCount || 0;
+        const menunggu = rjb.menungguCount || 0;
+        const successRate = rjb.successRate || 0;
+        const totalNominalJanji = rjb.totalNominalJanjiBayar || 0;
+        const totalNominalTerbayar = rjb.totalNominalTerbayar || 0;
+
+        const progressPct = totalJanji > 0 ? ((sudahBayar / totalJanji) * 100).toFixed(1) : 0;
+        const ingkarPct = totalJanji > 0 ? ((ingkarJanji / totalJanji) * 100).toFixed(1) : 0;
+        const menungguPct = totalJanji > 0 ? ((menunggu / totalJanji) * 100).toFixed(1) : 0;
+        const resolvedPct = totalJanji > 0 ? (((sudahBayar + ingkarJanji) / totalJanji) * 100).toFixed(1) : 0;
+
+        const statusBadge = (status, color) => {
+          const colorMap = {
+            green: 'badge-green',
+            red: 'badge-red',
+            yellow: 'badge-yellow'
+          };
+          return '<span class="badge ' + (colorMap[color] || 'badge-gray') + '" style="font-size:10px;">' + status + '</span>';
+        };
+
+        // Store data globally for pagination
+        window._rjbListData = rjbList;
+        window._rjbPageSize = 20;
+        window._rjbCurrentPage = 1;
+
+        const buildRow = (r, idx) => {
+          const tglJanji = r.tanggalJanjiBayar ? formatDate(r.tanggalJanjiBayar) : '-';
+          const escapedNama = r.namaDebitur.replace(/'/g, "\\'");
+          const escapedPetugas = (r.petugas || '-').replace(/'/g, "\\'");
+          return '<tr style="border-top:1px solid var(--border);cursor:pointer;" onclick="openFollowUpJanjiBayar(\'' + r.debiturId + '\', \'' + escapedNama + '\', \'' + (r.kol || '-') + '\', \'' + (r.tanggalJanjiBayar || '') + '\', ' + (r.nominalJanji || 0) + ', \'' + (r.statusJanji || '-') + '\', \'' + escapedPetugas + '\')">' +
+            '<td style="padding:8px 10px;" class="mono">' + (idx + 1) + '</td>' +
+            '<td style="padding:8px 10px;font-weight:700;">' + r.namaDebitur + '</td>' +
+            '<td style="padding:8px 10px;" class="mono">' + r.kol + '</td>' +
+            '<td style="padding:8px 10px;" class="mono">' + tglJanji + '</td>' +
+            '<td style="padding:8px 10px;" class="num mono font-bold text-green">' + formatRupiah(r.nominalJanji) + '</td>' +
+            '<td style="padding:8px 10px;">' + statusBadge(r.statusJanji, r.statusColor) + '</td>' +
+            '<td style="padding:8px 10px;" class="num mono">' + (r.nominalBayar ? formatRupiah(r.nominalBayar) : '-') + '</td>' +
+            '<td style="padding:8px 10px;">' + r.petugas + '</td>' +
+            '</tr>';
+        };
+        window._rjbBuildRow = buildRow;
+        window._rjbStatusBadge = statusBadge;
+
+        const pageSize = 20;
+        const totalPages = Math.max(1, Math.ceil(rjbList.length / pageSize));
+        const pageSlice = rjbList.slice(0, pageSize);
+
+        const rowsHtml = rjbList.length === 0
+          ? '<tr><td colspan="8" class="empty-st">Belum ada data janji bayar bulan ini</td></tr>'
+          : pageSlice.map((r, idx) => buildRow(r, idx)).join('');
+
+        const paginationHtml = totalPages > 1 ? `
+          <div id="rjb-pagination" style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:11px;color:var(--text-3);">Menampilkan 1-${Math.min(pageSize, rjbList.length)} dari ${rjbList.length} debitur</span>
+            <div style="display:flex;gap:4px;align-items:center;" id="rjb-page-btns">
+              ${Array.from({length: totalPages}, (_, i) => {
+                const p = i + 1;
+                return '<button onclick="rjbGoToPage(' + p + ')" class="rjb-page-btn' + (p === 1 ? ' active' : '') + '" style="min-width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:' + (p === 1 ? 'var(--brand)' : 'var(--bg)') + ';color:' + (p === 1 ? '#fff' : 'var(--text-2)') + ';font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">' + p + '</button>';
+              }).join('')}
+            </div>
+          </div>` : (rjbList.length > 0 ? `<div style="margin-top:8px;font-size:11px;color:var(--text-3);">Menampilkan ${rjbList.length} debitur</div>` : '');
+
+        return `
+      <div class="card mb-4" style="padding:16px 20px;">
+        <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span style="display:flex;align-items:center;gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Rekap Janji Bayar (PTP) Bulan Ini
+          </span>
+          <span class="badge badge-teal" style="font-size:12px;">${totalJanji} Debitur</span>
+        </div>
+        <p style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Monitoring janji bayar nasabah: status realisasi, nominal, dan tindak lanjut.</p>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:16px;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;color:var(--text-3);font-weight:600;margin-bottom:4px;">Total Janji</div>
+            <div style="font-size:22px;font-weight:800;color:var(--brand);">${totalJanji}</div>
+            <div style="font-size:10px;color:var(--text-3);">Debitur</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #a7f3d0;border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;color:#065f46;font-weight:600;margin-bottom:4px;">Sudah Bayar</div>
+            <div style="font-size:22px;font-weight:800;color:#059669;">${sudahBayar}</div>
+            <div style="font-size:10px;color:#065f46;">${progressPct}%</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#fef2f2,#fecaca);border:1px solid #fca5a5;border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;color:#991b1b;font-weight:600;margin-bottom:4px;">Ingkar Janji</div>
+            <div style="font-size:22px;font-weight:800;color:#dc2626;">${ingkarJanji}</div>
+            <div style="font-size:10px;color:#991b1b;">${ingkarPct}%</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;color:#92400e;font-weight:600;margin-bottom:4px;">Menunggu</div>
+            <div style="font-size:22px;font-weight:800;color:#d97706;">${menunggu}</div>
+            <div style="font-size:10px;color:#92400e;">${menungguPct}%</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;color:var(--text-3);font-weight:600;margin-bottom:4px;">Success Rate</div>
+            <div style="font-size:22px;font-weight:800;color:${successRate >= 60 ? '#059669' : successRate >= 30 ? '#d97706' : '#dc2626'};">${successRate}%</div>
+            <div style="font-size:10px;color:var(--text-3);">Realisasi</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;color:var(--text-3);font-weight:600;margin-bottom:4px;">Nominal Terbayar</div>
+            <div style="font-size:15px;font-weight:800;color:#059669;font-family:'JetBrains Mono',monospace;">${formatRupiah(totalNominalTerbayar)}</div>
+            <div style="font-size:10px;color:var(--text-3);">dari ${formatRupiah(totalNominalJanji)}</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-2);">Rasio Realisasi Komitmen Penagihan (PTP Resolution Progress)</span>
+            <span style="font-size:11px;font-weight:700;color:var(--brand);">${resolvedPct}% Selesai</span>
+          </div>
+          <div style="background:var(--border);border-radius:8px;height:10px;overflow:hidden;display:flex;">
+            <div style="background:linear-gradient(90deg,#059669,#34d399);height:100%;width:${progressPct}%;border-radius:8px 0 0 8px;transition:width .6s ease;"></div>
+            <div style="background:linear-gradient(90deg,#dc2626,#f87171);height:100%;width:${ingkarPct}%;transition:width .6s ease;"></div>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:6px;">
+            <span style="font-size:10px;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#059669;display:inline-block;"></span> Sudah Bayar</span>
+            <span style="font-size:10px;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block;"></span> Ingkar Janji</span>
+            <span style="font-size:10px;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--border);display:inline-block;"></span> Menunggu</span>
+          </div>
+        </div>
+
+        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px;">Detail Janji Bayar Per Debitur</div>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px;">No</th>
+                  <th>Nama Debitur</th>
+                  <th>KOL</th>
+                  <th>Tgl Janji Bayar</th>
+                  <th class="num">Nominal Janji</th>
+                  <th>Status</th>
+                  <th class="num">Nominal Bayar</th>
+                  <th>Petugas</th>
+                </tr>
+              </thead>
+              <tbody id="rjb-table-body">
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        ${paginationHtml}
+      </div>`;
+      })()}
     `;
     return;
   }
@@ -5276,7 +5409,8 @@ let legalState = {
   filterStatus: 'Semua',
   searchQuery: '',
   openCardId: null,
-  suratJenisFilter: ''
+  suratJenisFilter: '',
+  eligibleSp: []
 };
 
 async function loadLegalView() {
@@ -5286,13 +5420,15 @@ async function loadLegalView() {
   container.innerHTML = `<div class="empty-st"><p>Memuat data legal...</p></div>`;
 
   try {
-    const [resBerkas, resSurat] = await Promise.all([
+    const [resBerkas, resSurat, resEligible] = await Promise.all([
       apiCall('/legal/berkas').catch(() => []),
-      apiCall('/legal/surat').catch(() => [])
+      apiCall('/legal/surat').catch(() => []),
+      apiCall('/legal/surat/eligible').catch(() => [])
     ]);
 
     legalState.berkas = Array.isArray(resBerkas) ? resBerkas : (resBerkas?.berkas || []);
     legalState.surat = Array.isArray(resSurat) ? resSurat : [];
+    legalState.eligibleSp = Array.isArray(resEligible) ? resEligible : [];
 
     renderLegalView();
   } catch (err) {
@@ -5331,7 +5467,7 @@ function renderLegalView() {
         Manajemen Berkas Legal &amp; Agunan
       </button>
       <button class="setting-subtab ${isSuratTab ? 'active' : ''}" onclick="switchLegalSubtab('surat')" style="font-size:14px;padding:10px 18px;border:none;background:none;cursor:pointer;font-weight:${isSuratTab ? '800' : '600'};color:${isSuratTab ? 'var(--brand)' : 'var(--text-2)'};border-bottom:3px solid ${isSuratTab ? 'var(--brand)' : 'transparent'};">
-        Surat Peringatan &amp; Somasi
+        Surat Peringatan &amp; Somasi ${legalState.eligibleSp.length > 0 ? `<span class="badge badge-red" style="font-size:11px;margin-left:4px;">${legalState.eligibleSp.length} Perlu SP</span>` : ''}
       </button>
     </div>
   `;
@@ -5377,6 +5513,47 @@ function renderLegalView() {
         </div>
         <div class="stat-card dang">
           <div class="stat-label">Somasi &amp; Eksekusi</div>
+          <div class="stat-num text-danger">${somasiCount}</div>
+          <div class="stat-sub">Tindakan Hukum Formal</div>
+        </div>
+      </div>
+
+      <!-- AUTO-TRIGGER ENGINE RECOMMENDATIONS CARD -->
+      ${legalState.eligibleSp.length > 0 ? `
+        <div class="card mb-4" style="padding:20px;border-radius:18px;background:linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(245, 158, 11, 0.06));border:1.5px solid rgba(239, 68, 68, 0.25);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:var(--danger);color:#fff;font-weight:900;font-size:16px;">⚡</span>
+              <div>
+                <h4 style="margin:0;font-size:15px;font-weight:800;color:var(--text-1);">Rekoomendasi Pemicu Otomatis Surat Peringatan (Auto-Trigger SP Engine)</h4>
+                <p style="margin:2px 0 0 0;font-size:12px;color:var(--text-2);">Sistem mendeteksi <strong>${legalState.eligibleSp.length} debitur</strong> dengan hari tunggakan (DPD >= 30) yang siap dibuatkan Surat Peringatan secara instan.</p>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(310px, 1fr));gap:12px;">
+            ${legalState.eligibleSp.map(item => `
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+                <div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;">
+                    <span class="font-bold" style="font-size:13.5px;color:var(--text-1);">${item.namaDebitur}</span>
+                    <span class="badge ${item.recommendedJenisSurat.startsWith('SP1') ? 'badge-blue' : (item.recommendedJenisSurat.startsWith('SP2') ? 'badge-yellow' : 'badge-red')}">${item.recommendedJenisSurat}</span>
+                  </div>
+                  <div style="font-size:11.5px;color:var(--text-2);margin-bottom:6px;">
+                    <span class="mono">Rek: ${item.debiturId}</span> | KOL: <strong>${item.kol}</strong> | Tunggakan: <strong class="text-danger">${formatRupiah(item.totalTunggakan)}</strong>
+                  </div>
+                  <div style="font-size:12px;background:rgba(239,68,68,0.08);color:var(--danger);padding:6px 10px;border-radius:8px;font-weight:600;">
+                    ⏱️ Tunggakan <strong>${item.frhPokok} Hari</strong>: ${item.reason}
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="autoGenerateSpAction('${item.debiturId}', '${item.recommendedJenisSurat}')" style="width:100%;font-size:12.5px;padding:7px 12px;border-radius:10px;justify-content:center;">
+                  ⚡ Terbitkan &amp; Cetak ${item.recommendedJenisSurat} Instan
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
           <div class="stat-num text-danger">${somasiCount}</div>
           <div class="stat-sub">Tindakan Hukum Formal</div>
         </div>
@@ -7258,15 +7435,15 @@ async function loadCbsImportHistory() {
                   </td>
                   <td>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11.5px;align-items:center;">
-                      <span title="Data debitur yang baki debet / kolektibilitasnya diperbarui" style="display:inline-flex;align-items:center;gap:5px;color:#0F766E;background:rgba(15,118,110,0.08);padding:4px 10px;border-radius:6px;font-weight:700;border:1px solid rgba(15,118,110,0.18);">
+                      <span onclick="viewBatchChanges('${item.id}', 'update')" title="Klik untuk lihat rincian debitur yang berubah kolektibilitas" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;color:#0F766E;background:rgba(15,118,110,0.08);padding:4px 10px;border-radius:6px;font-weight:700;border:1px solid rgba(15,118,110,0.18);transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                         <span style="width:6px;height:6px;border-radius:50%;background:#0F766E;display:inline-block;"></span>
                         ${(item.totalUpdated || 0).toLocaleString('id-ID')} Update
                       </span>
-                      <span title="Debitur baru yang ditambahkan" style="display:inline-flex;align-items:center;gap:5px;color:#10B981;background:rgba(16,185,129,0.08);padding:4px 10px;border-radius:6px;font-weight:700;border:1px solid rgba(16,185,129,0.18);">
+                      <span onclick="viewBatchChanges('${item.id}', 'new')" title="Klik untuk lihat rincian debitur baru" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;color:#10B981;background:rgba(16,185,129,0.08);padding:4px 10px;border-radius:6px;font-weight:700;border:1px solid rgba(16,185,129,0.18);transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                         <span style="width:6px;height:6px;border-radius:50%;background:#10B981;display:inline-block;"></span>
                         ${(item.totalNewDetected || 0).toLocaleString('id-ID')} Baru
                       </span>
-                      <span title="Debitur yang tidak ada di CSV / lunas" style="display:inline-flex;align-items:center;gap:5px;color:#EF4444;background:rgba(239,68,68,0.08);padding:4px 10px;border-radius:6px;font-weight:700;border:1px solid rgba(239,68,68,0.18);">
+                      <span onclick="viewBatchChanges('${item.id}', 'missing')" title="Klik untuk lihat rincian debitur lunas / non-aktif" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;color:#EF4444;background:rgba(239,68,68,0.08);padding:4px 10px;border-radius:6px;font-weight:700;border:1px solid rgba(239,68,68,0.18);transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                         <span style="width:6px;height:6px;border-radius:50%;background:#EF4444;display:inline-block;"></span>
                         ${(item.totalMissingDetected || 0).toLocaleString('id-ID')} Lunas / Non-Aktif
                       </span>
@@ -7276,13 +7453,18 @@ async function loadCbsImportHistory() {
                     ${statusBadge}
                   </td>
                   <td style="text-align:right;">
-                    ${item.status === 'pending_review' ? `
-                      <button class="btn btn-primary btn-sm" onclick="commitCbsImport('${item.id}')" style="font-size:11px;padding:4px 10px;">
-                        Terapkan
+                    <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
+                      <button class="btn btn-ghost btn-sm" onclick="viewBatchChanges('${item.id}', 'all')" style="font-size:11.5px;padding:3px 8px;" title="Lihat Rincian Data Berubah">
+                        🔍 Detail
                       </button>
-                    ` : `
-                      <span style="font-size:11px;color:var(--text-3);">${item.appliedAt ? formatDate(item.appliedAt) : '-'}</span>
-                    `}
+                      ${item.status === 'pending_review' ? `
+                        <button class="btn btn-primary btn-sm" onclick="commitCbsImport('${item.id}')" style="font-size:11px;padding:4px 10px;">
+                          Terapkan
+                        </button>
+                      ` : `
+                        <span style="font-size:11px;color:var(--text-3);">${item.appliedAt ? formatDate(item.appliedAt) : '-'}</span>
+                      `}
+                    </div>
                   </td>
                 </tr>
               `;
@@ -7297,6 +7479,158 @@ async function loadCbsImportHistory() {
     `;
   }
 }
+
+// ── BATCH CHANGES DETAIL MODAL HANDLER ──
+let currentBatchChangesData = null;
+
+async function viewBatchChanges(batchId, defaultTab = 'update') {
+  openModal('modal-batch-changes');
+  const bodyEl = document.getElementById('batchc-body');
+  const titleEl = document.getElementById('batchc-title');
+  const subEl = document.getElementById('batchc-sub');
+
+  if (bodyEl) bodyEl.innerHTML = '<p style="text-align:center;color:var(--text-2);padding:20px 0;">Memuat rincian perubahan data debitur...</p>';
+
+  try {
+    const data = await apiCall(`/import/cbs/batch/${batchId}/changes`);
+    currentBatchChangesData = data;
+
+    if (titleEl) titleEl.innerText = `Detail Perubahan Import CBS — ${data.batch?.fileName || 'Batch'}`;
+    if (subEl) subEl.innerText = `Snapshot Cutoff: ${data.batch?.tanggalSnapshot ? formatDate(data.batch.tanggalSnapshot) : '-'} | Pengunggah: ${data.batch?.uploadedBy || '-'}`;
+
+    renderBatchChangesTab(defaultTab);
+  } catch (err) {
+    if (bodyEl) bodyEl.innerHTML = `<div class="auth-error">Gagal memuat rincian perubahan: ${err.message}</div>`;
+  }
+}
+
+function renderBatchChangesTab(activeTab = 'update') {
+  const bodyEl = document.getElementById('batchc-body');
+  if (!bodyEl || !currentBatchChangesData) return;
+
+  const { batch, kolChanges = [], newDebiturs = [], missingDebiturs = [] } = currentBatchChangesData;
+
+  let contentHtml = '';
+
+  if (activeTab === 'new') {
+    contentHtml = `
+      <div class="tbl-wrap">
+        <table class="tbl" style="min-width:680px;font-size:12.5px;">
+          <thead>
+            <tr>
+              <th style="width:40px;text-align:center;">No.</th>
+              <th>No. Rekening</th>
+              <th>Nama Debitur</th>
+              <th>AO Pengampu</th>
+              <th class="num">Plafon</th>
+              <th class="num">Baki Debet</th>
+              <th style="text-align:center;">KOL Awal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${newDebiturs.length === 0 ? '<tr><td colspan="7" class="empty-st">Tidak ada debitur baru pada batch ini.</td></tr>' : newDebiturs.map((d, idx) => `
+              <tr>
+                <td style="text-align:center;font-weight:bold;">${idx + 1}</td>
+                <td class="mono font-bold">${d.debiturId}</td>
+                <td class="font-bold">${d.nama}</td>
+                <td>${d.ao}</td>
+                <td class="num mono">${formatRupiah(d.plafon)}</td>
+                <td class="num mono font-bold text-teal">${formatRupiah(d.bakiDebet)}</td>
+                <td style="text-align:center;"><span class="badge badge-teal">${d.kol}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } else if (activeTab === 'missing') {
+    contentHtml = `
+      <div class="tbl-wrap">
+        <table class="tbl" style="min-width:680px;font-size:12.5px;">
+          <thead>
+            <tr>
+              <th style="width:40px;text-align:center;">No.</th>
+              <th>No. Rekening</th>
+              <th>Nama Debitur</th>
+              <th>AO Pengampu</th>
+              <th class="num">Baki Debet Terakhir</th>
+              <th style="text-align:center;">KOL</th>
+              <th style="text-align:center;">Status Debitur</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${missingDebiturs.length === 0 ? '<tr><td colspan="7" class="empty-st">Tidak ada debitur lunas / non-aktif pada batch ini.</td></tr>' : missingDebiturs.map((d, idx) => `
+              <tr>
+                <td style="text-align:center;font-weight:bold;">${idx + 1}</td>
+                <td class="mono font-bold">${d.id}</td>
+                <td class="font-bold">${d.nama}</td>
+                <td>${d.ao || '-'}</td>
+                <td class="num mono text-muted">${formatRupiah(d.bakiDebet)}</td>
+                <td style="text-align:center;"><span class="badge badge-gray">${d.kol || '-'}</span></td>
+                <td style="text-align:center;"><span class="badge badge-red">${d.statusDebitur || 'Lunas'}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    // DEFAULT / UPDATE / KOL CHANGES
+    contentHtml = `
+      <div class="tbl-wrap">
+        <table class="tbl" style="min-width:680px;font-size:12.5px;">
+          <thead>
+            <tr>
+              <th style="width:40px;text-align:center;">No.</th>
+              <th>No. Rekening</th>
+              <th>Nama Debitur</th>
+              <th>AO Pengampu</th>
+              <th style="text-align:center;">KOL Lama</th>
+              <th style="text-align:center;">KOL Baru</th>
+              <th class="num">Baki Debet</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${kolChanges.length === 0 ? '<tr><td colspan="7" class="empty-st">Tidak ada perubahan kolektibilitas antar snapshot pada batch ini.</td></tr>' : kolChanges.map((d, idx) => `
+              <tr>
+                <td style="text-align:center;font-weight:bold;">${idx + 1}</td>
+                <td class="mono font-bold">${d.debiturId}</td>
+                <td class="font-bold">${d.nama}</td>
+                <td>${d.ao}</td>
+                <td style="text-align:center;"><span class="badge badge-gray">${d.prevKol}</span></td>
+                <td style="text-align:center;">
+                  <span class="badge ${d.currentKol==='Lancar'?'badge-teal':d.currentKol==='DPK'?'badge-yellow':'badge-red'}">
+                    ${d.currentKol}
+                  </span>
+                </td>
+                <td class="num mono font-bold">${formatRupiah(d.bakiDebet)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  bodyEl.innerHTML = `
+    <!-- SUBTAB NAVIGATOR -->
+    <div style="display:flex;gap:10px;border-bottom:2px solid var(--border);margin-bottom:16px;flex-wrap:wrap;">
+      <button onclick="renderBatchChangesTab('update')" style="padding:8px 16px;border:none;background:none;font-size:13px;cursor:pointer;font-weight:${activeTab==='update'?'800':'600'};color:${activeTab==='update'?'var(--brand)':'var(--text-2)'};border-bottom:3px solid ${activeTab==='update'?'var(--brand)':'transparent'};">
+        🔄 Perubahan Kolektibilitas (${kolChanges.length})
+      </button>
+      <button onclick="renderBatchChangesTab('new')" style="padding:8px 16px;border:none;background:none;font-size:13px;cursor:pointer;font-weight:${activeTab==='new'?'800':'600'};color:${activeTab==='new'?'#10B981':'var(--text-2)'};border-bottom:3px solid ${activeTab==='new'?'#10B981':'transparent'};">
+        🟢 Debitur Baru (${newDebiturs.length})
+      </button>
+      <button onclick="renderBatchChangesTab('missing')" style="padding:8px 16px;border:none;background:none;font-size:13px;cursor:pointer;font-weight:${activeTab==='missing'?'800':'600'};color:${activeTab==='missing'?'#EF4444':'var(--text-2)'};border-bottom:3px solid ${activeTab==='missing'?'#EF4444':'transparent'};">
+        🔴 Debitur Lunas / Non-Aktif (${missingDebiturs.length})
+      </button>
+    </div>
+
+    ${contentHtml}
+  `;
+}
+window.viewBatchChanges = viewBatchChanges;
+window.renderBatchChangesTab = renderBatchChangesTab;
 
 async function uploadCbsCsv(file) {
   if (!file) return;
@@ -7335,12 +7669,91 @@ async function uploadCbsCsv(file) {
 }
 
 async function commitCbsImport(batchId) {
-  showToast('Menerapkan sinkronisasi database...', 'info');
+  let modal = document.getElementById('modal-cbs-commit-progress');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-cbs-commit-progress';
+    modal.className = 'modal-overlay';
+    modal.style.zIndex = '99999';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:480px;padding:26px;border-radius:18px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;">
+          Sinkronisasi Database CBS
+        </div>
+        <p id="cbs-progress-status" style="font-size:12.5px;color:var(--text-3);margin-bottom:18px;">
+          Mempersiapkan sinkronisasi data...
+        </p>
+
+        <div style="background:var(--border);border-radius:10px;height:16px;overflow:hidden;position:relative;margin-bottom:12px;">
+          <div id="cbs-progress-bar" style="background:linear-gradient(90deg, #0f766e, #10b981);height:100%;width:0%;transition:width 0.25s ease-out;border-radius:10px;"></div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;">
+          <span id="cbs-progress-counts" style="color:var(--text-2);">0 / 0 Debitur</span>
+          <span id="cbs-progress-pct" style="color:var(--brand);font-size:15px;font-weight:800;">0%</span>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const statusEl = document.getElementById('cbs-progress-status');
+  const barEl = document.getElementById('cbs-progress-bar');
+  const countsEl = document.getElementById('cbs-progress-counts');
+  const pctEl = document.getElementById('cbs-progress-pct');
+
+  if (statusEl) statusEl.textContent = 'Memuat informasi file CSV...';
+  if (barEl) barEl.style.width = '0%';
+  if (countsEl) countsEl.textContent = '0 / 0 Debitur';
+  if (pctEl) pctEl.textContent = '0%';
+
+  openModal('modal-cbs-commit-progress');
+
   try {
-    const res = await apiCall(`/import/cbs/${batchId}/commit`, { method: 'POST' });
-    showToast(res.message, 'success');
-    loadImportCbsView();
+    const info = await apiCall(`/import/cbs/${batchId}/commit-info`);
+    const totalRows = info.totalStagingRows || 1;
+    const chunkSize = 50;
+
+    let processed = 0;
+    if (statusEl) statusEl.textContent = `Menyingkronkan data ${info.fileName || 'CBS'}...`;
+
+    while (processed < totalRows) {
+      const stepRes = await apiCall(`/import/cbs/${batchId}/commit-chunk`, {
+        method: 'POST',
+        body: JSON.stringify({ offset: processed, limit: chunkSize })
+      });
+
+      const chunkCount = stepRes.processedChunk || 0;
+      if (chunkCount === 0) break;
+
+      processed += chunkCount;
+      const currentPct = Math.min(99, Math.round((processed / totalRows) * 100));
+
+      if (barEl) barEl.style.width = `${currentPct}%`;
+      if (pctEl) pctEl.textContent = `${currentPct}%`;
+      if (countsEl) countsEl.textContent = `${processed} / ${totalRows} Debitur`;
+      if (statusEl) statusEl.textContent = `Sedang menyimpan ke database... (${currentPct}%)`;
+    }
+
+    if (statusEl) statusEl.textContent = 'Menyelesaikan verifikasi status lunas...';
+    const finishRes = await apiCall(`/import/cbs/${batchId}/commit-finish`, { method: 'POST' });
+
+    if (barEl) barEl.style.width = '100%';
+    if (pctEl) pctEl.textContent = '100%';
+    if (countsEl) countsEl.textContent = `${totalRows} / ${totalRows} Debitur`;
+    if (statusEl) statusEl.textContent = 'Sinkronisasi Selesai!';
+
+    setTimeout(() => {
+      closeModal('modal-cbs-commit-progress');
+      showToast(finishRes.message || 'Import CBS berhasil diterapkan ke database (100% Selesai)', 'success');
+      loadImportCbsView();
+    }, 500);
+
   } catch (err) {
+    closeModal('modal-cbs-commit-progress');
     showToast(`Gagal menerapkan import: ${err.message}`, 'danger');
   }
 }
@@ -7746,6 +8159,252 @@ async function openDCModal(debiturId) {
 
 function openDCForm(debiturId) {
   openDCModal(debiturId);
+}
+
+// ── PTP Rekap Pagination ──
+function rjbGoToPage(page) {
+  const list = window._rjbListData || [];
+  const pageSize = window._rjbPageSize || 20;
+  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  if (page < 1) page = 1;
+  if (page > totalPages) page = totalPages;
+  window._rjbCurrentPage = page;
+
+  const start = (page - 1) * pageSize;
+  const end = Math.min(start + pageSize, list.length);
+  const pageSlice = list.slice(start, end);
+
+  const tbody = document.getElementById('rjb-table-body');
+  if (tbody && window._rjbBuildRow) {
+    tbody.innerHTML = pageSlice.map((r, idx) => window._rjbBuildRow(r, start + idx)).join('');
+  }
+
+  // Update pagination info + buttons
+  const pagDiv = document.getElementById('rjb-pagination');
+  if (pagDiv) {
+    const infoSpan = pagDiv.querySelector('span');
+    if (infoSpan) infoSpan.textContent = `Menampilkan ${start + 1}-${end} dari ${list.length} debitur`;
+
+    const btnsDiv = document.getElementById('rjb-page-btns');
+    if (btnsDiv) {
+      btnsDiv.innerHTML = Array.from({length: totalPages}, (_, i) => {
+        const p = i + 1;
+        const isActive = p === page;
+        return `<button onclick="rjbGoToPage(${p})" class="rjb-page-btn${isActive ? ' active' : ''}" style="min-width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:${isActive ? 'var(--brand)' : 'var(--bg)'};color:${isActive ? '#fff' : 'var(--text-2)'};font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">${p}</button>`;
+      }).join('');
+    }
+  }
+}
+
+// ── PTP Insight Tab Pagination ──
+function ptpRenderPage(page) {
+  const filtered = window._ptpFilteredData || [];
+  const pageSize = window._ptpPageSize || 20;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  if (page < 1) page = 1;
+  if (page > totalPages) page = totalPages;
+  window._ptpCurrentPage = page;
+
+  const start = (page - 1) * pageSize;
+  const end = Math.min(start + pageSize, filtered.length);
+  const pageSlice = filtered.slice(start, end);
+
+  const tbodyEl = document.getElementById('ptp-table-tbody');
+  if (!tbodyEl) return;
+
+  if (filtered.length === 0) {
+    tbodyEl.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-3);font-size:12.5px;">Tidak ada data nasabah pada kategori ini</td></tr>`;
+  } else {
+    tbodyEl.innerHTML = pageSlice.map((d, idx) => {
+      let tagClass = 'badge-brand';
+      let dotStyle = 'background:#0F766E;';
+      if (d.statusCategory.includes('Selesai')) { tagClass = 'badge-success'; dotStyle = 'background:#10B981;'; }
+      else if (d.statusCategory.includes('Ingkar')) { tagClass = 'badge-danger'; dotStyle = 'background:#EF4444;'; }
+      const tglStr = d.tanggalJanjiBayar ? new Date(d.tanggalJanjiBayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+      return `<tr><td style="text-align:center;font-weight:800;color:var(--text-3);">${start + idx + 1}</td><td style="font-weight:700;color:var(--text);">${d.namaDebitur}</td><td class="mono" style="font-size:11.5px;color:var(--text-3);">${d.debiturId}</td><td style="text-align:right;" class="mono font-bold">${formatRupiah(d.nominalJanji)}</td><td style="text-align:center;">${tglStr}</td><td style="text-align:center;"><span class="badge ${tagClass}" style="font-size:10.5px;padding:3px 10px;font-weight:700;display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;border-radius:50%;${dotStyle}display:inline-block;"></span>${d.statusCategory}</span></td></tr>`;
+    }).join('');
+  }
+
+  // Update or create pagination controls
+  let pagDiv = document.getElementById('ptp-pagination');
+  if (totalPages > 1) {
+    if (!pagDiv) {
+      pagDiv = document.createElement('div');
+      pagDiv.id = 'ptp-pagination';
+      pagDiv.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px;';
+      pagDiv.innerHTML = `<span id="ptp-page-info" style="font-size:11px;color:var(--text-3);"></span><div style="display:flex;gap:4px;align-items:center;" id="ptp-page-btns"></div>`;
+      const tableWrap = tbodyEl.closest('.table-wrap');
+      if (tableWrap && tableWrap.parentNode) tableWrap.parentNode.appendChild(pagDiv);
+    }
+    const infoEl = document.getElementById('ptp-page-info');
+    if (infoEl) infoEl.textContent = `Menampilkan ${start + 1}-${end} dari ${filtered.length} nasabah`;
+
+    const btnsDiv = document.getElementById('ptp-page-btns');
+    if (btnsDiv) {
+      btnsDiv.innerHTML = Array.from({length: totalPages}, (_, i) => {
+        const p = i + 1;
+        const isActive = p === page;
+        return `<button onclick="ptpGoToPage(${p})" class="rjb-page-btn${isActive ? ' active' : ''}" style="min-width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:${isActive ? 'var(--brand)' : 'var(--bg)'};color:${isActive ? '#fff' : 'var(--text-2)'};font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">${p}</button>`;
+      }).join('');
+    }
+  } else if (pagDiv) {
+    pagDiv.remove();
+  }
+}
+
+function ptpGoToPage(page) {
+  ptpRenderPage(page);
+}
+
+// ── Follow-Up Janji Bayar Modal ──
+async function openFollowUpJanjiBayar(debiturId, namaDebitur, kol, tanggalJanji, nominalJanji, statusJanji, petugas) {
+  const infoCard = document.getElementById('fjb-info-card');
+  const fjbDebId = document.getElementById('fjb-debitur-id');
+  const fjbTgl = document.getElementById('fjb-tgl');
+  const fjbJenis = document.getElementById('fjb-jenis');
+  const fjbStatus = document.getElementById('fjb-status');
+  const fjbTindak = document.getElementById('fjb-tindak');
+  const fjbNominal = document.getElementById('fjb-nominal');
+  const fjbTglJanji = document.getElementById('fjb-tgl-janji');
+  const fjbCatatan = document.getElementById('fjb-catatan');
+  const fjbTglJanjiGroup = document.getElementById('fjb-tgl-janji-group');
+
+  if (fjbDebId) fjbDebId.value = debiturId;
+
+  // Format tanggal janji for display
+  const tglJanjiFormatted = tanggalJanji ? formatDate(tanggalJanji) : '-';
+  const nominalFormatted = nominalJanji ? formatRupiah(nominalJanji) : 'Rp 0';
+
+  const statusBadgeMap = {
+    'Ingkar Janji': '<span class="badge badge-red" style="font-size:11px;">Ingkar Janji</span>',
+    'Menunggu': '<span class="badge badge-yellow" style="font-size:11px;">Menunggu</span>',
+    'Sudah Bayar': '<span class="badge badge-green" style="font-size:11px;">Sudah Bayar</span>'
+  };
+
+  if (infoCard) {
+    infoCard.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:2px;">${namaDebitur || '-'}</div>
+          <div class="mono" style="font-size:12px;color:var(--text-3);margin-bottom:8px;">${debiturId}</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;">
+            <span style="color:var(--text-2);"><strong>KOL:</strong> ${kol || '-'}</span>
+            <span style="color:var(--text-2);"><strong>Petugas:</strong> ${petugas || '-'}</span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          ${statusBadgeMap[statusJanji] || '<span class="badge badge-gray" style="font-size:11px;">' + (statusJanji || '-') + '</span>'}
+        </div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:120px;">
+          <div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;margin-bottom:2px;">Tgl Janji Bayar</div>
+          <div class="mono" style="font-size:13px;font-weight:700;color:var(--brand);">${tglJanjiFormatted}</div>
+        </div>
+        <div style="flex:1;min-width:120px;">
+          <div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;margin-bottom:2px;">Nominal Janji</div>
+          <div class="mono" style="font-size:13px;font-weight:700;color:#059669;">${nominalFormatted}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Set datetime to now
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const mins = String(now.getMinutes()).padStart(2, '0');
+  if (fjbTgl) fjbTgl.value = `${year}-${month}-${day}T${hours}:${mins}`;
+
+  if (fjbJenis) fjbJenis.value = 'Telepon';
+  if (fjbStatus) fjbStatus.value = 'Terhubung';
+  if (fjbTindak) fjbTindak.value = '';
+  if (fjbNominal) fjbNominal.value = '';
+  if (fjbTglJanji) fjbTglJanji.value = '';
+  if (fjbCatatan) fjbCatatan.value = '';
+  if (fjbTglJanjiGroup) fjbTglJanjiGroup.style.display = 'none';
+
+  onFjbTindakChange();
+  openModal('modal-followup-jb');
+}
+
+function onFjbTindakChange() {
+  const tindak = document.getElementById('fjb-tindak')?.value || '';
+  const nominalLabel = document.getElementById('fjb-nominal-label');
+  const tglJanjiGroup = document.getElementById('fjb-tgl-janji-group');
+
+  if (tindak === 'Sudah Bayar') {
+    if (nominalLabel) nominalLabel.textContent = 'Nominal Pembayaran (Rp)';
+    if (tglJanjiGroup) tglJanjiGroup.style.display = 'none';
+  } else if (tindak === 'Janji Bayar') {
+    if (nominalLabel) nominalLabel.textContent = 'Nominal Janji Baru (Rp)';
+    if (tglJanjiGroup) tglJanjiGroup.style.display = 'block';
+  } else {
+    if (nominalLabel) nominalLabel.textContent = 'Nominal (Rp)';
+    if (tglJanjiGroup) tglJanjiGroup.style.display = 'none';
+  }
+}
+
+async function saveFollowUpJB(btnEl) {
+  const targetBtn = btnEl || event?.target;
+  return protectButtonSubmit(targetBtn, async () => {
+    const debiturId = document.getElementById('fjb-debitur-id')?.value || '';
+    const fjbTgl = document.getElementById('fjb-tgl')?.value || '';
+    const fjbJenis = document.getElementById('fjb-jenis')?.value || 'Telepon';
+    const fjbStatus = document.getElementById('fjb-status')?.value || 'Terhubung';
+    const fjbTindak = document.getElementById('fjb-tindak')?.value || '';
+    const fjbNominal = document.getElementById('fjb-nominal')?.value || '';
+    const fjbTglJanji = document.getElementById('fjb-tgl-janji')?.value || '';
+    const fjbCatatan = document.getElementById('fjb-catatan')?.value || '';
+
+    if (!debiturId) {
+      showToast('Debitur tidak ditemukan', 'e');
+      return;
+    }
+
+    if (!fjbTindak) {
+      showToast('Pilih hasil follow-up terlebih dahulu', 'w');
+      return;
+    }
+
+    const nowStr = new Date().toISOString();
+    let [tanggal, waktu] = fjbTgl ? fjbTgl.split('T') : [nowStr.substring(0, 10), '10:00'];
+    if (!waktu) waktu = '10:00';
+
+    const nominalVal = parseCurrencyInput(fjbNominal);
+
+    const payload = {
+      debiturId,
+      tanggal,
+      waktu,
+      jenisKontak: fjbJenis,
+      statusKontak: fjbStatus,
+      prioritas: 'Sedang',
+      tindakLanjut: fjbTindak,
+      nominalJanji: nominalVal > 0 ? nominalVal : null,
+      tanggalJanjiBayar: fjbTglJanji || null,
+      hasilKomunikasi: fjbCatatan || `Follow-up janji bayar: ${fjbTindak}`
+    };
+
+    try {
+      showToast('Menyimpan follow-up janji bayar...', 'i');
+      await apiCall('/deskcall', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      showToast(fjbTindak === 'Sudah Bayar' ? 'Pembayaran berhasil dicatat! 🎉' : 'Follow-up berhasil disimpan', 's');
+      closeModal('modal-followup-jb');
+      if (typeof loadDeskCallView === 'function') loadDeskCallView();
+      if (typeof loadDashboardView === 'function') loadDashboardView();
+      if (typeof loadNotifications === 'function') await loadNotifications();
+      if (typeof loadBayarView === 'function') loadBayarView();
+      if (typeof loadKpiView === 'function') loadKpiView();
+    } catch (err) {
+      showToast(`Gagal menyimpan follow-up: ${err.message}`, 'e');
+    }
+  });
 }
 
 function dcAutocomplete(val) {
@@ -8219,6 +8878,24 @@ async function deleteSuratLegal(suratId) {
   }
 }
 
+async function autoGenerateSpAction(debiturId, jenisSurat) {
+  try {
+    showToast(`⚡ Menggenerasi ${jenisSurat} secara otomatis...`, 'i');
+    const newSurat = await apiCall('/legal/surat/auto-generate', {
+      method: 'POST',
+      body: JSON.stringify({ debiturId, jenisSurat })
+    });
+    showToast(`Dokumen ${newSurat.jenisSurat} (${newSurat.nomorSurat}) berhasil diterbitkan!`, 's');
+    if (typeof loadLegalView === 'function') loadLegalView();
+    // Auto-open print preview window
+    setTimeout(() => {
+      exportSuratPDF(newSurat.id);
+    }, 400);
+  } catch (err) {
+    showToast(`Gagal menerbitkan SP: ${err.message}`, 'e');
+  }
+}
+
 async function exportSuratPDF(suratId) {
   try {
     const s = await apiCall(`/legal/surat/${suratId}`);
@@ -8427,7 +9104,7 @@ let ewsState = {
   kol: '',
   ewsStatus: '',
   ao: '',
-  category: 'CRITICAL'
+  category: null
 };
 
 function updateEwsHeaderTitle() {
@@ -8485,7 +9162,7 @@ async function loadEwsView() {
 function selectEwsCategory(cat) {
   ewsState.page = 1;
   if (!cat || ewsState.category === cat) {
-    ewsState.category = 'CRITICAL';
+    ewsState.category = null;
   } else {
     ewsState.category = cat;
   }
@@ -8503,7 +9180,7 @@ function executeEwsSearch() {
 
 function resetEwsSearch() {
   ewsState.q = '';
-  ewsState.category = 'CRITICAL';
+  ewsState.category = null;
   ewsState.page = 1;
   const input = document.getElementById('ews-search-input');
   if (input) input.value = '';
@@ -8570,7 +9247,7 @@ window.getDebiturEwsCategory = getDebiturEwsCategory;
 
 function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
   window._lastEwsData = { summary, watchlist, leaderboard, aoList };
-  const activeCat = ewsState.category || 'CRITICAL';
+  const activeCat = ewsState.category;
 
   let counts = {
     CRITICAL: 0,
@@ -8586,13 +9263,12 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
     else counts.LOW++;
   });
 
-  let filteredDebiturs = (watchlist || []).filter(d => {
+  let filteredDebiturs = activeCat ? (watchlist || []).filter(d => {
     const cat = getDebiturEwsCategory(d);
     return cat === activeCat;
-  });
+  }) : [];
 
-
-  if (ewsState.q) {
+  if (ewsState.q && activeCat) {
     const qLower = ewsState.q.toLowerCase();
     filteredDebiturs = filteredDebiturs.filter(d => 
       (d.nama || '').toLowerCase().includes(qLower) || 
@@ -8661,23 +9337,22 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
       </div>
     </div>
 
-
     <!-- 5 EWS CATEGORY CARDS MATCHING SCREENSHOT 2 -->
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:24px;">
       <!-- CRITICAL -->
-      <div onclick="selectEwsCategory('CRITICAL')" style="background:${activeCat === 'CRITICAL' ? '#FEF2F2' : '#FFF'}; border:2px solid ${activeCat === 'CRITICAL' ? '#EF4444' : '#FCA5A5'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+      <div onclick="selectEwsCategory('CRITICAL')" style="background:${activeCat === 'CRITICAL' ? '#FEF2F2' : '#FFF'}; border:2px solid ${activeCat === 'CRITICAL' ? '#EF4444' : '#e2e8f0'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
         <div style="width:40px; height:40px; border-radius:50%; background:#EF4444; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px; font-weight:800; font-size:18px;">!</div>
         <div style="font-size:13px; font-weight:800; color:#991B1B; text-transform:uppercase;">CRITICAL</div>
         <div style="font-size:11px; font-weight:600; color:#B91C1C; margin-bottom:8px;">&gt; H+14 (DPD &gt; 14)</div>
         <div style="font-size:32px; font-weight:800; color:#7F1D1D; line-height:1;">${counts.CRITICAL}</div>
         <div style="font-size:12px; font-weight:600; color:#991B1B; margin-top:2px;">Nasabah</div>
-        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'CRITICAL' ? '#FEE2E2' : '#FEF2F2'}; color:#991B1B; cursor:pointer;">
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'CRITICAL' ? '#FEE2E2' : '#F1F5F9'}; color:#991B1B; cursor:pointer;">
           ${activeCat === 'CRITICAL' ? '▲ Tutup' : '▼ Expand'}
         </button>
       </div>
 
       <!-- VERY HIGH -->
-      <div onclick="selectEwsCategory('VERY_HIGH')" style="background:${activeCat === 'VERY_HIGH' ? '#FAF5FF' : '#FFF'}; border:2px solid ${activeCat === 'VERY_HIGH' ? '#A855F7' : '#E9D5FF'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+      <div onclick="selectEwsCategory('VERY_HIGH')" style="background:${activeCat === 'VERY_HIGH' ? '#FAF5FF' : '#FFF'}; border:2px solid ${activeCat === 'VERY_HIGH' ? '#A855F7' : '#e2e8f0'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
         <div style="width:40px; height:40px; border-radius:50%; background:#9333EA; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         </div>
@@ -8685,13 +9360,13 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
         <div style="font-size:11px; font-weight:600; color:#7E22CE; margin-bottom:8px;">H+8 s/d H+14</div>
         <div style="font-size:32px; font-weight:800; color:#581C87; line-height:1;">${counts.VERY_HIGH}</div>
         <div style="font-size:12px; font-weight:600; color:#6B21A8; margin-top:2px;">Nasabah</div>
-        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'VERY_HIGH' ? '#F3E8FF' : '#FAF5FF'}; color:#6B21A8; cursor:pointer;">
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'VERY_HIGH' ? '#F3E8FF' : '#F1F5F9'}; color:#6B21A8; cursor:pointer;">
           ${activeCat === 'VERY_HIGH' ? '▲ Tutup' : '▼ Expand'}
         </button>
       </div>
 
       <!-- HIGH -->
-      <div onclick="selectEwsCategory('HIGH')" style="background:${activeCat === 'HIGH' ? '#FFF7ED' : '#FFF'}; border:2px solid ${activeCat === 'HIGH' ? '#F97316' : '#FFEDD5'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+      <div onclick="selectEwsCategory('HIGH')" style="background:${activeCat === 'HIGH' ? '#FFF7ED' : '#FFF'}; border:2px solid ${activeCat === 'HIGH' ? '#F97316' : '#e2e8f0'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
         <div style="width:40px; height:40px; border-radius:50%; background:#EA580C; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         </div>
@@ -8699,13 +9374,13 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
         <div style="font-size:11px; font-weight:600; color:#C2410C; margin-bottom:8px;">H+1 s/d H+7</div>
         <div style="font-size:32px; font-weight:800; color:#7C2D12; line-height:1;">${counts.HIGH}</div>
         <div style="font-size:12px; font-weight:600; color:#9A3412; margin-top:2px;">Nasabah</div>
-        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'HIGH' ? '#FFEDD5' : '#FFF7ED'}; color:#9A3412; cursor:pointer;">
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'HIGH' ? '#FFEDD5' : '#F1F5F9'}; color:#9A3412; cursor:pointer;">
           ${activeCat === 'HIGH' ? '▲ Tutup' : '▼ Expand'}
         </button>
       </div>
 
       <!-- MEDIUM -->
-      <div onclick="selectEwsCategory('MEDIUM')" style="background:${activeCat === 'MEDIUM' ? '#FEFCE8' : '#FFF'}; border:2px solid ${activeCat === 'MEDIUM' ? '#EAB308' : '#FEF08A'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+      <div onclick="selectEwsCategory('MEDIUM')" style="background:${activeCat === 'MEDIUM' ? '#FEFCE8' : '#FFF'}; border:2px solid ${activeCat === 'MEDIUM' ? '#EAB308' : '#e2e8f0'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
         <div style="width:40px; height:40px; border-radius:50%; background:#CA8A04; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         </div>
@@ -8713,13 +9388,13 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
         <div style="font-size:11px; font-weight:600; color:#A16207; margin-bottom:8px;">H-1 s/d Hari H</div>
         <div style="font-size:32px; font-weight:800; color:#713F12; line-height:1;">${counts.MEDIUM}</div>
         <div style="font-size:12px; font-weight:600; color:#854D0E; margin-top:2px;">Nasabah</div>
-        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'MEDIUM' ? '#FEF08A' : '#FEFCE8'}; color:#854D0E; cursor:pointer;">
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'MEDIUM' ? '#FEF08A' : '#F1F5F9'}; color:#854D0E; cursor:pointer;">
           ${activeCat === 'MEDIUM' ? '▲ Tutup' : '▼ Expand'}
         </button>
       </div>
 
       <!-- LOW -->
-      <div onclick="selectEwsCategory('LOW')" style="background:${activeCat === 'LOW' ? '#F0FDF4' : '#FFF'}; border:2px solid ${activeCat === 'LOW' ? '#22C55E' : '#DCFCE7'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+      <div onclick="selectEwsCategory('LOW')" style="background:${activeCat === 'LOW' ? '#F0FDF4' : '#FFF'}; border:2px solid ${activeCat === 'LOW' ? '#22C55E' : '#e2e8f0'}; border-radius:18px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
         <div style="width:40px; height:40px; border-radius:50%; background:#16A34A; color:#FFF; display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         </div>
@@ -8727,82 +9402,92 @@ function renderEwsUI(container, summary, watchlist, leaderboard, aoList) {
         <div style="font-size:11px; font-weight:600; color:#15803D; margin-bottom:8px;">H-7 s/d H-2</div>
         <div style="font-size:32px; font-weight:800; color:#14532D; line-height:1;">${counts.LOW}</div>
         <div style="font-size:12px; font-weight:600; color:#166534; margin-top:2px;">Nasabah</div>
-        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'LOW' ? '#DCFCE7' : '#F0FDF4'}; color:#166534; cursor:pointer;">
+        <button style="margin-top:12px; font-size:11px; font-weight:700; padding:4px 14px; border-radius:12px; border:none; background:${activeCat === 'LOW' ? '#DCFCE7' : '#F1F5F9'}; color:#166534; cursor:pointer;">
           ${activeCat === 'LOW' ? '▲ Tutup' : '▼ Expand'}
         </button>
       </div>
     </div>
 
-    <!-- EWS TABLE CONTAINER MATCHING SCREENSHOT 2 -->
-    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-        <div>
-          <div style="font-size:15px; font-weight:800; color:#0F172A;">${categoryTitles[activeCat] || 'Semua Debitur EWS'}</div>
-          <div style="font-size:12px; color:#64748b;">Menampilkan ${pageDebiturs.length} dari ${totalItems} nasabah binaan pada kategori ini.</div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <input type="text" class="redalert-filter-input" id="ews-search-input" value="${ewsState.q}" placeholder="Cari nama, rekening..." style="width:220px;" onkeypress="if(event.key==='Enter') executeEwsSearch()"/>
-          <button class="btn btn-primary btn-sm" onclick="executeEwsSearch()" style="border-radius:12px; font-weight:700;">Cari</button>
-          <button class="btn btn-outline btn-sm" onclick="resetEwsSearch()" style="border-radius:12px; font-weight:700;">Tutup</button>
-        </div>
+    ${!activeCat ? `
+      <!-- CLOSED PLACEHOLDER STATE -->
+      <div style="background:#ffffff; border:1.5px dashed #cbd5e1; border-radius:18px; padding:38px 20px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
+        <div style="width:50px; height:50px; border-radius:50%; background:#f1f5f9; color:#475569; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; font-size:22px; font-weight:bold;">📂</div>
+        <div style="font-size:16px; font-weight:800; color:#0f172a; margin-bottom:4px;">Kategori EWS Dalam Keadaan Tertutup</div>
+        <div style="font-size:13px; color:#64748b; max-width:520px; margin:0 auto;">Silakan klik tombol <strong>▼ Expand</strong> pada salah satu kartu kategori risiko di atas (CRITICAL, VERY HIGH, HIGH, MEDIUM, atau LOW) untuk menampilkan daftar nasabah.</div>
       </div>
+    ` : `
+      <!-- EWS TABLE CONTAINER -->
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+          <div>
+            <div style="font-size:15px; font-weight:800; color:#0F172A;">${categoryTitles[activeCat] || 'Semua Debitur EWS'}</div>
+            <div style="font-size:12px; color:#64748b;">Menampilkan ${pageDebiturs.length} dari ${totalItems} nasabah binaan pada kategori ini.</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" class="redalert-filter-input" id="ews-search-input" value="${ewsState.q}" placeholder="Cari nama, rekening..." style="width:220px;" onkeypress="if(event.key==='Enter') executeEwsSearch()"/>
+            <button class="btn btn-primary btn-sm" onclick="executeEwsSearch()" style="border-radius:12px; font-weight:700;">Cari</button>
+            <button class="btn btn-outline btn-sm" onclick="resetEwsSearch()" style="border-radius:12px; font-weight:700;">Tutup</button>
+          </div>
+        </div>
 
-      <div style="overflow-x:auto;">
-        <table class="data-table" style="width:100%;">
-          <thead>
-            <tr>
-              <th style="width:40px;">NO</th>
-              <th>NAMA DEBITUR &amp; REKENING</th>
-              <th>AO PENGAMPU</th>
-              <th>JENIS PEMBIAYAAN</th>
-              <th style="text-align:right;">BAKI DEBET &#8597;</th>
-              <th style="text-align:right;">ANGSURAN / BLN</th>
-              <th>TGL JATUH TEMPO</th>
-              <th style="text-align:center;">DPD / STAT &#9662;</th>
-              <th style="text-align:center;">KOL</th>
-              <th style="text-align:center;">AKSI</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${pageDebiturs.map((d, i) => {
-              const itemIndex = (currentPage - 1) * pageSize + i + 1;
-              return `
-              <tr onclick="viewDebiturDetail('${d.id}')" style="cursor:pointer;">
-                <td>${itemIndex}</td>
-                <td>
-                  <div style="font-weight:800; color:#0F766E;" title="Klik untuk lihat detail nasabah">${d.nama}</div>
-                  <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
-                </td>
-                <td style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
-                <td style="font-size:12px; color:#475569;">${d.jenisMargin || d.jenisPembiayaan || 'PEMBIAYAAN iB HARMONI'}</td>
-                <td style="text-align:right; font-weight:800; color:#0F172A;" class="mono">${formatRupiah(d.bakiDebet)}</td>
-                <td style="text-align:right; font-weight:600;" class="mono">${formatRupiah((d.angsPrincipal || 0) + (d.angsMargin || 0) || (d.bakiDebet * 0.02))}</td>
-                <td style="font-size:12px; color:#475569;">${formatDate(d.tglJt)}</td>
-                <td style="text-align:center;">
-                  ${d.ewsStatusInfo && d.ewsStatusInfo.diffDays > 0 ? `
-                    <div style="font-weight:800; color:#16a34a; font-size:12px;">${d.ewsStatusInfo.label || 'Lancar / Normal'}</div>
-                    <div style="font-size:11px; color:#64748b;">Jt Tgl ${d.tglJt ? new Date(d.tglJt).getDate() : 25}</div>
-                  ` : `
-                    <div style="font-weight:800; color:#DC2626; font-size:12px;">Tunggak</div>
-                    <div style="font-weight:800; color:#DC2626; font-size:13px;">${d.frhPokok || 0} Hari</div>
-                  `}
-                </td>
-                <td style="text-align:center;">
-                  <span class="badge ${d.kol === 'Lancar' ? 'badge-teal' : (d.kol === 'DPK' ? 'badge-yellow' : 'badge-red')}">${d.kol}</span>
-                </td>
-                <td style="text-align:center;" onclick="event.stopPropagation()">
-                  <div style="display:flex; gap:4px; justify-content:center;">
-                    <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px;" onclick="event.stopPropagation(); openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "&apos;")}')">+ Log</button>
-                    <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); sendEwsWaReminder('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.telepon}', ${d.totalTunggakan}, '${d.tglJt}')" style="font-size:11px; padding:4px 8px; border-color:#25D366; color:#25D366; border-radius:8px;" title="Kirim WA">WA</button>
-                  </div>
-                </td>
+        <div style="overflow-x:auto;">
+          <table class="data-table" style="width:100%;">
+            <thead>
+              <tr>
+                <th style="width:40px;">NO</th>
+                <th>NAMA DEBITUR &amp; REKENING</th>
+                <th>AO PENGAMPU</th>
+                <th>JENIS PEMBIAYAAN</th>
+                <th style="text-align:right;">BAKI DEBET &#8597;</th>
+                <th style="text-align:right;">ANGSURAN / BLN</th>
+                <th>TGL JATUH TEMPO</th>
+                <th style="text-align:center;">DPD / STAT &#9662;</th>
+                <th style="text-align:center;">KOL</th>
+                <th style="text-align:center;">AKSI</th>
               </tr>
-            `;}).join('') || `<tr><td colspan="10" style="text-align:center; color:#64748b; padding:32px 16px;"><div style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:4px;">Tidak ada data nasabah ditemukan</div><div style="font-size:12.5px; color:#64748b; margin-bottom:14px;">${ewsState.q ? `Hasil pencarian kata kunci "<strong style="color:#0f172a;">${ewsState.q}</strong>" pada kategori ini nihil.` : 'Belum ada data nasabah pada kategori ini.'}</div><button onclick="resetEwsSearch()" class="btn btn-primary btn-sm" style="border-radius:12px; font-weight:700; padding:6px 18px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border:none; box-shadow:0 4px 12px rgba(220,38,38,0.25);">Reset Filter / Tutup Pencarian</button></td></tr>`}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${pageDebiturs.map((d, i) => {
+                const itemIndex = (currentPage - 1) * pageSize + i + 1;
+                return `
+                <tr onclick="viewDebiturDetail('${d.id}')" style="cursor:pointer;">
+                  <td>${itemIndex}</td>
+                  <td>
+                    <div style="font-weight:800; color:#0F766E;" title="Klik untuk lihat detail nasabah">${d.nama}</div>
+                    <div class="mono" style="font-size:11px; color:#64748b;">Rek: ${d.id}</div>
+                  </td>
+                  <td style="font-weight:600; color:#334155;">${d.ao || '-'}</td>
+                  <td style="font-size:12px; color:#475569;">${d.jenisMargin || d.jenisPembiayaan || 'PEMBIAYAAN iB HARMONI'}</td>
+                  <td style="text-align:right; font-weight:800; color:#0F172A;" class="mono">${formatRupiah(d.bakiDebet)}</td>
+                  <td style="text-align:right; font-weight:600;" class="mono">${formatRupiah((d.angsPrincipal || 0) + (d.angsMargin || 0) || (d.bakiDebet * 0.02))}</td>
+                  <td style="font-size:12px; color:#475569;">${formatDate(d.tglJt)}</td>
+                  <td style="text-align:center;">
+                    ${d.ewsStatusInfo && d.ewsStatusInfo.diffDays > 0 ? `
+                      <div style="font-weight:800; color:#16a34a; font-size:12px;">${d.ewsStatusInfo.label || 'Lancar / Normal'}</div>
+                      <div style="font-size:11px; color:#64748b;">Jt Tgl ${d.tglJt ? new Date(d.tglJt).getDate() : 25}</div>
+                    ` : `
+                      <div style="font-weight:800; color:#DC2626; font-size:12px;">Tunggak</div>
+                      <div style="font-weight:800; color:#DC2626; font-size:13px;">${d.frhPokok || 0} Hari</div>
+                    `}
+                  </td>
+                  <td style="text-align:center;">
+                    <span class="badge ${d.kol === 'Lancar' ? 'badge-teal' : (d.kol === 'DPK' ? 'badge-yellow' : 'badge-red')}">${d.kol}</span>
+                  </td>
+                  <td style="text-align:center;" onclick="event.stopPropagation()">
+                    <div style="display:flex; gap:4px; justify-content:center;">
+                      <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px;" onclick="event.stopPropagation(); openAoLogModal('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.kol}', ${d.bakiDebet}, '${(d.ao || '').replace(/'/g, "&apos;")}')">+ Log</button>
+                      ${d.frhPokok >= 30 ? `<button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; border-radius:8px; background:#EF4444; border:none;" onclick="event.stopPropagation(); autoGenerateSpAction('${d.id}')" title="Terbitkan Surat Peringatan (Auto SP)">⚡ SP</button>` : ''}
+                      <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); sendEwsWaReminder('${d.id}', '${d.nama.replace(/'/g, "&apos;")}', '${d.telepon}', ${d.totalTunggakan}, '${d.tglJt}')" style="font-size:11px; padding:4px 8px; border-color:#25D366; color:#25D366; border-radius:8px;" title="Kirim WA">WA</button>
+                    </div>
+                  </td>
+                </tr>
+              `;}).join('') || `<tr><td colspan="10" style="text-align:center; color:#64748b; padding:32px 16px;"><div style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:4px;">Tidak ada data nasabah ditemukan</div><div style="font-size:12.5px; color:#64748b; margin-bottom:14px;">${ewsState.q ? `Hasil pencarian kata kunci "<strong style="color:#0f172a;">${ewsState.q}</strong>" pada kategori ini nihil.` : 'Belum ada data nasabah pada kategori ini.'}</div><button onclick="resetEwsSearch()" class="btn btn-primary btn-sm" style="border-radius:12px; font-weight:700; padding:6px 18px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border:none; box-shadow:0 4px 12px rgba(220,38,38,0.25);">Reset Filter / Tutup Pencarian</button></td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        ${renderPaginationControls(currentPage, totalPages, 'setEwsPage')}
       </div>
-      ${renderPaginationControls(currentPage, totalPages, 'setEwsPage')}
-    </div>
+    `}
   `;
 
   container.innerHTML = html;

@@ -4,6 +4,13 @@ import { logger } from './utils/logger.js';
 
 export const rawPrisma = new PrismaClient();
 
+// Configure SQLite to WAL mode and set busy_timeout to prevent database locks
+rawPrisma.$queryRawUnsafe('PRAGMA journal_mode = WAL;')
+  .then(() => rawPrisma.$queryRawUnsafe('PRAGMA busy_timeout = 10000;'))
+  .catch((err) => {
+    logger.error({ err }, 'Failed to set SQLite PRAGMA journal_mode/busy_timeout');
+  });
+
 // Models monitored for automatic audit logging on mutations
 const AUTO_AUDIT_MODELS = new Set(['Debitur', 'Pembayaran', 'DeskCallHistory', 'P3Jadwal']);
 const WRITE_OPERATIONS = new Set(['create', 'update', 'delete', 'upsert']);

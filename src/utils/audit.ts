@@ -8,7 +8,8 @@ export async function logAudit(
   tableName: string,
   recordId: string,
   oldValue: any | null = null,
-  newValue: any | null = null
+  newValue: any | null = null,
+  dbClient?: any
 ) {
   try {
     let userId = 'system';
@@ -23,7 +24,8 @@ export async function logAudit(
         '127.0.0.1';
     }
 
-    await rawPrisma.auditLog.create({
+    const client = dbClient || rawPrisma;
+    await client.auditLog.create({
       data: {
         userId,
         action,
@@ -38,3 +40,4 @@ export async function logAudit(
     logger.error({ err }, 'Failed to write audit log');
   }
 }
+

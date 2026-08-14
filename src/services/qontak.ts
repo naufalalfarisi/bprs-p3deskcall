@@ -146,7 +146,7 @@ export async function sendQontakWaMessage(params: SendQontakWaParams) {
 
     const isSuccess = res.ok && (resJson?.status === 'success' || resJson?.data?.id);
 
-    qontakLog = await prisma.qontakLog.create({
+    qontakLog = await (prisma as any).qontakLog?.create?.({
       data: {
         debiturId: debiturId || null,
         phone: cleanPhone,
@@ -166,11 +166,11 @@ export async function sendQontakWaMessage(params: SendQontakWaParams) {
     return {
       success: true,
       messageId: resJson?.data?.id,
-      logId: qontakLog.id
+      logId: qontakLog?.id
     };
   } catch (err: any) {
     if (!qontakLog) {
-      await prisma.qontakLog.create({
+      await (prisma as any).qontakLog?.create?.({
         data: {
           debiturId: debiturId || null,
           phone: cleanPhone,

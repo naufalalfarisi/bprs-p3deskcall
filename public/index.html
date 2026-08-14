@@ -931,7 +931,93 @@
     </div>
   </div>
 
+  <!-- FOLLOW-UP JANJI BAYAR MODAL -->
+  <div class="modal-overlay" id="modal-followup-jb">
+    <div class="modal-box" style="max-width:520px;">
+      <div class="modal-hdr">
+        <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Follow-Up Janji Bayar
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-followup-jb')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Info Debitur (read-only) -->
+        <div id="fjb-info-card" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;"></div>
+
+        <input type="hidden" id="fjb-debitur-id" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tanggal & Waktu Follow-Up</label>
+            <input id="fjb-tgl" class="form-input" type="datetime-local" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jenis Kontak</label>
+            <select id="fjb-jenis" class="form-select">
+              <option value="Telepon">Telepon</option>
+              <option value="WhatsApp">WhatsApp</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Status Kontak</label>
+            <select id="fjb-status" class="form-select">
+              <option>Terhubung</option>
+              <option>Tidak Diangkat</option>
+              <option>Nomor Ditolak</option>
+              <option>Sibuk</option>
+              <option>Tidak Aktif</option>
+              <option>Salah Nomor</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hasil Follow-Up</label>
+            <select id="fjb-tindak" class="form-select" onchange="onFjbTindakChange()">
+              <option value="">— Pilih Hasil —</option>
+              <option value="Sudah Bayar">✅ Sudah Bayar</option>
+              <option value="Janji Bayar">⏳ Janji Bayar Ulang</option>
+              <option value="Negosiasi">🤝 Negosiasi</option>
+              <option value="Eskalasi">⬆️ Eskalasi</option>
+              <option value="Tidak Ada">❌ Tidak Ada Respon</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" id="fjb-nominal-row">
+          <div class="form-group">
+            <label class="form-label" id="fjb-nominal-label">Nominal Pembayaran (Rp)</label>
+            <input id="fjb-nominal" class="form-input mono" type="text" inputmode="numeric" placeholder="Masukkan nominal..." oninput="formatCurrencyInput(this)" />
+          </div>
+          <div class="form-group" id="fjb-tgl-janji-group" style="display:none;">
+            <label class="form-label">Tanggal Janji Bayar Baru</label>
+            <input id="fjb-tgl-janji" class="form-input" type="date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catatan / Keterangan</label>
+          <textarea id="fjb-catatan" class="form-input" rows="3" placeholder="Catatan hasil follow-up janji bayar..." style="resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-followup-jb')">Batal</button>
+        <button class="btn btn-primary btn-sm" onclick="saveFollowUpJB(this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          Simpan Follow-Up
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- CLICK-TO-DIAL & CALL TRACKER MODAL -->
+
   <div class="modal-overlay" id="modal-click-dialer">
     <div class="modal-box" style="max-width:440px;">
       <div class="modal-hdr">
@@ -2291,6 +2377,27 @@
           <button type="submit" class="btn btn-primary btn-sm" id="aolog-submit-btn">Simpan Log AO</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- BATCH CHANGES DETAIL MODAL -->
+  <div class="modal-overlay" id="modal-batch-changes">
+    <div class="modal-box" style="max-width:780px;width:95%;">
+      <div class="modal-hdr">
+        <div>
+          <div class="modal-title" id="batchc-title">Detail Perubahan Data Import CBS</div>
+          <div style="font-size:12px;color:var(--text-2);" id="batchc-sub">Snapshot &amp; Rincian Kolektibilitas / Status Debitur</div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-batch-changes')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="batchc-body" style="padding:16px 20px;">
+        <p style="text-align:center;color:var(--text-2);">Memuat detail perubahan...</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('modal-batch-changes')">Tutup</button>
+      </div>
     </div>
   </div>
 

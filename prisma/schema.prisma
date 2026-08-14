@@ -1,6 +1,6 @@
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -118,6 +118,8 @@ model DebiturKolHistory {
   bakiDebet       Float
 
   debitur         Debitur  @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+
+  @@index([debiturId, tanggalSnapshot])
 }
 
 model DeskCall {

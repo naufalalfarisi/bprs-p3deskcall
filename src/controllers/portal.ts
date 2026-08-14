@@ -13,7 +13,7 @@ portalRouter.get('/pay/:token', async (c) => {
       return c.json({ error: 'Token portal tidak valid' }, 400);
     }
 
-    const portalToken = await prisma.debtorPortalToken.findUnique({
+    const portalToken = await (prisma as any).debtorPortalToken.findUnique({
       where: { token },
       include: {
         debitur: {
@@ -72,7 +72,7 @@ portalRouter.post('/pay/:token/submit', async (c) => {
     const token = c.req.param('token');
     const { promisedDate, promisedAmount, transferProofUrl, notes } = await c.req.json();
 
-    const portalToken = await prisma.debtorPortalToken.findUnique({
+    const portalToken = await (prisma as any).debtorPortalToken.findUnique({
       where: { token },
       include: { debitur: true }
     });
@@ -90,7 +90,7 @@ portalRouter.post('/pay/:token/submit', async (c) => {
     const pAmount = promisedAmount ? parseFloat(promisedAmount) : (debitur.totalTunggakan || 0);
 
     // Update portal token status
-    const updatedToken = await prisma.debtorPortalToken.update({
+    const updatedToken = await (prisma as any).debtorPortalToken.update({
       where: { id: portalToken.id },
       data: {
         isUsed: true,
