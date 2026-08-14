@@ -23,6 +23,7 @@ import { ewsRouter } from './controllers/ews.js';
 import { historisRouter } from './controllers/historis.js';
 import { qontakRouter } from './controllers/qontak.js';
 import { portalRouter } from './controllers/portal.js';
+import { tasksRouter } from './controllers/tasks.js';
 
 import { logger } from './utils/logger.js';
 import { requestContextStorage } from './utils/context.js';
@@ -115,6 +116,7 @@ app.route('/api/ews', ewsRouter);
 app.route('/api/historis', historisRouter);
 app.route('/api/qontak', qontakRouter);
 app.route('/api/portal', portalRouter);
+app.route('/api/tasks', tasksRouter);
 
 // Global Error Handler
 app.onError((err, c) => {
