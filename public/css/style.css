@@ -549,6 +549,7 @@ textarea.form-input, .form-textarea {
 .kol-pill.kp-kuranglancar.kp-active{background:var(--warning);border-color:var(--warning);}
 .kol-pill.kp-diragukan.kp-active{background:#E08A3E;border-color:#E08A3E;}
 .kol-pill.kp-macet.kp-active{background:var(--danger);border-color:var(--danger);}
+.kol-pill.kp-lunas.kp-active{background:#0284c7;border-color:#0284c7;}
 .search-wrap{position:relative;flex:1;min-width:180px;}
 .search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-3);pointer-events:none;}
 .search-wrap .form-input{padding-left:38px;border-radius:9999px;}
@@ -1242,6 +1243,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   .p3-toolbar-bottom { flex-direction: column; align-items: stretch; gap: 10px; }
   .p3-cal-strip-box { padding: 12px 12px; border-radius: 12px; }
   .p3-cal-item { min-width: 60px; padding: 8px 6px; border-radius: 10px; }
+}
+
 .lightbox-caption{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:#fff;font-size:13px;}
 
 /* LEGAL */
@@ -1533,3 +1536,602 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   padding: 2px 7px !important;
   font-size: 10.5px !important;
 }
+
+/* ==========================================================================
+   VISUAL AUDIT TRAIL & BEFORE VS AFTER DIFF STYLES
+   ========================================================================== */
+.diff-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.diff-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: var(--sh-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.diff-card:hover {
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+.diff-field-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.diff-field-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.diff-type-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.diff-type-modified {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+.diff-type-added {
+  background: #DCFCE7;
+  color: #166534;
+  border: 1px solid #86EFAC;
+}
+.diff-type-removed {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FCA5A5;
+}
+.diff-grid-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .diff-grid-compare {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+.diff-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  position: relative;
+  word-break: break-word;
+}
+.diff-box-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  display: block;
+}
+.diff-box-before {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+}
+.diff-box-before .diff-box-label {
+  color: #DC2626;
+}
+.diff-box-before .diff-val {
+  text-decoration: line-through;
+  opacity: 0.9;
+}
+.diff-box-after {
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  color: #065F46;
+  font-weight: 700;
+}
+.diff-box-after .diff-box-label {
+  color: #059669;
+}
+.audit-filter-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: var(--sh-sm);
+}
+.audit-filter-top {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.audit-search-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.audit-search-icon {
+  position: absolute;
+  left: 14px;
+  width: 17px;
+  height: 17px;
+  color: var(--text-3);
+  pointer-events: none;
+}
+.audit-search-input {
+  width: 100% !important;
+  height: 42px !important;
+  padding-left: 40px !important;
+  padding-right: 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: 11px !important;
+  border: 1.5px solid var(--border) !important;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  box-sizing: border-box !important;
+  transition: all 0.15s ease !important;
+}
+.audit-search-input:focus {
+  border-color: var(--brand) !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12) !important;
+}
+.audit-filter-bottom {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: 12px;
+  align-items: flex-end;
+}
+@media (max-width: 1024px) {
+  .audit-filter-bottom {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .audit-filter-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .audit-filter-bottom {
+    grid-template-columns: 1fr;
+  }
+}
+.audit-filter-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.audit-filter-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.audit-select-input, .audit-date-input {
+  width: 100% !important;
+  height: 38px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  border: 1.5px solid var(--border) !important;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  box-sizing: border-box !important;
+  transition: all 0.15s ease !important;
+}
+.audit-select-input:focus, .audit-date-input:focus {
+  border-color: var(--brand) !important;
+  background: var(--bg-card) !important;
+}
+
+/* ==========================================================================
+   EXECUTIVE ANALYTICS: MIGRATION MATRIX, STRESS TEST & PRINT STYLES
+   ========================================================================== */
+
+/* 1. MIGRATION MATRIX HEATMAP */
+.matrix-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--sh-sm);
+}
+.migration-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 4px;
+  text-align: center;
+}
+.migration-table th {
+  padding: 10px 8px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+.migration-table td {
+  padding: 10px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.migration-table td:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  z-index: 2;
+  position: relative;
+}
+.cell-cure {
+  background: #ECFDF5 !important;
+  color: #065F46 !important;
+  border: 1.5px solid #A7F3D0 !important;
+}
+.cell-steady {
+  background: #FFFBEB !important;
+  color: #92400E !important;
+  border: 1.5px solid #FDE68A !important;
+}
+.cell-roll {
+  background: #FEF2F2 !important;
+  color: #991B1B !important;
+  border: 1.5px solid #FECACA !important;
+}
+.cell-lunas {
+  background: #F0FDF4 !important;
+  color: #15803D !important;
+  border: 1.5px solid #86EFAC !important;
+}
+.cell-empty {
+  background: var(--bg) !important;
+  color: var(--text-3) !important;
+  border: 1px dashed var(--border) !important;
+}
+
+/* 2. STRESS TEST SIMULATOR */
+.sim-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) {
+  .sim-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.sim-control-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: var(--sh-sm);
+}
+.sim-slider-group {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.sim-slider-group:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.sim-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.sim-slider-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+.sim-slider-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--brand);
+}
+.sim-slider-input {
+  width: 100%;
+  height: 6px;
+  border-radius: 5px;
+  background: #e2e8f0;
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.sim-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--brand);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 118, 110, 0.4);
+  transition: transform 0.15s ease;
+}
+.sim-slider-input::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+.sim-slider-input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--brand);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 118, 110, 0.4);
+}
+.sim-result-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: var(--sh-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.sim-metric-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sim-metric-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.sim-delta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-top: 4px;
+}
+.sim-delta-good {
+  background: #DCFCE7;
+  color: #166534;
+}
+.sim-delta-bad {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+/* 3. EXECUTIVE REPORT & PRINT FORMATTING */
+.report-paper {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  color: #0f172a;
+}
+.report-header-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2.5px solid #0f766e;
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+}
+.report-sign-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+}
+.report-sign-box {
+  padding: 10px;
+}
+.report-sign-line {
+  margin-top: 60px;
+  border-bottom: 1.5px solid #0f172a;
+  padding-bottom: 4px;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #app-header, #app-drawer, .page-hd, .kpi-subtabs, .toolbar-wrap, .btn-print-hide {
+    display: none !important;
+  }
+  #pane-kpi, #kpi-subpane-report, #kpi-report-content, #kpi-report-content * {
+    visibility: visible;
+  }
+  #kpi-report-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+  .report-paper {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  .report-page-break {
+    page-break-before: always;
+  }
+}
+
+/* ==========================================================================
+   P3 FIELD OPERATIONS: MAP ROUTE CLUSTERING & DIGITAL SIGNATURE
+   ========================================================================== */
+
+.p3-map-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 18px;
+  margin-top: 16px;
+}
+@media (max-width: 960px) {
+  .p3-map-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.p3-map-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--sh-sm);
+  display: flex;
+  flex-direction: column;
+}
+#p3-interactive-map {
+  width: 100%;
+  height: 520px;
+  z-index: 1;
+}
+@media (max-width: 768px) {
+  #p3-interactive-map {
+    height: 380px;
+  }
+}
+.route-list-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--sh-sm);
+  display: flex;
+  flex-direction: column;
+  max-height: 574px;
+}
+.route-stops-scroll {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+  margin-top: 10px;
+}
+.route-stop-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+.route-stop-card:hover {
+  border-color: var(--brand);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.08);
+}
+.route-stop-card.completed {
+  opacity: 0.75;
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+.route-seq-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.route-seq-bprs {
+  background: #0F172A;
+}
+
+/* Custom Marker Styling for Leaflet */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+.p3-map-pin {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  border: 2px solid #ffffff;
+  transition: transform 0.15s ease;
+}
+.p3-map-pin:hover {
+  transform: scale(1.2);
+}
+.pin-kritis {
+  background: #DC2626;
+}
+.pin-tinggi {
+  background: #EA580C;
+}
+.pin-sedang {
+  background: #0284C7;
+}
+.pin-selesai {
+  background: #16A34A;
+}
+.pin-hq {
+  background: #0F172A;
+  border-color: #38BDF8;
+}
+
+/* Signature preview box */
+.signature-preview-box {
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.signature-preview-img {
+  max-height: 48px;
+  max-width: 140px;
+  object-fit: contain;
+}
+
+
+
+
+

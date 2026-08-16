@@ -24,6 +24,9 @@ import { historisRouter } from './controllers/historis.js';
 import { qontakRouter } from './controllers/qontak.js';
 import { portalRouter } from './controllers/portal.js';
 import { tasksRouter } from './controllers/tasks.js';
+import { healthRouter } from './controllers/health.js';
+import { auditRouter } from './controllers/audit.js';
+import { initAutomatedBackupScheduler } from './services/backupService.js';
 
 import { logger } from './utils/logger.js';
 import { requestContextStorage } from './utils/context.js';
@@ -117,6 +120,11 @@ app.route('/api/historis', historisRouter);
 app.route('/api/qontak', qontakRouter);
 app.route('/api/portal', portalRouter);
 app.route('/api/tasks', tasksRouter);
+app.route('/api/health', healthRouter);
+app.route('/api/audit', auditRouter);
+
+// Initialize Automated Nightly Database Backup Scheduler (00:00 WIB, 30-day retention)
+initAutomatedBackupScheduler();
 
 // Global Error Handler
 app.onError((err, c) => {
@@ -124,12 +132,14 @@ app.onError((err, c) => {
   return c.json({ error: 'Internal Server Error', message: err.message }, 500);
 });
 
-logger.info(`BPRS NPF Dashboard server starting on port ${config.port}...`);
-serve({
-  fetch: app.fetch,
-  port: config.port,
-  hostname: '0.0.0.0'
-}, (info) => {
-  logger.info(`BPRS NPF Dashboard server listening on http://localhost:${info.port}`);
-});
+if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
+  logger.info(`BPRS NPF Dashboard server starting on port ${config.port}...`);
+  serve({
+    fetch: app.fetch,
+    port: config.port,
+    hostname: '0.0.0.0'
+  }, (info) => {
+    logger.info(`BPRS NPF Dashboard server listening on http://localhost:${info.port}`);
+  });
+}
 export default app;

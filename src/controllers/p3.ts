@@ -171,10 +171,17 @@ p3Router.get('/calendar', async (c) => {
   }
 });
 
+import { createJadwalP3Schema } from '../schemas/p3.schema.js';
+
 // POST /jadwal - Create Schedule
 p3Router.post('/jadwal', async (c) => {
   try {
     const body = await c.req.json();
+    const parsed = createJadwalP3Schema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: parsed.error.issues[0].message, details: parsed.error.issues }, 400);
+    }
+
     const {
       debiturId,
       tanggal,
@@ -186,11 +193,7 @@ p3Router.post('/jadwal', async (c) => {
       jenisTagih,
       metode,
       catatan
-    } = body;
-
-    if (!debiturId || !tanggal || !waktuMulai || !petugasId || !prioritas || !targetTagih || !jenisTagih || !metode) {
-      return c.json({ error: 'Field wajib tidak boleh kosong' }, 400);
-    }
+    } = parsed.data;
 
     const debitur = await prisma.debitur.findUnique({ where: { id: debiturId } });
     if (!debitur) {
@@ -235,7 +238,7 @@ p3Router.post('/jadwal', async (c) => {
         namaDebitur: debitur.nama,
         kol: debitur.kol,
         bakiDebet: debitur.bakiDebet,
-        targetTagih: parseFloat(targetTagih),
+        targetTagih: parseFloat(String(targetTagih)),
         alamat: debitur.alamat,
         jenisTagih,
         metode,
@@ -467,3 +470,349 @@ p3Router.delete('/jadwal/:id/foto/:fotoId', async (c) => {
     return c.json({ error: err.message }, 500);
   }
 });
+
+import {
+  SyncBatchP3Schema,
+  RouteClusterQuerySchema,
+  SaveSignatureP3Schema
+} from '../schemas/p3.schema.js';
+
+// Helper: Haversine distance in KM
+export function getHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return parseFloat((R * c).toFixed(2));
+}
+
+// POST /sync-batch - Batch sync offline drafts with photos and signatures
+p3Router.post('/sync-batch', async (c) => {
+  try {
+    const rawBody = await c.req.json();
+    const parsed = SyncBatchP3Schema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return c.json({ error: 'Validasi draft offline gagal', details: parsed.error.issues }, 400);
+    }
+
+    const { drafts } = parsed.data;
+    const user = (c as any).get('user');
+
+    const uploadSigDir = path.join(process.cwd(), 'public', 'uploads', 'signatures');
+    const uploadPhotoDir = path.join(process.cwd(), 'public', 'uploads', 'p3');
+    await fs.mkdir(uploadSigDir, { recursive: true });
+    await fs.mkdir(uploadPhotoDir, { recursive: true });
+
+    const results: any[] = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const draft of drafts) {
+      try {
+        const existing = await prisma.jadwalPenagihan.findUnique({
+          where: { id: draft.jadwalId }
+        });
+
+        if (!existing) {
+          results.push({ jadwalId: draft.jadwalId, status: 'error', message: 'Jadwal tidak ditemukan' });
+          failCount++;
+          continue;
+        }
+
+        let sigFilePath: string | null = existing.tandaTanganDebitur;
+
+        // Process Base64 Signature if provided
+        if (draft.tandaTanganDebitur && draft.tandaTanganDebitur.startsWith('data:image/')) {
+          try {
+            const matches = draft.tandaTanganDebitur.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            if (matches && matches.length === 3) {
+              const buffer = Buffer.from(matches[2], 'base64');
+              const fileName = `sig_${draft.jadwalId}_${Date.now()}.png`;
+              const fullPath = path.join(uploadSigDir, fileName);
+              await fs.writeFile(fullPath, buffer);
+              sigFilePath = `/uploads/signatures/${fileName}`;
+            }
+          } catch (sigErr) {
+            console.warn('Could not save signature image:', sigErr);
+          }
+        }
+
+        // Update Jadwal record
+        const updated = await prisma.jadwalPenagihan.update({
+          where: { id: draft.jadwalId },
+          data: {
+            status: draft.status || existing.status,
+            nominalRealisasi: draft.nominalRealisasi !== undefined ? draft.nominalRealisasi : existing.nominalRealisasi,
+            hasil: draft.hasil !== undefined ? draft.hasil : existing.hasil,
+            catatan: draft.catatan !== undefined ? draft.catatan : existing.catatan,
+            checkInLat: draft.checkInLat ?? existing.checkInLat,
+            checkInLng: draft.checkInLng ?? existing.checkInLng,
+            checkInAddress: draft.checkInAddress || existing.checkInAddress,
+            checkInTime: draft.checkInTime ? new Date(draft.checkInTime) : (draft.checkInLat ? new Date() : existing.checkInTime),
+            tandaTanganDebitur: sigFilePath,
+            tandaTanganNama: draft.tandaTanganNama || existing.tandaTanganNama,
+            localRecordedAt: draft.localRecordedAt ? new Date(draft.localRecordedAt) : new Date(),
+            isOfflineSync: true
+          }
+        });
+
+        // Process Photos if attached
+        if (draft.fotos && Array.isArray(draft.fotos)) {
+          for (const fotoItem of draft.fotos) {
+            if (fotoItem.base64 && fotoItem.base64.startsWith('data:image/')) {
+              try {
+                const matches = fotoItem.base64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+                if (matches && matches.length === 3) {
+                  const buffer = Buffer.from(matches[2], 'base64');
+                  const fileName = `p3_${draft.jadwalId}_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+                  const fullPath = path.join(uploadPhotoDir, fileName);
+                  await fs.writeFile(fullPath, buffer);
+
+                  await prisma.penagihanFoto.create({
+                    data: {
+                      jadwalId: draft.jadwalId,
+                      filePath: `public/uploads/p3/${fileName}`,
+                      latitude: fotoItem.latitude || null,
+                      longitude: fotoItem.longitude || null,
+                      gpsAddress: fotoItem.gpsAddress || null,
+                      uploadedBy: user.id
+                    }
+                  });
+                }
+              } catch (fotoErr) {
+                console.warn('Could not save photo item:', fotoErr);
+              }
+            }
+          }
+        }
+
+        await logAudit(c, 'sync_offline_p3', 'jadwal_penagihan', draft.jadwalId, existing, updated);
+        results.push({ jadwalId: draft.jadwalId, status: 'success', nomorJadwal: updated.nomorJadwal });
+        successCount++;
+      } catch (err: any) {
+        results.push({ jadwalId: draft.jadwalId, status: 'error', message: err.message });
+        failCount++;
+      }
+    }
+
+    return c.json({
+      success: true,
+      message: `Sinkronisasi selesai: ${successCount} berhasil, ${failCount} gagal.`,
+      processedCount: drafts.length,
+      successCount,
+      failCount,
+      results
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// POST /signature/:jadwalId - Direct standalone digital signature save
+p3Router.post('/signature/:jadwalId', async (c) => {
+  try {
+    const jadwalId = c.req.param('jadwalId');
+    const rawBody = await c.req.json();
+    const parsed = SaveSignatureP3Schema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return c.json({ error: 'Data tanda tangan tidak valid', details: parsed.error.issues }, 400);
+    }
+
+    const schedule = await prisma.jadwalPenagihan.findUnique({ where: { id: jadwalId } });
+    if (!schedule) {
+      return c.json({ error: 'Jadwal tidak ditemukan' }, 404);
+    }
+
+    const uploadSigDir = path.join(process.cwd(), 'public', 'uploads', 'signatures');
+    await fs.mkdir(uploadSigDir, { recursive: true });
+
+    let sigFilePath = '';
+    const { signatureBase64, signerName } = parsed.data;
+
+    if (signatureBase64.startsWith('data:image/')) {
+      const matches = signatureBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const buffer = Buffer.from(matches[2], 'base64');
+        const fileName = `sig_${jadwalId}_${Date.now()}.png`;
+        const fullPath = path.join(uploadSigDir, fileName);
+        await fs.writeFile(fullPath, buffer);
+        sigFilePath = `/uploads/signatures/${fileName}`;
+      }
+    }
+
+    const updated = await prisma.jadwalPenagihan.update({
+      where: { id: jadwalId },
+      data: {
+        tandaTanganDebitur: sigFilePath || signatureBase64,
+        tandaTanganNama: signerName || schedule.namaDebitur
+      }
+    });
+
+    await logAudit(c, 'save_p3_signature', 'jadwal_penagihan', jadwalId, schedule, updated);
+
+    return c.json({
+      success: true,
+      message: 'Tanda tangan digital berhasil disimpan',
+      signatureUrl: updated.tandaTanganDebitur
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// GET /route-cluster - Smart Map Clustering & Nearest-Neighbor Route Optimization
+p3Router.get('/route-cluster', async (c) => {
+  try {
+    const tanggalStr = c.req.query('tanggal') || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    const petugasId = c.req.query('petugasId') || '';
+    const area = c.req.query('area') || '';
+
+    const filterDate = new Date(tanggalStr);
+    const startOfDay = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate(), 23, 59, 59, 999);
+
+    const whereClause: any = {
+      tanggal: { gte: startOfDay, lte: endOfDay }
+    };
+    if (petugasId) whereClause.petugasId = petugasId;
+    if (area && area !== 'Semua') whereClause.area = area;
+
+    const schedules = await prisma.jadwalPenagihan.findMany({
+      where: whereClause,
+      include: {
+        debitur: {
+          select: {
+            id: true,
+            nama: true,
+            alamat: true,
+            kota: true,
+            latitude: true,
+            longitude: true,
+            kol: true,
+            bakiDebet: true,
+            totalTunggakan: true,
+            telepon: true
+          }
+        },
+        petugas: { select: { id: true, nama: true } }
+      },
+      orderBy: { waktuMulai: 'asc' }
+    });
+
+    // Default BPRS HQ Coordinates (Yogyakarta City Center)
+    const bprsHq = {
+      lat: -7.797068,
+      lng: 110.370529,
+      name: 'Kantor BPRS Mitra Harmoni (Pusat Keberangkatan)'
+    };
+
+    // Area coordinate anchors around DIY (Yogyakarta, Sleman, Bantul, Kulon Progo, Gunungkidul)
+    const AREA_ANCHORS: Record<string, { lat: number; lng: number }> = {
+      'YOGYAKARTA': { lat: -7.7956, lng: 110.3695 },
+      'KOTA YOGYAKARTA': { lat: -7.7956, lng: 110.3695 },
+      'SLEMAN': { lat: -7.7167, lng: 110.3556 },
+      'BANTUL': { lat: -7.8894, lng: 110.3292 },
+      'KULON PROGO': { lat: -7.8389, lng: 110.1583 },
+      'GUNUNGKIDUL': { lat: -7.9625, lng: 110.6036 }
+    };
+
+    // Prepare point list with valid coordinates
+    const waypoints: any[] = [];
+    schedules.forEach((s, idx) => {
+      let lat = s.checkInLat || s.debitur?.latitude;
+      let lng = s.checkInLng || s.debitur?.longitude;
+
+      // Deterministic fallback coordinates if none exists in DB based on area or address hash
+      if (!lat || !lng) {
+        const areaUpper = (s.area || s.debitur?.kota || 'YOGYAKARTA').toUpperCase();
+        let anchor = AREA_ANCHORS['YOGYAKARTA'];
+        for (const k of Object.keys(AREA_ANCHORS)) {
+          if (areaUpper.includes(k)) { anchor = AREA_ANCHORS[k]; break; }
+        }
+        // Consistent slight offset by index/debiturId so markers don't overlap
+        const hash = (s.debiturId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + idx) % 100;
+        const offsetLat = ((hash % 10) - 5) * 0.008;
+        const offsetLng = ((Math.floor(hash / 10)) - 5) * 0.008;
+        lat = parseFloat((anchor.lat + offsetLat).toFixed(6));
+        lng = parseFloat((anchor.lng + offsetLng).toFixed(6));
+      }
+
+      waypoints.push({
+        jadwalId: s.id,
+        nomorJadwal: s.nomorJadwal,
+        debiturId: s.debiturId,
+        namaDebitur: s.namaDebitur,
+        kol: s.kol,
+        bakiDebet: s.bakiDebet,
+        targetTagih: s.targetTagih,
+        alamat: s.alamat,
+        prioritas: s.prioritas,
+        status: s.status,
+        waktuMulai: s.waktuMulai,
+        petugasNama: s.petugas?.nama || 'Petugas',
+        telepon: s.debitur?.telepon || '',
+        lat,
+        lng,
+        hasSignature: !!s.tandaTanganDebitur,
+        isOfflineSync: s.isOfflineSync
+      });
+    });
+
+    // Nearest Neighbor TSP Route Heuristic starting from HQ
+    const unvisited = [...waypoints];
+    const optimizedRoute: any[] = [];
+    let currentLat = bprsHq.lat;
+    let currentLng = bprsHq.lng;
+    let totalDistanceKm = 0;
+    let orderSeq = 1;
+
+    while (unvisited.length > 0) {
+      let nearestIdx = 0;
+      let minDistance = Number.MAX_VALUE;
+
+      for (let i = 0; i < unvisited.length; i++) {
+        const dist = getHaversineDistanceKm(currentLat, currentLng, unvisited[i].lat, unvisited[i].lng);
+        if (dist < minDistance) {
+          minDistance = dist;
+          nearestIdx = i;
+        }
+      }
+
+      const nextStop = unvisited.splice(nearestIdx, 1)[0];
+      totalDistanceKm += minDistance;
+      optimizedRoute.push({
+        ...nextStop,
+        urutanKunjungan: orderSeq++,
+        jarakDariSebelumnyaKm: minDistance,
+        jarakKumulatifKm: parseFloat(totalDistanceKm.toFixed(2))
+      });
+
+      currentLat = nextStop.lat;
+      currentLng = nextStop.lng;
+    }
+
+    // Add return distance to HQ
+    if (optimizedRoute.length > 0) {
+      const returnDist = getHaversineDistanceKm(currentLat, currentLng, bprsHq.lat, bprsHq.lng);
+      totalDistanceKm += returnDist;
+    }
+
+    return c.json({
+      tanggal: tanggalStr,
+      totalJadwal: schedules.length,
+      totalDistanceKm: parseFloat(totalDistanceKm.toFixed(2)),
+      bprsHq,
+      waypoints,
+      optimizedRoute
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+

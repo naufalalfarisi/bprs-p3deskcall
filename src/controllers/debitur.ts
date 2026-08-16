@@ -40,9 +40,15 @@ debiturRouter.get('/', async (c) => {
       whereClause.ao = aoFilter;
     }
 
-    // Filter by KOL
-    if (kolFilter && kolFilter !== 'Semua') {
+    // Filter by KOL / Lunas
+    if (kolFilter === 'Lunas') {
+      whereClause.statusDebitur = 'Lunas';
+      delete whereClause.kol;
+    } else if (kolFilter && kolFilter !== 'Semua' && kolFilter !== 'all') {
       whereClause.kol = kolFilter;
+      if (!statusFilter || statusFilter === 'Aktif') {
+        whereClause.statusDebitur = 'Aktif';
+      }
     }
 
     // Filter by Jatuh Tempo (hari_ini, minggu_ini, 2_minggu)
@@ -123,25 +129,32 @@ debiturRouter.get('/', async (c) => {
     // 2. Dynamic KOL Counts for Pills (reflects Jatuh Tempo / AO / Search filters, excluding KOL filter itself)
     const countWhereClause = { ...whereClause };
     delete countWhereClause.kol;
+    delete countWhereClause.statusDebitur;
 
     const matchedDebiturForPills = await prisma.debitur.findMany({
       where: countWhereClause,
-      select: { kol: true }
+      select: { kol: true, statusDebitur: true }
     });
 
     const counts = {
-      Semua: matchedDebiturForPills.length,
+      Semua: 0,
       Lancar: 0,
       DPK: 0,
       'Kurang Lancar': 0,
       Diragukan: 0,
-      Macet: 0
+      Macet: 0,
+      Lunas: 0
     };
 
     matchedDebiturForPills.forEach((d) => {
-      const k = d.kol as keyof typeof counts;
-      if (k in counts) {
-        counts[k]++;
+      if (d.statusDebitur === 'Lunas') {
+        counts.Lunas++;
+      } else {
+        counts.Semua++;
+        const k = d.kol as keyof typeof counts;
+        if (k in counts && k !== 'Lunas' && k !== 'Semua') {
+          counts[k]++;
+        }
       }
     });
 
@@ -157,12 +170,50 @@ debiturRouter.get('/', async (c) => {
       where: aoWhereClause,
       orderBy: { ao: 'asc' }
     });
-    const aos = distinctAos.map(a => a.ao).filter(Boolean);
+    const aos = distinctAos.map((a) => a.ao).filter(Boolean);
+
+    // Fetch latest applied CBS import batch or sync date
+    const lastCbsBatch = await prisma.importBatch.findFirst({
+      where: { status: 'applied' },
+      orderBy: { appliedAt: 'desc' },
+      select: {
+        id: true,
+        fileName: true,
+        tanggalSnapshot: true,
+        uploadedAt: true,
+        appliedAt: true,
+        totalUpdated: true
+      }
+    });
+
+    let lastCbsUpdate: any = null;
+    if (lastCbsBatch) {
+      lastCbsUpdate = {
+        fileName: lastCbsBatch.fileName,
+        tanggalSnapshot: lastCbsBatch.tanggalSnapshot,
+        uploadedAt: lastCbsBatch.uploadedAt,
+        appliedAt: lastCbsBatch.appliedAt,
+        displayDate: lastCbsBatch.appliedAt || lastCbsBatch.uploadedAt || lastCbsBatch.tanggalSnapshot
+      };
+    } else {
+      const fallbackDebitur = await prisma.debitur.findFirst({
+        where: { lastSyncedAt: { not: null } },
+        orderBy: { lastSyncedAt: 'desc' },
+        select: { lastSyncedAt: true }
+      });
+      if (fallbackDebitur?.lastSyncedAt) {
+        lastCbsUpdate = {
+          fileName: 'CBS Data Sync',
+          displayDate: fallbackDebitur.lastSyncedAt
+        };
+      }
+    }
 
     return c.json({
       debiturs,
       counts,
       summaryStats,
+      lastCbsUpdate,
       total,
       page,
       limit,

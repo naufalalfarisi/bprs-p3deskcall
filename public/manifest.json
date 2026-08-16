@@ -1,15 +1,38 @@
 {
   "id": "/",
-  "name": "BPRS Mitra Harmoni Yogyakarta - Sistem Penagihan NPF Terpadu",
-  "short_name": "BPRS Penagihan",
-  "description": "Sistem Informasi Penagihan NPF Terpadu (AO, P3, Desk Call & Legal) BPRS Mitra Harmoni Yogyakarta",
+  "name": "Sistem Informasi Penagihan Terpadu - PT BPRS Mitra Harmoni Yogyakarta",
+  "short_name": "Penagihan BPRS",
+  "description": "Sistem Informasi Penagihan Terpadu (AO, P3, Desk Call, & Legal) PT BPRS Mitra Harmoni Yogyakarta",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#0F172A",
+  "orientation": "portrait-primary",
+  "background_color": "#0F766E",
   "theme_color": "#0F766E",
-  "categories": ["finance", "business"],
+  "categories": ["finance", "business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Catat Desk Call",
+      "short_name": "Desk Call",
+      "description": "Buka modul pencatatan panggilan debitur",
+      "url": "/#deskcall",
+      "icons": [{ "src": "/icons/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Jadwal Kunjungan P3",
+      "short_name": "P3 Lapangan",
+      "description": "Buka kalender dan geotagging P3",
+      "url": "/#p3",
+      "icons": [{ "src": "/icons/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Early Warning System (EWS)",
+      "short_name": "EWS NPF",
+      "description": "Buka sistem peringatan dini NPF",
+      "url": "/#ews",
+      "icons": [{ "src": "/icons/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/pwa-192x192.png",

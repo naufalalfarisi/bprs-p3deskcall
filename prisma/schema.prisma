@@ -107,6 +107,12 @@ model Debitur {
   suratLegal           SuratLegal[]
   aoCollectionLogs     AoCollectionLog[]
   aoReminderEmailLogs  AoReminderEmailLog[]
+
+  @@index([kol, bakiDebet])
+  @@index([ao, statusDebitur])
+  @@index([statusDebitur])
+  @@index([tglJt])
+  @@index([cif])
 }
 
 model DebiturKolHistory {
@@ -143,6 +149,11 @@ model DeskCall {
 
   debitur            Debitur   @relation(fields: [debiturId], references: [id], onDelete: Cascade)
   petugas            User      @relation(fields: [petugasId], references: [id], onDelete: Cascade)
+
+  @@index([debiturId, tanggal])
+  @@index([petugasId, tanggal])
+  @@index([tanggalJanjiBayar])
+  @@index([tanggal])
 }
 
 model JadwalPenagihan {
@@ -165,16 +176,24 @@ model JadwalPenagihan {
   nominalRealisasi Float           @default(0)
   catatan          String?
   hasil            String?
-  checkInLat       Float?
-  checkInLng       Float?
-  checkInTime      DateTime?
-  checkInAddress   String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  checkInLat         Float?
+  checkInLng         Float?
+  checkInTime        DateTime?
+  checkInAddress     String?
+  tandaTanganDebitur String?
+  tandaTanganNama    String?
+  localRecordedAt    DateTime?
+  isOfflineSync      Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   debitur          Debitur         @relation(fields: [debiturId], references: [id], onDelete: Cascade)
   petugas          User            @relation(fields: [petugasId], references: [id], onDelete: Cascade)
   fotos            PenagihanFoto[]
+
+  @@index([debiturId, tanggal])
+  @@index([petugasId, status])
+  @@index([status, tanggal])
 }
 
 model PenagihanFoto {
@@ -206,6 +225,9 @@ model LegalBerkas {
   debitur     Debitur  @relation(fields: [debiturId], references: [id], onDelete: Cascade)
   checklists  LegalBerkasChecklist[]
   files       LegalFile[]
+
+  @@index([debiturId])
+  @@index([status])
 }
 
 model LegalBerkasChecklist {
@@ -255,6 +277,9 @@ model SuratLegal {
   updatedAt      DateTime  @updatedAt
 
   debitur        Debitur   @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+
+  @@index([debiturId, tanggalSurat])
+  @@index([status])
 }
 
 model Pembayaran {
@@ -273,6 +298,10 @@ model Pembayaran {
   importBatchId String?
 
   debitur       Debitur   @relation(fields: [debiturId], references: [id], onDelete: Cascade)
+
+  @@index([debiturId, tanggal])
+  @@index([tanggal])
+  @@index([importBatchId])
 }
 
 model RbbTarget {
@@ -304,6 +333,11 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tableName, recordId])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([action])
 }
 
 model AppSetting {
@@ -364,8 +398,8 @@ model AoCollectionLog {
   createdBy          String
   createdByUser      User     @relation("CreatedByAoLog", fields: [createdBy], references: [id])
 
-  @@index([debiturId])
-  @@index([aoId])
+  @@index([debiturId, tanggal])
+  @@index([aoId, tanggal])
 }
 
 model AoReminderEmailLog {

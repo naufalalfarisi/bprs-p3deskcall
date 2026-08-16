@@ -220,15 +220,19 @@ legalRouter.get('/surat/eligible', async (c) => {
   }
 });
 
+import { createSuratLegalSchema, autoGenerateSpSchema } from '../schemas/legal.schema.js';
+
 // POST /surat/auto-generate - 1-Click Auto Generate SP for Debitur
 legalRouter.post('/surat/auto-generate', async (c) => {
   try {
     const user = (c as any).get('user');
-    const { debiturId, jenisSurat } = await c.req.json();
-
-    if (!debiturId) {
-      return c.json({ error: 'DebiturId wajib diisi' }, 400);
+    const body = await c.req.json();
+    const parsed = autoGenerateSpSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: parsed.error.issues[0].message, details: parsed.error.issues }, 400);
     }
+
+    const { debiturId, jenisSurat } = parsed.data;
 
     const newSurat = await autoGenerateSp(user, debiturId, jenisSurat);
     await logAudit(c, 'auto_generate_sp', 'surat_legal', newSurat.id, null, newSurat);
@@ -243,9 +247,14 @@ legalRouter.post('/surat/auto-generate', async (c) => {
 legalRouter.post('/surat', async (c) => {
   try {
     const body = await c.req.json();
+    const parsed = createSuratLegalSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: parsed.error.issues[0].message, details: parsed.error.issues }, 400);
+    }
+
     const user = (c as any).get('user');
 
-    const newSurat = await createSuratLegal(user, body);
+    const newSurat = await createSuratLegal(user, parsed.data as any);
     await logAudit(c, 'create_surat_legal', 'surat_legal', newSurat.id, null, newSurat);
 
     return c.json(newSurat, 201);

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { config } from '../config.js';
 import { createAccessToken, authMiddleware } from '../middleware/auth.js';
+import { authLoginRateLimiter, authRegisterRateLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../utils/audit.js';
 
 // --- Zod Validation Schemas ---
@@ -80,7 +81,7 @@ authRouter.get('/ao-list', async (c) => {
 });
 
 // POST /register
-authRouter.post('/register', async (c) => {
+authRouter.post('/register', authRegisterRateLimiter, async (c) => {
   try {
     const body = await c.req.json();
     const parsed = registerSchema.safeParse(body);
@@ -186,7 +187,7 @@ authRouter.post('/register', async (c) => {
 });
 
 // POST /login
-authRouter.post('/login', async (c) => {
+authRouter.post('/login', authLoginRateLimiter, async (c) => {
   try {
     const body = await c.req.json();
     const parsed = loginSchema.safeParse(body);

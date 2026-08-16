@@ -1,9 +1,9 @@
-const CACHE_NAME = 'bprs-p3-v3';
+const CACHE_NAME = 'bprs-sispeng-pwa-v4';
 const ASSETS_TO_CACHE = [
   '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/app.js',
+  '/public/index.html',
+  '/public/css/style.css',
+  '/public/js/app.js',
   '/manifest.json',
   '/icons/pwa-192x192.png',
   '/icons/pwa-512x512.png',
@@ -14,7 +14,9 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
+        console.warn('SW pre-cache warning:', err);
+      });
     }).then(() => self.skipWaiting())
   );
 });
@@ -34,7 +36,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event (Network First, fallback to cache)
+// Fetch Event (Network First, fallback to cache for offline support)
 self.addEventListener('fetch', (event) => {
   // Ignore non-GET requests or any API requests
   if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
@@ -44,8 +46,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone response to cache if valid
-        if (response && response.status === 200 && response.type === 'basic') {
+        if (response && response.status === 200) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
@@ -54,7 +55,12 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        return caches.match(event.request);
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          if (event.request.headers.get('accept')?.includes('text/html')) {
+            return caches.match('/public/index.html') || caches.match('/');
+          }
+        });
       })
   );
 });

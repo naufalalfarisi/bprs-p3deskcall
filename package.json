@@ -9,6 +9,7 @@
     "tunnel": "npx localtunnel --port 3001 --subdomain bprs-p3deskcall-demo",
     "share": "npx localtunnel --port 3001 --subdomain bprs-p3deskcall-demo",
     "build": "tsc",
+    "check": "tsc --noEmit && vitest run",
     "start": "node dist/index.js",
     "test": "vitest run",
     "seed": "tsx src/seed.ts",

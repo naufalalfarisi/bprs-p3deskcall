@@ -3,6 +3,7 @@ import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
 import { logAudit } from '../utils/audit.js';
 import ExcelJS from 'exceljs';
 import { prisma } from '../db.js';
+import { createDeskCallSchema, updateDeskCallSchema } from '../schemas/deskcall.schema.js';
 import {
   createDeskCall,
   getDeskCallHarian,
@@ -23,9 +24,13 @@ deskcallRouter.use('*', authMiddleware);
 deskcallRouter.post('/', async (c) => {
   try {
     const body = await c.req.json();
-    const user = (c as any).get('user');
+    const parsed = createDeskCallSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: parsed.error.issues[0].message, details: parsed.error.issues }, 400);
+    }
 
-    const newCall = await createDeskCall(user, body);
+    const user = (c as any).get('user');
+    const newCall = await createDeskCall(user, parsed.data as any);
     await logAudit(c, 'create_desk_call', 'desk_call', newCall.id, null, newCall);
 
     return c.json(newCall, 201);
@@ -396,9 +401,13 @@ deskcallRouter.put('/:id', roleMiddleware(['admin', 'desk_call', 'kabid_p3']), a
   try {
     const id = c.req.param('id') || '';
     const body = await c.req.json();
-    const user = (c as any).get('user');
+    const parsed = updateDeskCallSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: parsed.error.issues[0].message, details: parsed.error.issues }, 400);
+    }
 
-    const { existing, updated } = await updateDeskCall(id, user, body);
+    const user = (c as any).get('user');
+    const { existing, updated } = await updateDeskCall(id, user, parsed.data as any);
     await logAudit(c, 'update_desk_call', 'desk_call', id, existing, updated);
 
     return c.json(updated);

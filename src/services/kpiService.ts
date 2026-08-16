@@ -458,3 +458,408 @@ export async function getKpiRollrate(periode: string) {
     method2
   };
 }
+
+const ROW_KOLS = ['Lancar', 'DPK', 'Kurang Lancar', 'Diragukan', 'Macet'];
+const COL_KOLS = ['Lancar', 'DPK', 'Kurang Lancar', 'Diragukan', 'Macet', 'Lunas'];
+
+export interface MigrationCell {
+  noa: number;
+  bakiDebet: number;
+  percent: number;
+  movement: 'cure' | 'steady' | 'roll' | 'lunas';
+}
+
+/**
+ * Compute 5x6 NPF Migration / Transition Matrix between two snapshots or previous snapshot vs live data.
+ */
+export async function getKpiMigrationMatrix(fromPeriode?: string, toPeriode?: string) {
+  // Fetch available snapshots list
+  const distinctSnapshots = await prisma.debiturKolHistory.findMany({
+    select: {
+      bulanLabel: true,
+      tanggalSnapshot: true
+    },
+    distinct: ['tanggalSnapshot'],
+    orderBy: { tanggalSnapshot: 'desc' }
+  });
+
+  const availableSnapshots = distinctSnapshots.map(s => ({
+    tanggalSnapshot: s.tanggalSnapshot,
+    bulanLabel: s.bulanLabel,
+    periodeStr: s.tanggalSnapshot.toISOString().substring(0, 7)
+  }));
+
+  // Determine 'From' snapshot
+  let fromHistories: any[] = [];
+  let fromLabel = 'Bulan Sebelumnya';
+
+  if (fromPeriode) {
+    const [y, m] = fromPeriode.split('-').map(Number);
+    fromHistories = await prisma.debiturKolHistory.findMany({
+      where: {
+        tanggalSnapshot: {
+          gte: new Date(y, m - 1, 1),
+          lte: new Date(y, m, 0, 23, 59, 59, 999)
+        }
+      }
+    });
+    fromLabel = fromPeriode;
+  } else if (availableSnapshots.length > 0) {
+    const latestSnapshotDate = availableSnapshots[0].tanggalSnapshot;
+    fromHistories = await prisma.debiturKolHistory.findMany({
+      where: { tanggalSnapshot: latestSnapshotDate }
+    });
+    fromLabel = availableSnapshots[0].bulanLabel || availableSnapshots[0].periodeStr;
+  }
+
+  // Determine 'To' data: either specific snapshot or live Debitur portfolio
+  let toMap = new Map<string, { kol: string; bakiDebet: number; statusDebitur: string }>();
+  let toLabel = 'Posisi Live';
+
+  if (toPeriode) {
+    const [y, m] = toPeriode.split('-').map(Number);
+    const toHistories = await prisma.debiturKolHistory.findMany({
+      where: {
+        tanggalSnapshot: {
+          gte: new Date(y, m - 1, 1),
+          lte: new Date(y, m, 0, 23, 59, 59, 999)
+        }
+      }
+    });
+    toHistories.forEach(h => {
+      toMap.set(h.debiturId, { kol: h.kol, bakiDebet: h.bakiDebet, statusDebitur: 'Aktif' });
+    });
+    toLabel = toPeriode;
+  } else {
+    const activeDebs = await prisma.debitur.findMany({
+      select: { id: true, kol: true, bakiDebet: true, statusDebitur: true }
+    });
+    activeDebs.forEach(d => {
+      toMap.set(d.id, {
+        kol: d.statusDebitur === 'Lunas' ? 'Lunas' : d.kol,
+        bakiDebet: d.bakiDebet,
+        statusDebitur: d.statusDebitur
+      });
+    });
+  }
+
+  // Build matrix grid
+  const matrix: Record<string, Record<string, MigrationCell>> = {};
+  const rowTotals: Record<string, { noa: number; bakiDebet: number }> = {};
+  const colTotals: Record<string, { noa: number; bakiDebet: number }> = {};
+
+  ROW_KOLS.forEach(r => {
+    matrix[r] = {};
+    rowTotals[r] = { noa: 0, bakiDebet: 0 };
+    COL_KOLS.forEach(c => {
+      let movement: 'cure' | 'steady' | 'roll' | 'lunas' = 'steady';
+      if (c === 'Lunas') {
+        movement = 'lunas';
+      } else {
+        const rVal = KOL_VALUES[r] || 2;
+        const cVal = KOL_VALUES[c] || 2;
+        if (cVal < rVal) movement = 'cure';
+        else if (cVal > rVal) movement = 'roll';
+        else movement = 'steady';
+      }
+
+      matrix[r][c] = {
+        noa: 0,
+        bakiDebet: 0,
+        percent: 0,
+        movement
+      };
+    });
+  });
+
+  COL_KOLS.forEach(c => {
+    colTotals[c] = { noa: 0, bakiDebet: 0 };
+  });
+
+  let totalEvaluatedNoa = 0;
+  let totalEvaluatedBaki = 0;
+  let totalCuredNoa = 0;
+  let totalCuredBaki = 0;
+  let totalRolledNoa = 0;
+  let totalRolledBaki = 0;
+  let totalSteadyNoa = 0;
+  let totalSteadyBaki = 0;
+  let npfInflowBaki = 0; // Migrating from KOL 1/2 to KOL 3/4/5
+  let npfOutflowBaki = 0; // Migrating from KOL 3/4/5 to KOL 1/2 or Lunas
+
+  fromHistories.forEach(fromRecord => {
+    const fromKol = fromRecord.kol;
+    if (!ROW_KOLS.includes(fromKol)) return;
+
+    const toData = toMap.get(fromRecord.debiturId);
+    let toKol = toData ? toData.kol : 'Lunas';
+    if (!COL_KOLS.includes(toKol)) {
+      toKol = toData?.statusDebitur === 'Lunas' ? 'Lunas' : 'Macet';
+    }
+
+    const baki = fromRecord.bakiDebet || 0;
+
+    matrix[fromKol][toKol].noa += 1;
+    matrix[fromKol][toKol].bakiDebet += baki;
+    rowTotals[fromKol].noa += 1;
+    rowTotals[fromKol].bakiDebet += baki;
+    colTotals[toKol].noa += 1;
+    colTotals[toKol].bakiDebet += baki;
+
+    totalEvaluatedNoa++;
+    totalEvaluatedBaki += baki;
+
+    const fromVal = KOL_VALUES[fromKol] || 2;
+    const toVal = toKol === 'Lunas' ? 0 : (KOL_VALUES[toKol] || 2);
+
+    if (toKol === 'Lunas' || toVal < fromVal) {
+      totalCuredNoa++;
+      totalCuredBaki += baki;
+    } else if (toVal > fromVal) {
+      totalRolledNoa++;
+      totalRolledBaki += baki;
+    } else {
+      totalSteadyNoa++;
+      totalSteadyBaki += baki;
+    }
+
+    // NPF Inflow & Outflow
+    const fromIsNpf = ['Kurang Lancar', 'Diragukan', 'Macet'].includes(fromKol);
+    const toIsNpf = ['Kurang Lancar', 'Diragukan', 'Macet'].includes(toKol);
+
+    if (!fromIsNpf && toIsNpf) {
+      npfInflowBaki += baki;
+    } else if (fromIsNpf && !toIsNpf) {
+      npfOutflowBaki += baki;
+    }
+  });
+
+  // Calculate percentages per row
+  ROW_KOLS.forEach(r => {
+    const rTotalNoa = rowTotals[r].noa;
+    COL_KOLS.forEach(c => {
+      if (rTotalNoa > 0) {
+        matrix[r][c].percent = parseFloat(((matrix[r][c].noa / rTotalNoa) * 100).toFixed(1));
+      }
+    });
+  });
+
+  const overallCureRatePct = totalEvaluatedNoa > 0
+    ? parseFloat(((totalCuredNoa / totalEvaluatedNoa) * 100).toFixed(2))
+    : 0;
+  const overallRollRatePct = totalEvaluatedNoa > 0
+    ? parseFloat(((totalRolledNoa / totalEvaluatedNoa) * 100).toFixed(2))
+    : 0;
+  const netNpfMigrationNominal = npfInflowBaki - npfOutflowBaki;
+
+  return {
+    fromLabel,
+    toLabel,
+    availableSnapshots,
+    rowKols: ROW_KOLS,
+    colKols: COL_KOLS,
+    matrix,
+    rowTotals,
+    colTotals,
+    summary: {
+      totalEvaluatedNoa,
+      totalEvaluatedBaki,
+      totalCuredNoa,
+      totalCuredBaki,
+      totalRolledNoa,
+      totalRolledBaki,
+      totalSteadyNoa,
+      totalSteadyBaki,
+      overallCureRatePct,
+      overallRollRatePct,
+      npfInflowBaki,
+      npfOutflowBaki,
+      netNpfMigrationNominal
+    }
+  };
+}
+
+/**
+ * Execute interactive What-If Stress Testing & Target Simulation on active loan portfolio.
+ */
+export async function runNpfStressTest(params: {
+  targetRecoveryNominal?: number;
+  restrukturisasiKol3Nominal?: number;
+  dpkRollOverPercent?: number;
+}) {
+  const targetRecovery = Math.max(0, Number(params.targetRecoveryNominal) || 0);
+  const restrukKol3 = Math.max(0, Number(params.restrukturisasiKol3Nominal) || 0);
+  const dpkRollPct = Math.min(100, Math.max(0, Number(params.dpkRollOverPercent) || 0));
+
+  // Fetch current active debiturs
+  const activeDebs = await prisma.debitur.findMany({
+    where: { statusDebitur: 'Aktif' },
+    select: { kol: true, bakiDebet: true }
+  });
+
+  let totalBaki = 0;
+  let lancarBaki = 0;
+  let dpkBaki = 0;
+  let klBaki = 0;
+  let diragukanBaki = 0;
+  let macetBaki = 0;
+
+  activeDebs.forEach(d => {
+    const b = d.bakiDebet || 0;
+    totalBaki += b;
+    if (d.kol === 'Lancar') lancarBaki += b;
+    else if (d.kol === 'DPK') dpkBaki += b;
+    else if (d.kol === 'Kurang Lancar') klBaki += b;
+    else if (d.kol === 'Diragukan') diragukanBaki += b;
+    else if (d.kol === 'Macet') macetBaki += b;
+  });
+
+  const currentNpfBaki = klBaki + diragukanBaki + macetBaki;
+  const currentNpfGross = totalBaki > 0 ? (currentNpfBaki / totalBaki) * 100 : 0;
+  const currentLar = totalBaki > 0 ? ((dpkBaki + currentNpfBaki) / totalBaki) * 100 : 0;
+
+  // Baseline minimum PPAP requirement (OJK standard)
+  // Lancar: 1%, DPK: 5%, KL: 15%, Diragukan: 50%, Macet: 100%
+  const currentPpap = (lancarBaki * 0.01) + (dpkBaki * 0.05) + (klBaki * 0.15) + (diragukanBaki * 0.50) + (macetBaki * 1.00);
+
+  // Apply Simulation Slices:
+  // 1. Recovery on NPF: Reduces NPF baki and total portfolio baki (cash in)
+  const actualRecovery = Math.min(targetRecovery, currentNpfBaki);
+
+  // 2. Restrukturisasi on KL: Moves KL balance to performing DPK/Lancar (does not reduce total baki)
+  const actualRestruk = Math.min(restrukKol3, Math.max(0, klBaki));
+
+  // 3. Shock / Roll over on DPK: % of DPK degrades to KL (increases NPF)
+  const dpkDegradedToKl = dpkBaki * (dpkRollPct / 100);
+
+  // Compute Simulated Balances
+  const simTotalBaki = Math.max(1, totalBaki - actualRecovery);
+  const simLancarBaki = lancarBaki;
+  const simDpkBaki = Math.max(0, dpkBaki - dpkDegradedToKl + actualRestruk);
+  const simKlBaki = Math.max(0, klBaki - actualRestruk + dpkDegradedToKl - (actualRecovery * (klBaki / (currentNpfBaki || 1))));
+  const simDiragukanBaki = Math.max(0, diragukanBaki - (actualRecovery * (diragukanBaki / (currentNpfBaki || 1))));
+  const simMacetBaki = Math.max(0, macetBaki - (actualRecovery * (macetBaki / (currentNpfBaki || 1))));
+
+  const simNpfBaki = simKlBaki + simDiragukanBaki + simMacetBaki;
+  const simNpfGross = (simNpfBaki / simTotalBaki) * 100;
+  const simLar = ((simDpkBaki + simNpfBaki) / simTotalBaki) * 100;
+  const simPpap = (simLancarBaki * 0.01) + (simDpkBaki * 0.05) + (simKlBaki * 0.15) + (simDiragukanBaki * 0.50) + (simMacetBaki * 1.00);
+
+  const npfDelta = simNpfGross - currentNpfGross;
+  const ppapDelta = simPpap - currentPpap;
+
+  let conclusion = '';
+  if (simNpfGross <= 5.0) {
+    conclusion = `Target NPF Gross Sehat Tercapai (${simNpfGross.toFixed(2)}% ≤ 5.00%). Portofolio berada di zona aman regulasi OJK.`;
+  } else if (simNpfGross < currentNpfGross) {
+    conclusion = `NPF Gross membaik sebesar ${Math.abs(npfDelta).toFixed(2)}% (dari ${currentNpfGross.toFixed(2)}% menjadi ${simNpfGross.toFixed(2)}%), namun masih memerlukan tambahan recovery Rp ${((simNpfBaki - (simTotalBaki * 0.05))).toLocaleString('id-ID')} untuk mencapai ambang batas 5.00%.`;
+  } else {
+    conclusion = `Peringatan Risiko: Skenario pemburukan menyebabkan NPF Gross naik sebesar +${npfDelta.toFixed(2)}% menjadi ${simNpfGross.toFixed(2)}%, memicu kebutuhan tambahan cadangan PPAP sebesar Rp ${Math.max(0, ppapDelta).toLocaleString('id-ID')}.`;
+  }
+
+  return {
+    baseline: {
+      totalNOA: activeDebs.length,
+      totalBaki,
+      lancarBaki,
+      dpkBaki,
+      klBaki,
+      diragukanBaki,
+      macetBaki,
+      npfBaki: currentNpfBaki,
+      npfGross: parseFloat(currentNpfGross.toFixed(2)),
+      lar: parseFloat(currentLar.toFixed(2)),
+      ppapRequirement: Math.round(currentPpap)
+    },
+    simulation: {
+      targetRecoveryApplied: actualRecovery,
+      restrukturisasiApplied: actualRestruk,
+      dpkDegradedAmount: Math.round(dpkDegradedToKl),
+      simTotalBaki: Math.round(simTotalBaki),
+      simDpkBaki: Math.round(simDpkBaki),
+      simNpfBaki: Math.round(simNpfBaki),
+      simNpfGross: parseFloat(simNpfGross.toFixed(2)),
+      simLar: parseFloat(simLar.toFixed(2)),
+      simPpapRequirement: Math.round(simPpap),
+      npfDeltaPercent: parseFloat(npfDelta.toFixed(2)),
+      ppapDeltaNominal: Math.round(ppapDelta),
+      conclusion
+    }
+  };
+}
+
+/**
+ * Fetch comprehensive executive reporting dataset for PDF generation & board meetings.
+ */
+export async function getExecutiveReportData(periode?: string) {
+  const activePeriode = periode || new Date().toISOString().substring(0, 7);
+  const [dashboardData, migrationData, appSettings] = await Promise.all([
+    getKpiDashboard(activePeriode),
+    getKpiMigrationMatrix(),
+    prisma.appSetting.findMany()
+  ]);
+
+  const settingsMap: Record<string, string> = {};
+  appSettings.forEach(s => { settingsMap[s.key] = s.value; });
+
+  // Top 10 largest NPF accounts
+  const topNpfDebitur = await prisma.debitur.findMany({
+    where: {
+      statusDebitur: 'Aktif',
+      kol: { in: ['Kurang Lancar', 'Diragukan', 'Macet'] }
+    },
+    select: {
+      id: true,
+      nama: true,
+      ao: true,
+      kol: true,
+      bakiDebet: true,
+      totalTunggakan: true,
+      telepon: true
+    },
+    orderBy: { bakiDebet: 'desc' },
+    take: 10
+  });
+
+  // AO summary
+  const allDebs = await prisma.debitur.findMany({
+    where: { statusDebitur: 'Aktif' },
+    select: { ao: true, kol: true, bakiDebet: true }
+  });
+
+  const aoMap: Record<string, { ao: string; noa: number; totalBaki: number; npfBaki: number }> = {};
+  allDebs.forEach(d => {
+    const aoName = d.ao || 'Tanpa AO';
+    if (!aoMap[aoName]) {
+      aoMap[aoName] = { ao: aoName, noa: 0, totalBaki: 0, npfBaki: 0 };
+    }
+    aoMap[aoName].noa++;
+    aoMap[aoName].totalBaki += (d.bakiDebet || 0);
+    if (['Kurang Lancar', 'Diragukan', 'Macet'].includes(d.kol)) {
+      aoMap[aoName].npfBaki += (d.bakiDebet || 0);
+    }
+  });
+
+  const aoPerformance = Object.values(aoMap)
+    .map(a => ({
+      ...a,
+      npfRatio: a.totalBaki > 0 ? parseFloat(((a.npfBaki / a.totalBaki) * 100).toFixed(2)) : 0
+    }))
+    .sort((a, b) => b.totalBaki - a.totalBaki);
+
+  return {
+    periode: activePeriode,
+    generatedAt: new Date().toISOString(),
+    institution: {
+      name: settingsMap['pt_name'] || 'PT BPRS Mitra Harmoni Yogyakarta',
+      address: settingsMap['pt_address'] || 'Yogyakarta, Indonesia',
+      phone: settingsMap['pt_phone'] || '(0274) 123456',
+      logoUrl: settingsMap['logo_url'] || ''
+    },
+    kpi: dashboardData,
+    migrationSummary: migrationData.summary,
+    topNpfDebitur,
+    aoPerformance
+  };
+}
+

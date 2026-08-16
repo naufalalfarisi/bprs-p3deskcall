@@ -2,11 +2,19 @@ import { Hono } from 'hono';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
 import { logAudit } from '../utils/audit.js';
 import {
+  SaveRbbTargetSchema,
+  StressTestSchema,
+  MigrationMatrixQuerySchema
+} from '../schemas/kpi.schema.js';
+import {
   getKpiTargets,
   saveKpiTargets,
   getKpiDashboard,
   getKpiOfficers,
-  getKpiRollrate
+  getKpiRollrate,
+  getKpiMigrationMatrix,
+  runNpfStressTest,
+  getExecutiveReportData
 } from '../services/kpiService.js';
 
 export const kpiRouter = new Hono();
@@ -28,17 +36,17 @@ kpiRouter.get('/targets', async (c) => {
 // POST /targets - Save/Update target RBB (admin & kabid_p3 only)
 kpiRouter.post('/targets', roleMiddleware(['admin', 'kabid_p3']), async (c) => {
   try {
-    const body = await c.req.json();
-    const { periode } = body;
+    const rawBody = await c.req.json();
+    const parsed = SaveRbbTargetSchema.safeParse(rawBody);
 
-    if (!periode) {
-      return c.json({ error: 'Periode wajib diisi' }, 400);
+    if (!parsed.success) {
+      return c.json({ error: 'Validasi gagal', details: parsed.error.issues }, 400);
     }
 
     const user = (c as any).get('user');
 
     const target = await saveKpiTargets({
-      ...body,
+      ...parsed.data,
       updatedBy: user.nama
     });
 
@@ -82,3 +90,48 @@ kpiRouter.get('/rollrate', async (c) => {
     return c.json({ error: err.message }, 500);
   }
 });
+
+// GET /migration-matrix - 5x6 NPF Migration / Transition Matrix
+kpiRouter.get('/migration-matrix', async (c) => {
+  try {
+    const query = {
+      fromPeriode: c.req.query('fromPeriode') || undefined,
+      toPeriode: c.req.query('toPeriode') || undefined
+    };
+    const parsed = MigrationMatrixQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      return c.json({ error: 'Format periode tidak valid (gunakan YYYY-MM)', details: parsed.error.issues }, 400);
+    }
+    const data = await getKpiMigrationMatrix(parsed.data.fromPeriode, parsed.data.toPeriode);
+    return c.json(data);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// POST /stress-test - Interactive What-If Stress Testing & Simulation
+kpiRouter.post('/stress-test', async (c) => {
+  try {
+    const rawBody = await c.req.json();
+    const parsed = StressTestSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return c.json({ error: 'Parameter simulasi tidak valid', details: parsed.error.issues }, 400);
+    }
+    const result = await runNpfStressTest(parsed.data);
+    return c.json(result);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// GET /executive-report - Comprehensive executive reporting dataset
+kpiRouter.get('/executive-report', async (c) => {
+  try {
+    const periode = c.req.query('periode') || new Date().toISOString().substring(0, 7);
+    const data = await getExecutiveReportData(periode);
+    return c.json(data);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+

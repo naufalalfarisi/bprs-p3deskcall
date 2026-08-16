@@ -45,13 +45,19 @@ ewsRouter.get('/watchlist', async (c) => {
   }
 });
 
+import { createAoLogSchema } from '../schemas/ews.schema.js';
+
 // POST /collection-log - Add AO Collection Log Entry
 ewsRouter.post('/collection-log', async (c) => {
   try {
     const user = (c as any).get('user');
     const body = await c.req.json();
+    const parsed = createAoLogSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: parsed.error.issues[0].message, details: parsed.error.issues }, 400);
+    }
 
-    const { log, debitur } = await createAoCollectionLog(user, body);
+    const { log, debitur } = await createAoCollectionLog(user, parsed.data as any);
 
     await logAudit(
       c,

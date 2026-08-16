@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
+import { importRateLimiter } from '../middleware/rateLimiter.js';
 import {
   processCbsUpload,
   commitCbsBatch,
@@ -11,8 +12,8 @@ import {
 
 export const importRouter = new Hono();
 
-// Enforce admin-only
-importRouter.use('*', authMiddleware, roleMiddleware(['admin']));
+// Enforce admin-only and rate limiter
+importRouter.use('*', authMiddleware, roleMiddleware(['admin']), importRateLimiter);
 
 // POST /cbs - Upload and process staging
 importRouter.post('/cbs', async (c) => {

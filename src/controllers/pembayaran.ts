@@ -71,15 +71,20 @@ pembayaranRouter.get('/', async (c) => {
   }
 });
 
+import { createPembayaranSchema } from '../schemas/pembayaran.schema.js';
+
 // POST / - Catat Pembayaran Manual
 pembayaranRouter.post('/', async (c) => {
   try {
     const body = await c.req.json();
-    const { debiturId, tanggal, nominal, kol, metode, keterangan } = body;
-
-    if (!debiturId || !tanggal || !nominal || !metode) {
-      return c.json({ error: 'Field wajib tidak boleh kosong' }, 400);
+    const parsed = createPembayaranSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: parsed.error.issues[0].message, details: parsed.error.issues }, 400);
     }
+
+    const { debiturId, tanggal, nominal, metode, catatan } = parsed.data;
+    const kol = (body as any).kol;
+    const keterangan = catatan || (body as any).keterangan;
 
     const debitur = await prisma.debitur.findUnique({ where: { id: debiturId } });
     if (!debitur) {
@@ -93,7 +98,7 @@ pembayaranRouter.post('/', async (c) => {
         debiturId,
         nama: debitur.nama,
         tanggal: new Date(tanggal),
-        nominal: parseFloat(nominal),
+        nominal: parseFloat(String(nominal)),
         kol: kol || debitur.kol,
         metode,
         petugas: user.nama,
@@ -293,11 +298,15 @@ pembayaranRouter.post('/import', async (c) => {
       }
     }
 
-    // Save valid records in transaction
+    // Save valid records using chunked createMany for speed and safety
     if (resultRows.length > 0) {
-      await prisma.$transaction(
-        resultRows.map((r) => prisma.pembayaran.create({ data: r }))
-      );
+      const CHUNK_SIZE = 100;
+      for (let i = 0; i < resultRows.length; i += CHUNK_SIZE) {
+        const chunk = resultRows.slice(i, i + CHUNK_SIZE);
+        await prisma.pembayaran.createMany({
+          data: chunk
+        });
+      }
     }
 
     // Update batch stats

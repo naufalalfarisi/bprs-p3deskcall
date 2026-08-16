@@ -132,12 +132,13 @@
         radial-gradient(at 0% 0%, rgba(15, 118, 110, 0.05) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(15, 118, 110, 0.05) 0px, transparent 50%);
     }
+
   </style>
   <script>(function () { document.documentElement.setAttribute('data-theme', localStorage.getItem('bprs_theme') || 'light'); })();</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link id="app-favicon" rel="icon" href="/favicon.ico" />
-  <link rel="stylesheet" href="/public/css/style.css?v=3.0">
+  <link rel="stylesheet" href="/public/css/style.css?v=3.2.4">
   <style>
     /* UNIFIED MODERN ROUNDED SEARCHBOX THEME */
     .form-input,
@@ -293,67 +294,67 @@
     <div class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-emerald-200/30 blur-3xl pointer-events-none"></div>
 
     <!-- Institutional Top Header -->
-    <header class="w-full border-b border-slate-200/80 bg-white/85 backdrop-blur-xl px-6 py-2 flex justify-between items-center max-w-[1440px] mx-auto flex-shrink-0 relative z-20 shadow-sm">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0f766e] to-[#0d9488] text-white flex items-center justify-center font-black text-xs shadow-md shadow-teal-700/20 border border-teal-300/40 tracking-wider auth-logo">
-          BM
+    <header class="w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-xl px-6 py-2.5 flex justify-between items-center max-w-[1440px] mx-auto flex-shrink-0 relative z-20 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0f766e] to-[#042f2e] text-white flex items-center justify-center font-black text-xs shadow-md shadow-teal-800/20 border border-teal-400/30 tracking-wider auth-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         </div>
         <div>
           <div class="font-black text-xs md:text-sm text-slate-900 tracking-tight leading-none" id="auth-header-pt-name">PT BPRS MITRA HARMONI YOGYAKARTA</div>
-          <div class="text-[9.5px] font-bold text-[#0f766e] tracking-wider uppercase mt-0.5 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <div class="text-[10px] font-bold text-[#0f766e] tracking-wider uppercase mt-0.5 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Sistem Informasi Penagihan Terpadu (AO, P3, Desk Call, &amp; Legal)
           </div>
         </div>
       </div>
       <div class="hidden md:flex items-center gap-4 text-xs font-semibold text-slate-700">
-        <div class="flex items-center gap-1.5 text-teal-900 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/80 shadow-sm">
-          <span class="material-symbols-outlined text-sm text-[#0f766e]">verified_user</span>
-          <span class="text-[10px] font-extrabold tracking-wide">Portal Bank Terenkripsi 256-Bit SSL</span>
+        <div class="flex items-center gap-2 text-teal-900 bg-teal-50/90 px-3.5 py-1.5 rounded-full border border-teal-200/90 shadow-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span class="text-[10.5px] font-extrabold tracking-wide text-[#0f766e]">Portal Bank Terenkripsi 256-Bit SSL</span>
         </div>
       </div>
     </header>
 
     <!-- Main Auth Canvas (Proportional Enterprise Banking Card) -->
-    <main class="flex-1 flex items-center justify-center p-3 md:p-4 my-auto overflow-hidden relative z-10">
-      <div class="w-full max-w-[840px] bg-white rounded-[22px] shadow-[0_18px_50px_-15px_rgba(15,118,110,0.16),0_4px_14px_rgba(0,0,0,0.03)] border border-slate-200/80 overflow-hidden flex flex-col md:flex-row my-auto">
+    <main class="flex-1 flex items-center justify-center p-3 md:p-5 my-auto overflow-hidden relative z-10">
+      <div class="w-full max-w-[880px] bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(15,118,110,0.18),0_4px_20px_rgba(0,0,0,0.04)] border border-slate-200/90 overflow-hidden flex flex-col md:flex-row my-auto transition-all">
 
         <!-- LEFT HERO BRAND PANEL -->
-        <div class="md:w-5/12 bg-gradient-to-br from-[#0d9488] via-[#0f766e] to-[#115e59] p-6 md:p-7 text-white flex flex-col justify-between relative overflow-hidden">
+        <div class="md:w-5/12 bg-gradient-to-br from-[#0f766e] via-[#0d9488] to-[#042f2e] p-6 md:p-8 text-white flex flex-col justify-between relative overflow-hidden">
           <!-- Background Pattern Overlay -->
           <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:18px_18px] pointer-events-none"></div>
 
           <!-- Top Hero Content -->
           <div class="relative z-10">
-            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-[10px] font-bold mb-3.5 text-white shadow-sm">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping"></span>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-[10.5px] font-bold mb-4 text-white shadow-sm">
+              <span class="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
               <span>Enterprise Banking Portal v3.2</span>
             </div>
 
-            <h2 class="text-xl font-black tracking-tight leading-tight mb-2 text-white">
+            <h2 class="text-xl md:text-2xl font-black tracking-tight leading-tight mb-2.5 text-white">
               Sistem Informasi Penagihan Terpadu
             </h2>
-            <p class="text-[11.5px] text-teal-50/95 leading-relaxed font-medium mb-4">
+            <p class="text-[12px] text-teal-50/95 leading-relaxed font-medium mb-5">
               Platform penagihan lapangan (AO &amp; P3), monitoring Desk Call, serta pengelolaan legal <span id="auth-pt-name" class="font-bold text-white underline decoration-emerald-300 decoration-2 underline-offset-2">PT BPRS Mitra Harmoni Yogyakarta</span>.
             </p>
 
             <!-- Key Highlights Cards -->
-            <div class="space-y-2 pt-0.5">
-              <div class="flex items-center gap-2.5 text-[11.5px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20">
-                <div class="w-6.5 h-6.5 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
-                  <span class="material-symbols-outlined text-sm">shield_lock</span>
+            <div class="space-y-2.5 pt-1">
+              <div class="flex items-center gap-3 text-[12px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20 shadow-sm">
+                <div class="w-7 h-7 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 </div>
                 <span class="font-bold">Otentikasi Berlapis &amp; PDP</span>
               </div>
-              <div class="flex items-center gap-2.5 text-[11.5px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20">
-                <div class="w-6.5 h-6.5 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
-                  <span class="material-symbols-outlined text-sm">analytics</span>
+              <div class="flex items-center gap-3 text-[12px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20 shadow-sm">
+                <div class="w-7 h-7 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 </div>
                 <span class="font-bold">Monitoring KPI &amp; Roll Rate NPF</span>
               </div>
-              <div class="flex items-center gap-2.5 text-[11.5px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20">
-                <div class="w-6.5 h-6.5 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
-                  <span class="material-symbols-outlined text-sm">assignment_turned_in</span>
+              <div class="flex items-center gap-3 text-[12px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20 shadow-sm">
+                <div class="w-7 h-7 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 </div>
                 <span class="font-bold">Bukti Kunjungan &amp; Audit Trail</span>
               </div>
@@ -361,37 +362,37 @@
           </div>
 
           <!-- Bottom Security Badges -->
-          <div class="relative z-10 pt-3 mt-4 border-t border-white/20 flex items-center justify-between text-[10px] text-teal-50 font-semibold">
-            <div class="flex items-center gap-1">
-              <span class="material-symbols-outlined text-xs text-emerald-200">gpp_good</span>
+          <div class="relative z-10 pt-4 mt-5 border-t border-white/20 flex items-center justify-between text-[10.5px] text-teal-50 font-semibold">
+            <div class="flex items-center gap-1.5">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               <span>Regulasi OJK &amp; DSN-MUI</span>
             </div>
-            <div class="flex items-center gap-1">
-              <span class="material-symbols-outlined text-xs text-emerald-200">lock</span>
+            <div class="flex items-center gap-1.5">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               <span>Enkripsi SSL 256-Bit</span>
             </div>
           </div>
         </div>
 
         <!-- RIGHT FORM PANEL -->
-        <div class="md:w-7/12 p-6 md:p-7 flex flex-col justify-between bg-white overflow-hidden">
+        <div class="md:w-7/12 p-6 md:p-8 flex flex-col justify-between bg-white overflow-hidden">
           <div>
             <!-- Header -->
-            <div class="mb-3.5">
-              <div class="inline-block text-[9.5px] font-extrabold text-[#0F766E] uppercase tracking-wider bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/60 mb-1">Portal Otentikasi Resmi</div>
-              <h3 class="text-xl font-black text-slate-900 tracking-tight leading-snug">Selamat Datang Kembali</h3>
-              <p class="text-xs text-slate-500 font-medium">Silakan masuk menggunakan username, email, atau NIP resmi Anda.</p>
+            <div class="mb-4">
+              <div class="inline-block text-[10px] font-extrabold text-[#0F766E] uppercase tracking-wider bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/70 mb-1.5" id="auth-form-badge">Portal Otentikasi Resmi</div>
+              <h3 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-snug" id="auth-form-title">Selamat Datang Kembali</h3>
+              <p class="text-xs text-slate-500 font-medium mt-0.5" id="auth-form-subtitle">Silakan masuk menggunakan kredensial akun perbankan Anda.</p>
             </div>
 
-            <!-- Auth Tab Switcher -->
-            <div class="flex p-1 bg-slate-100 rounded-xl mb-3.5 border border-slate-200/90 shadow-inner">
+            <!-- Auth Tab Switcher (Segmented Pill Style) -->
+            <div class="flex p-1 bg-slate-100 rounded-xl mb-4 border border-slate-200/90 shadow-inner">
               <button id="tab-btn-login"
-                class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all shadow-md bg-white text-[#0F766E] border border-slate-200/50 cursor-pointer"
+                class="flex-1 py-1.5 text-xs font-black rounded-lg transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer"
                 onclick="switchAuthTab('login')">
                 Masuk Akun
               </button>
               <button id="tab-btn-register"
-                class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900 cursor-pointer"
+                class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-500 hover:text-slate-900 border border-transparent cursor-pointer"
                 onclick="switchAuthTab('register')">
                 Daftar Akun Baru
               </button>
@@ -399,19 +400,19 @@
 
             <!-- LOGIN FORM -->
             <div id="page-login">
-              <form class="space-y-3" id="loginForm" onsubmit="event.preventDefault();handleLogin();">
+              <form class="space-y-3.5" id="loginForm" onsubmit="event.preventDefault();handleLogin();">
                 <!-- Username -->
                 <div>
                   <label class="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-1"
                     for="l-user">Username / NIP</label>
                   <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <span class="material-symbols-outlined text-base text-slate-400">person</span>
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </div>
                     <input
-                      class="w-full pl-9 pr-3 py-2 bg-slate-50/70 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-2 focus:ring-[#0F766E]/12 transition-all font-semibold"
+                      class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/70 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-2 focus:ring-[#0F766E]/15 transition-all font-semibold"
                       id="l-user" name="username" placeholder="Masukkan Username / NIP" required="" type="text"
-                      autocomplete="username" style="height:40px !important;" />
+                      autocomplete="username" style="height:42px !important;" />
                   </div>
                 </div>
 
@@ -424,14 +425,14 @@
                       onclick="event.preventDefault();openModal('modal-forgot-pw')">Lupa Kata Sandi?</a>
                   </div>
                   <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <span class="material-symbols-outlined text-base text-slate-400">lock</span>
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </div>
                     <input
-                      class="w-full pl-9 pr-10 py-2 bg-slate-50/70 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-2 focus:ring-[#0F766E]/12 transition-all font-semibold"
-                      id="l-pass" name="password" placeholder="••••••••" required="" type="password" style="height:40px !important;" />
+                      class="w-full pl-10 pr-10 py-2.5 bg-slate-50/70 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-2 focus:ring-[#0F766E]/15 transition-all font-semibold"
+                      id="l-pass" name="password" placeholder="••••••••" required="" type="password" style="height:42px !important;" />
                     <button
-                      class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                      class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                       onclick="togglePw('l-pass')" type="button">
                       <span class="material-symbols-outlined text-base" id="l-pass-icon">visibility</span>
                     </button>
@@ -442,7 +443,7 @@
                 <div class="flex items-center justify-between pt-0.5">
                   <label class="flex items-center gap-2 text-xs text-slate-600 font-semibold cursor-pointer select-none">
                     <input
-                      class="w-3.5 h-3.5 rounded border-slate-300 text-[#0F766E] focus:ring-[#0F766E] accent-[#0F766E] cursor-pointer"
+                      class="w-4 h-4 rounded border-slate-300 text-[#0F766E] focus:ring-[#0F766E] accent-[#0F766E] cursor-pointer"
                       id="remember" type="checkbox" />
                     <span>Tetap masuk di perangkat ini</span>
                   </label>
@@ -456,38 +457,38 @@
                 <!-- Submit Button -->
                 <button
                   class="w-full bg-gradient-to-r from-[#0F766E] to-[#0D9488] hover:from-[#0D9488] hover:to-[#115E59] text-white font-extrabold text-xs py-2.5 rounded-xl shadow-md shadow-[#0F766E]/20 hover:shadow-lg hover:shadow-[#0F766E]/30 active:scale-[0.99] transition-all flex justify-center items-center gap-2 group cursor-pointer mt-1"
-                  type="submit">
+                  type="submit" style="height:42px !important;">
                   <span>Masuk ke Sistem</span>
-                  <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="group-hover:translate-x-1 transition-transform"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </button>
               </form>
             </div>
 
             <!-- REGISTER FORM (Side-by-Side 2-Column Grid) -->
             <div id="page-register" style="display:none;">
-              <form class="space-y-2" onsubmit="event.preventDefault();handleRegister();">
-                <div class="grid grid-cols-2 gap-2">
+              <form class="space-y-2.5" onsubmit="event.preventDefault();handleRegister();">
+                <div class="grid grid-cols-2 gap-2.5">
                   <div>
                     <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-nama">Nama Lengkap</label>
-                    <input id="r-nama" class="form-input" type="text" placeholder="Sesuai KTP / SK" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
+                    <input id="r-nama" class="form-input" type="text" placeholder="Sesuai KTP / SK" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
                   </div>
                   <div>
                     <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-user">Username / NIP</label>
-                    <input id="r-user" class="form-input" type="text" placeholder="Username / NIP" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
+                    <input id="r-user" class="form-input" type="text" placeholder="Username / NIP" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
                   </div>
 
                   <div>
                     <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-email">Email Official</label>
-                    <input id="r-email" class="form-input" type="email" placeholder="email@bprs.co.id" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
+                    <input id="r-email" class="form-input" type="email" placeholder="email@bprs.co.id" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
                   </div>
                   <div>
                     <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-ttl">Tanggal Lahir</label>
-                    <input id="r-ttl" class="form-input" type="date" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
+                    <input id="r-ttl" class="form-input" type="date" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
                   </div>
 
                   <div class="col-span-2">
                     <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-posisi">Jabatan / Peran Pengguna</label>
-                    <select id="r-posisi" class="form-select w-full" onchange="toggleRegisterAoGroup(this.value)" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;">
+                    <select id="r-posisi" class="form-select w-full" onchange="toggleRegisterAoGroup(this.value)" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;">
                       <option value="">— Pilih Jabatan / Peran —</option>
                       <option value="ao">Account Officer (AO)</option>
                       <option value="kabid_ao">Kepala Bidang AO (Kabid AO)</option>
@@ -499,18 +500,18 @@
                   </div>
                   <div id="r-ao-group" class="col-span-2 hidden" style="margin-top:2px;">
                     <label class="form-label text-[10.5px]" for="r-ao-name" style="color:var(--brand);font-weight:700;">Pilih Anda AO Yang Mana? (Sesuai CBS) <span style="color:#EF4444;">*</span></label>
-                    <select id="r-ao-name" class="form-select w-full" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;">
+                    <select id="r-ao-name" class="form-select w-full" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;">
                       <option value="">— Memuat daftar nama AO dari CBS... —</option>
                     </select>
                   </div>
                   <div>
                     <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-pass">Kata Sandi</label>
-                    <input id="r-pass" class="form-input" type="password" placeholder="Min 8 karakter" oninput="evalStrength(this.value)" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
+                    <input id="r-pass" class="form-input" type="password" placeholder="Min 8 karakter" oninput="evalStrength(this.value)" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
                   </div>
 
                   <div>
                     <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-conf">Konfirmasi Sandi</label>
-                    <input id="r-conf" class="form-input" type="password" placeholder="Ulangi Kata Sandi" style="height:35px !important; padding:5px 11px !important; font-size:12.5px !important;" />
+                    <input id="r-conf" class="form-input" type="password" placeholder="Ulangi Kata Sandi" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
                   </div>
                 </div>
 
@@ -528,41 +529,41 @@
 
                 <button
                   class="w-full bg-gradient-to-r from-[#0F766E] to-[#0D9488] hover:from-[#0D9488] hover:to-[#115E59] text-white font-extrabold text-xs py-2.5 rounded-xl shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer mt-1"
-                  type="submit">
+                  type="submit" style="height:40px !important;">
                   <span>Kirim Permohonan Akun Baru</span>
-                  <span class="material-symbols-outlined text-sm">send</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
               </form>
             </div>
           </div>
 
           <!-- Professional Demo Account Bar -->
-          <div class="mt-3 pt-2.5 border-t border-slate-200/80" id="auth-demo-bar">
-            <p class="text-[10.5px] font-extrabold text-slate-700 mb-1 flex items-center gap-1">
-              <span class="material-symbols-outlined text-xs text-[#0F766E]">badge</span>
+          <div class="mt-3.5 pt-3 border-t border-slate-200/80" id="auth-demo-bar">
+            <p class="text-[10.5px] font-extrabold text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
               <span>Akses Cepat Akun Demo:</span>
             </p>
-            <div class="flex flex-wrap gap-1">
+            <div class="flex flex-wrap gap-1.5">
               <button type="button"
-                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
+                class="px-2.5 py-1 bg-slate-50 hover:bg-[#0F766E] hover:text-white rounded-lg text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/90 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('admin')">Administrator</button>
               <button type="button"
-                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
+                class="px-2.5 py-1 bg-slate-50 hover:bg-[#0F766E] hover:text-white rounded-lg text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/90 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('ao')">Account Officer</button>
               <button type="button"
-                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
+                class="px-2.5 py-1 bg-slate-50 hover:bg-[#0F766E] hover:text-white rounded-lg text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/90 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('kabid_ao')">Kabid AO</button>
               <button type="button"
-                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
+                class="px-2.5 py-1 bg-slate-50 hover:bg-[#0F766E] hover:text-white rounded-lg text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/90 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('kabid_p3')">Kabid P3</button>
               <button type="button"
-                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
+                class="px-2.5 py-1 bg-slate-50 hover:bg-[#0F766E] hover:text-white rounded-lg text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/90 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('staff_p3')">Staff P3</button>
               <button type="button"
-                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
+                class="px-2.5 py-1 bg-slate-50 hover:bg-[#0F766E] hover:text-white rounded-lg text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/90 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('desk_call')">Desk Call</button>
               <button type="button"
-                class="px-2 py-0.5 bg-slate-100 hover:bg-[#0F766E] hover:text-white rounded-md text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/80 cursor-pointer shadow-sm active:scale-95"
+                class="px-2.5 py-1 bg-slate-50 hover:bg-[#0F766E] hover:text-white rounded-lg text-[10.5px] font-bold text-slate-700 transition-all border border-slate-200/90 cursor-pointer shadow-sm active:scale-95"
                 onclick="demoLogin('legal')">Staff Legal</button>
             </div>
           </div>
@@ -574,7 +575,7 @@
 
     <!-- Clean Enterprise Footer -->
     <footer
-      class="w-full py-2 px-6 max-w-[1440px] mx-auto border-t border-slate-200/80 bg-white/85 backdrop-blur-xl flex flex-col md:flex-row justify-between items-center gap-1 flex-shrink-0 text-slate-600 relative z-20 shadow-sm">
+      class="w-full py-2.5 px-6 max-w-[1440px] mx-auto border-t border-slate-200/80 bg-white/90 backdrop-blur-xl flex flex-col md:flex-row justify-between items-center gap-1.5 flex-shrink-0 text-slate-600 relative z-20 shadow-sm">
       <div class="text-[11px] font-semibold text-slate-700" id="footer-copy">
         © 2026 PT BPRS Mitra Harmoni Yogyakarta. Hak Cipta Dilindungi.
       </div>
@@ -1909,22 +1910,66 @@
           </div>
 
           <div class="tab-pane" id="pane-p3">
+            <!-- P3 OFFLINE SYNC STATUS BANNER -->
+            <div id="p3-offline-sync-banner" style="display:none;margin-bottom:14px;padding:12px 18px;border-radius:14px;background:#FEF3C7;border:1.5px solid #FCD34D;color:#92400E;display:none;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span class="pulse-indicator pulse-yellow" style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block;"></span>
+                <span style="font-size:12.5px;font-weight:700;" id="p3-offline-banner-text">Mode Offline: Ada draft kunjungan tersimpan lokal.</span>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-sm" onclick="triggerP3OfflineSync()" style="background:#B45309;color:#ffffff;border:none;font-weight:700;padding:4px 12px;">Sinkronkan Sekarang</button>
+              </div>
+            </div>
+
             <div class="page-hd">
               <div class="page-hd-row">
                 <div>
-                  <div class="page-title">Penagihan Lapangan (P3)</div>
-                  <div class="page-sub">Pengelolaan jadwal kunjungan tim lapangan, target penagihan, dan dokumentasi
-                    foto bukti kunjungan.</div>
-                </div><button class="btn btn-primary btn-sm" onclick="openP3Form()"
-                  style="display:inline-flex;align-items:center;gap:6px;"><svg width="15" height="15"
-                    viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg><span>Buat Jadwal P3 Baru</span></button>
+                  <div class="page-title">Penagihan Lapangan (P3) &amp; Offline PWA</div>
+                  <div class="page-sub">Pengelolaan jadwal kunjungan tim lapangan, rute pintar harian, tanda tangan digital, dan pencatatan offline.</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <button class="btn btn-primary btn-sm" onclick="openP3Form()"
+                    style="display:inline-flex;align-items:center;gap:6px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span>Buat Jadwal P3 Baru</span>
+                  </button>
+                </div>
               </div>
             </div>
-            <div id="p3-content"></div>
+
+            <!-- P3 SUBTABS NAVIGATION -->
+            <div class="p3-subtabs" style="display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+              <button class="p3-subtab active" id="subtab-p3-list" onclick="switchP3Subtab('list')"
+                style="padding:10px 18px; font-size:14px; font-weight:700; border:none; background:transparent; border-bottom:3px solid var(--brand); color:var(--brand); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Daftar Jadwal &amp; Kunjungan
+              </button>
+              <button class="p3-subtab" id="subtab-p3-map" onclick="switchP3Subtab('map')"
+                style="padding:10px 18px; font-size:14px; font-weight:600; border:none; background:transparent; border-bottom:3px solid transparent; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+                  <line x1="8" y1="2" x2="8" y2="18"/>
+                  <line x1="16" y1="6" x2="16" y2="22"/>
+                </svg>
+                Peta &amp; Rute Pintar Harian (Smart Route)
+              </button>
+            </div>
+
+            <!-- SUBPANES -->
+            <div id="p3-subpane-list" class="p3-subpane" style="display:block;">
+              <div id="p3-content"></div>
+            </div>
+            <div id="p3-subpane-map" class="p3-subpane" style="display:none;">
+              <div id="p3-map-content"></div>
+            </div>
           </div>
 
           <div class="tab-pane" id="pane-legal">
@@ -1969,13 +2014,57 @@
             <div class="page-hd">
               <div class="page-hd-row">
                 <div>
-                  <div class="page-title">Target &amp; KPI Rencana Bisnis Bank (RBB)</div>
-                  <div class="page-sub">Evaluasi rasio NPF, target pemulihan tunggakan, dan pemantauan kinerja indikator
-                    utama.</div>
+                  <div class="page-title">Analitik Eksekutif &amp; KPI Rencana Bisnis Bank (RBB)</div>
+                  <div class="page-sub">Evaluasi rasio NPF, matriks migrasi debitur, simulasi stress testing, dan laporan eksekutif manajemen.</div>
                 </div>
               </div>
             </div>
-            <div id="kpi-content"></div>
+
+            <!-- KPI SUBTAB NAVIGATION -->
+            <div class="kpi-subtabs" style="display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+              <button class="kpi-subtab active" id="subtab-kpi-scorecard" onclick="switchKpiSubtab('scorecard')"
+                style="padding:10px 18px; font-size:14px; font-weight:700; border:none; background:transparent; border-bottom:3px solid var(--brand); color:var(--brand); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                Scorecard &amp; RBB
+              </button>
+              <button class="kpi-subtab" id="subtab-kpi-migration" onclick="switchKpiSubtab('migration')"
+                style="padding:10px 18px; font-size:14px; font-weight:600; border:none; background:transparent; border-bottom:3px solid transparent; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
+                </svg>
+                Matriks Migrasi NPF
+              </button>
+              <button class="kpi-subtab" id="subtab-kpi-stresstest" onclick="switchKpiSubtab('stresstest')"
+                style="padding:10px 18px; font-size:14px; font-weight:600; border:none; background:transparent; border-bottom:3px solid transparent; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                Simulasi &amp; Stress Test
+              </button>
+              <button class="kpi-subtab" id="subtab-kpi-report" onclick="switchKpiSubtab('report')"
+                style="padding:10px 18px; font-size:14px; font-weight:600; border:none; background:transparent; border-bottom:3px solid transparent; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                Laporan Eksekutif (PDF)
+              </button>
+            </div>
+
+            <!-- SUBPANES -->
+            <div id="kpi-subpane-scorecard" class="kpi-subpane" style="display:block;">
+              <div id="kpi-content"></div>
+            </div>
+            <div id="kpi-subpane-migration" class="kpi-subpane" style="display:none;">
+              <div id="kpi-migration-content"></div>
+            </div>
+            <div id="kpi-subpane-stresstest" class="kpi-subpane" style="display:none;">
+              <div id="kpi-stresstest-content"></div>
+            </div>
+            <div id="kpi-subpane-report" class="kpi-subpane" style="display:none;">
+              <div id="kpi-report-content"></div>
+            </div>
           </div>
 
           <div class="tab-pane" id="pane-historis">
@@ -2049,6 +2138,14 @@
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
                 Import Data CBS
+              </button>
+              <button class="setting-subtab" id="subtab-audit" onclick="switchSettingsSubtab('audit')"
+                style="padding:10px 18px; font-size:14px; font-weight:600; border:none; background:transparent; border-bottom:3px solid transparent; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <path d="M9 12l2 2 4-4"/>
+                </svg>
+                Audit Trail &amp; Log
               </button>
               <button class="setting-subtab" id="subtab-about" onclick="switchSettingsSubtab('about')"
                 style="padding:10px 18px; font-size:14px; font-weight:600; border:none; background:transparent; border-bottom:3px solid transparent; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s;">
@@ -2255,6 +2352,9 @@
             <div id="settings-subpane-importcbs" class="settings-subpane" style="display:none;">
               <div id="importcbs-content"></div>
             </div>
+            <div id="settings-subpane-audit" class="settings-subpane" style="display:none;">
+              <div id="audit-content"></div>
+            </div>
             <div id="settings-subpane-about" class="settings-subpane" style="display:none;">
               <div id="about-content"></div>
             </div>
@@ -2279,9 +2379,10 @@
         </footer>
       </div>
     </div>
+
   </div>
 
-  <script src="/public/js/app.js?v=1784734000"></script>
+  <script src="/public/js/app.js?v=1784736000"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -2401,6 +2502,88 @@
     </div>
   </div>
 
+  <!-- AUDIT DIFF DETAIL MODAL (VISUAL BEFORE VS AFTER) -->
+  <div class="modal-overlay" id="modal-audit-diff">
+    <div class="modal-box" style="max-width:840px;width:95%;">
+      <div class="modal-hdr" style="background:var(--bg-card);border-bottom:1px solid var(--border);padding:16px 20px;">
+        <div>
+          <div class="modal-title" id="auditdiff-title" style="font-size:16px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+            Riwayat Perubahan Data (Audit Diff)
+          </div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:3px;" id="auditdiff-sub">Komparasi Nilai Sebelumnya (Before) vs Nilai Baru (After)</div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-audit-diff')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="auditdiff-body" style="padding:20px;max-height:75vh;overflow-y:auto;">
+        <p style="text-align:center;color:var(--text-2);">Memuat perbandingan perubahan...</p>
+      </div>
+      <div class="modal-footer" style="background:var(--bg);border-top:1px solid var(--border);padding:12px 20px;display:flex;justify-content:flex-end;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('modal-audit-diff')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIGITAL SIGNATURE MODAL (CANVAS TOUCHSCREEN) -->
+  <div class="modal-overlay" id="modal-signature-p3">
+    <div class="modal-box" style="max-width:540px;width:95%;">
+      <div class="modal-hdr" style="background:var(--bg-card);border-bottom:1px solid var(--border);padding:16px 20px;">
+        <div>
+          <div class="modal-title" style="font-size:16px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2">
+              <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+              <path d="M2 2l7.586 7.586"/>
+              <circle cx="11" cy="11" r="2"/>
+            </svg>
+            Tanda Tangan Digital Berita Acara
+          </div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:3px;" id="signature-modal-sub">Bubuhkan tanda tangan debitur langsung pada layar</div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-signature-p3')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <div style="margin-bottom:14px;">
+          <label class="form-label" style="font-size:12px;font-weight:700;color:var(--text);">Nama Penandatangan</label>
+          <input type="text" id="signature-signer-name" class="form-input" placeholder="Nama debitur / pihak yang menandatangani" style="height:38px;font-size:13px;font-weight:600;"/>
+        </div>
+
+        <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <label class="form-label" style="font-size:12px;font-weight:700;color:var(--text);margin:0;">Area Tanda Tangan (Touchscreen / Mouse)</label>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="clearSignatureCanvas()" style="font-size:11.5px;padding:3px 8px;color:var(--danger);font-weight:700;">
+            Hapus / Bersihkan
+          </button>
+        </div>
+
+        <div style="border:2px dashed var(--border);border-radius:14px;background:#ffffff;overflow:hidden;position:relative;touch-action:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.03);">
+          <canvas id="signature-canvas" width="480" height="220" style="display:block;width:100%;height:220px;cursor:crosshair;"></canvas>
+          <div id="signature-placeholder-hint" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;color:#94a3b8;font-size:13px;font-weight:600;">
+            Tanda tangan di sini
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:8px;text-align:center;">
+          Tanda tangan digital ini sah dan mengikat secara internal sebagai bukti Berita Acara Kunjungan / Janji Bayar (PTP).
+        </div>
+      </div>
+      <div class="modal-footer" style="background:var(--bg);border-top:1px solid var(--border);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('modal-signature-p3')">Batal</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="saveSignatureAndApply()" style="font-weight:700;padding:6px 18px;">
+          Gunakan Tanda Tangan Ini
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script type="module" src="/public/js/modules/offlineDb.js"></script>
+  <script src="/public/js/app.js?v=3.2.5"></script>
 </body>
 
 </html>

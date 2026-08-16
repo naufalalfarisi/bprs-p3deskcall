@@ -26,9 +26,12 @@ async function apiCall(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${state.accessToken}`;
   }
 
+  let reqBody = options.body;
   // Remove Content-Type if uploading FormData
   if (options.body instanceof FormData) {
     delete headers['Content-Type'];
+  } else if (reqBody && typeof reqBody === 'object' && !(reqBody instanceof Blob)) {
+    reqBody = JSON.stringify(reqBody);
   }
 
   let url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
@@ -42,7 +45,7 @@ async function apiCall(endpoint, options = {}) {
   }
 
   try {
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetch(url, { ...options, headers, body: reqBody });
 
     if (res.status === 401 && !endpoint.includes('/auth/login')) {
       doLogout(false);
@@ -548,6 +551,10 @@ function switchAuthTab(tab) {
   const pageReg = document.getElementById('page-register');
   const btnLogin = document.getElementById('tab-btn-login');
   const btnReg = document.getElementById('tab-btn-register');
+  const authBadge = document.getElementById('auth-form-badge');
+  const authTitle = document.getElementById('auth-form-title');
+  const authSub = document.getElementById('auth-form-subtitle');
+  const demoBar = document.getElementById('auth-demo-bar');
   const lErr = document.getElementById('l-err');
   const rErr = document.getElementById('r-err');
   const rOk = document.getElementById('r-ok');
@@ -559,22 +566,30 @@ function switchAuthTab(tab) {
   if (tab === 'register') {
     if (pageLogin) pageLogin.style.display = 'none';
     if (pageReg) pageReg.style.display = 'block';
+    if (authBadge) authBadge.innerText = 'Pendaftaran Petugas Baru';
+    if (authTitle) authTitle.innerText = 'Registrasi Akun Petugas';
+    if (authSub) authSub.innerText = 'Lengkapi identitas resmi & penugasan untuk pengajuan akses.';
+    if (demoBar) demoBar.style.display = 'none';
 
     if (btnReg) {
-      btnReg.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all shadow-sm bg-white text-primary';
+      btnReg.className = 'flex-1 py-1.5 text-xs font-black rounded-lg transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer';
     }
     if (btnLogin) {
-      btnLogin.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900';
+      btnLogin.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-500 hover:text-slate-900 border border-transparent cursor-pointer';
     }
   } else {
     if (pageReg) pageReg.style.display = 'none';
     if (pageLogin) pageLogin.style.display = 'block';
+    if (authBadge) authBadge.innerText = 'Portal Otentikasi Resmi';
+    if (authTitle) authTitle.innerText = 'Selamat Datang Kembali';
+    if (authSub) authSub.innerText = 'Silakan masuk menggunakan kredensial akun perbankan Anda.';
+    if (demoBar) demoBar.style.display = 'block';
 
     if (btnLogin) {
-      btnLogin.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all shadow-sm bg-white text-primary';
+      btnLogin.className = 'flex-1 py-1.5 text-xs font-black rounded-lg transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer';
     }
     if (btnReg) {
-      btnReg.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900';
+      btnReg.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-500 hover:text-slate-900 border border-transparent cursor-pointer';
     }
   }
 }
@@ -1121,6 +1136,7 @@ function switchSettingsSubtab(subId) {
   if (subId === 'users') loadUsersView();
   if (subId === 'appmgmt') loadAppMgmtView();
   if (subId === 'importcbs') loadImportCbsView();
+  if (subId === 'audit') loadAuditView();
   if (subId === 'about') loadAboutView();
 }
 
@@ -1128,10 +1144,18 @@ function switchSettingsSubtab(subId) {
 function switchPane(paneId, subId = null) {
   closeDrawer();
 
-  // Redirect old admin route links to settings pane with corresponding subtab
-  if (['profile', 'users', 'appmgmt', 'importcbs', 'about'].includes(paneId)) {
+  // Redirect old admin & kpi route links to parent pane with corresponding subtab
+  if (['profile', 'users', 'appmgmt', 'importcbs', 'audit', 'about'].includes(paneId)) {
     subId = paneId;
     paneId = 'settings';
+  }
+  if (['scorecard', 'migration', 'stresstest', 'report'].includes(paneId)) {
+    subId = paneId;
+    paneId = 'kpi';
+  }
+  if (['p3list', 'p3map'].includes(paneId)) {
+    subId = paneId === 'p3map' ? 'map' : 'list';
+    paneId = 'p3';
   }
 
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -1151,22 +1175,31 @@ function switchPane(paneId, subId = null) {
   if (paneId === 'historis') loadHistorisView();
   if (paneId === 'debitur') loadDebiturView();
   if (paneId === 'deskcall') loadDeskCallView();
-  if (paneId === 'p3') loadP3View();
+  if (paneId === 'p3') {
+    if (subId) switchP3Subtab(subId);
+    else switchP3Subtab(_activeP3Subtab || 'list');
+  }
   if (paneId === 'legal') loadLegalView();
   if (paneId === 'bayar') loadBayarView();
-  if (paneId === 'kpi') loadKpiView();
+  if (paneId === 'kpi') {
+    if (subId) switchKpiSubtab(subId);
+    else switchKpiSubtab(_activeKpiSubtab || 'scorecard');
+  }
   if (paneId === 'settings') {
     const isAdmin = state.user?.posisi === 'admin';
+    const canViewAudit = ['admin', 'kabid_p3', 'kabid_ao', 'legal'].includes(state.user?.posisi);
     const subProfile = document.getElementById('subtab-profile');
     const subUsers = document.getElementById('subtab-users');
     const subApp = document.getElementById('subtab-appmgmt');
     const subImport = document.getElementById('subtab-importcbs');
+    const subAudit = document.getElementById('subtab-audit');
     const subAbout = document.getElementById('subtab-about');
 
     if (subProfile) subProfile.style.display = 'flex';
     if (subUsers) subUsers.style.display = isAdmin ? 'flex' : 'none';
     if (subApp) subApp.style.display = isAdmin ? 'flex' : 'none';
     if (subImport) subImport.style.display = isAdmin ? 'flex' : 'none';
+    if (subAudit) subAudit.style.display = canViewAudit ? 'flex' : 'none';
     if (subAbout) subAbout.style.display = 'flex';
 
     const activeSub = subId || 'profile';
@@ -1431,10 +1464,33 @@ async function loadDashboardView() {
       aoList = Object.values(aoMap).sort((a, b) => b.totalBaki - a.totalBaki);
     }
 
+    // Format last CBS import / closing date
+    let cbsDateText = 'Belum ada data sync CBS';
+    if (debRes?.lastCbsUpdate?.displayDate) {
+      const cbsDt = new Date(debRes.lastCbsUpdate.displayDate);
+      if (!isNaN(cbsDt.getTime())) {
+        cbsDateText = cbsDt.toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }) + ', ' + cbsDt.toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }) + ' WIB';
+      }
+    } else {
+      cbsDateText = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' WIB';
+    }
+
     container.innerHTML = `
       <div class="toolbar-wrap mb-4" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
-        <div style="font-size:11.5px;color:var(--text-3);font-weight:600;">
-          Terakhir diperbarui: <span class="mono">${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</span>
+        <div style="display:inline-flex;align-items:center;gap:7px;background:var(--bg-card);border:1px solid var(--border);padding:6px 14px;border-radius:20px;box-shadow:var(--sh-sm);font-size:12px;color:var(--text-2);font-weight:600;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span>Terakhir diperbarui (Upload CBS): <strong class="mono" style="color:var(--text);font-weight:800;">${cbsDateText}</strong></span>
         </div>
       </div>
 
@@ -2067,7 +2123,7 @@ async function loadDebiturView(page = 1) {
     const kolParam = debState.filter === 'all' ? '' : debState.filter;
     const aoParam = debState.ao === 'all' ? '' : debState.ao;
     const jtParam = debState.jt === 'all' ? '' : debState.jt;
-    const statusParam = debState.status || 'all';
+    const statusParam = debState.filter === 'Lunas' ? 'Lunas' : (debState.status || 'all');
 
     const url = `/debitur?page=${debState.page}&limit=${debState.limit}&kol=${encodeURIComponent(kolParam)}&ao=${encodeURIComponent(aoParam)}&jt=${encodeURIComponent(jtParam)}&status=${encodeURIComponent(statusParam)}&q=${encodeURIComponent(debState.search)}`;
 
@@ -2083,7 +2139,7 @@ function renderDebiturList(res) {
   if (!container) return;
 
   const list = res.debiturs || [];
-  const counts = res.counts || { Semua: 0, Lancar: 0, DPK: 0, 'Kurang Lancar': 0, Diragukan: 0, Macet: 0 };
+  const counts = res.counts || { Semua: 0, Lancar: 0, DPK: 0, 'Kurang Lancar': 0, Diragukan: 0, Macet: 0, Lunas: 0 };
   const summary = res.summaryStats || { totalDebitur: res.total || 0, totalBakiDebet: 0, totalTunggakan: 0, macetCount: counts.Macet || 0, macetBakiDebet: 0 };
   const total = res.total || 0;
   const page = res.page || 1;
@@ -2144,6 +2200,7 @@ function renderDebiturList(res) {
             <option value="Kurang Lancar"${debState.filter === 'Kurang Lancar' ? ' selected' : ''}>KOL 3 (Kurang Lancar)</option>
             <option value="Diragukan"${debState.filter === 'Diragukan' ? ' selected' : ''}>KOL 4 (Diragukan)</option>
             <option value="Macet"${debState.filter === 'Macet' ? ' selected' : ''}>KOL 5 (Macet)</option>
+            <option value="Lunas"${debState.filter === 'Lunas' ? ' selected' : ''}>Lunas</option>
           </select>
         </div>
 
@@ -2197,6 +2254,7 @@ function renderDebiturList(res) {
           <button class="kol-pill kp-kuranglancar ${debState.filter === 'Kurang Lancar' ? 'kp-active' : ''}" onclick="setDebFilter('Kurang Lancar')">KL <span class="kp-count">${counts['Kurang Lancar'] || 0}</span></button>
           <button class="kol-pill kp-diragukan ${debState.filter === 'Diragukan' ? 'kp-active' : ''}" onclick="setDebFilter('Diragukan')">Diragukan <span class="kp-count">${counts.Diragukan || 0}</span></button>
           <button class="kol-pill kp-macet ${debState.filter === 'Macet' ? 'kp-active' : ''}" onclick="setDebFilter('Macet')">Macet <span class="kp-count">${counts.Macet || 0}</span></button>
+          <button class="kol-pill kp-lunas ${debState.filter === 'Lunas' ? 'kp-active' : ''}" onclick="setDebFilter('Lunas')">Lunas <span class="kp-count">${counts.Lunas || 0}</span></button>
         </div>
         <button type="button" class="btn btn-outline btn-sm btn-density-toggle" onclick="toggleTableDensity()" style="font-size:12px;padding:4px 12px;border-radius:9999px;margin-left:auto;">${tableDensityState === 'compact' ? 'Mode Normal' : 'Mode Ringkas'}</button>
       </div>
@@ -2424,6 +2482,10 @@ async function viewDebiturDetail(id) {
           <span class="badge ${statusBayarBadge}" style="font-size:12px;padding:5px 12px;">${d.statusBayar || 'Belum Bayar'}</span>
           <span class="badge badge-purple" style="font-size:12px;padding:5px 12px;">Risiko ${d.resiko || 'Sedang'}</span>
           ${d.restruk > 0 ? `<span class="badge badge-yellow" style="font-size:12px;padding:5px 12px;">Restruk ${d.restruk}x</span>` : ''}
+          <button type="button" class="btn btn-outline btn-sm" onclick="openRecordAuditModal('debitur', '${d.id}')" style="font-size:11.5px;padding:4px 10px;font-weight:700;display:inline-flex;align-items:center;gap:5px;border-color:var(--brand);color:var(--brand);border-radius:12px;" title="Lihat Riwayat Perubahan Debitur">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            Audit Diff
+          </button>
         </div>
       </div>
 
@@ -4857,10 +4919,11 @@ async function viewP3Detail(id) {
 
       <div class="divider"></div>
 
-      <!-- FORM UPDATE HASIL KUNJUNGAN -->
+      <!-- FORM UPDATE HASIL KUNJUNGAN & TANDA TANGAN DIGITAL -->
       <div style="background:var(--bg-card);border:1.5px solid var(--brand-light);border-radius:12px;padding:16px;margin-bottom:18px;">
-        <div style="font-weight:800;font-size:13.5px;color:var(--brand);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-          <span>Catat Hasil Kunjungan &amp; Update Status</span>
+        <div style="font-weight:800;font-size:13.5px;color:var(--brand);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+          <span>Catat Hasil Kunjungan &amp; Berita Acara</span>
+          ${s.isOfflineSync ? '<span class="badge badge-yellow" style="font-size:10px;">Disinkronisasi dari Offline</span>' : ''}
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -4882,7 +4945,34 @@ async function viewP3Detail(id) {
           <label class="form-label">Hasil Komunikasi &amp; Catatan Kunjungan</label>
           <textarea id="p3d-hasil" class="form-input" rows="3" placeholder="Catat hasil komitmen, negosiasi, atau kendala di lapangan...">${s.hasil || s.catatan || ''}</textarea>
         </div>
-        <div style="display:flex;justify-content:flex-end;">
+
+        <!-- TANDA TANGAN DIGITAL BERITA ACARA -->
+        <div class="form-group" style="margin-top:12px;">
+          <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Tanda Tangan Digital Debitur (Berita Acara / PTP)</span>
+          </label>
+          <div id="p3d-signature-container">
+            ${s.tandaTanganDebitur ? `
+              <div class="signature-preview-box">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <img src="${s.tandaTanganDebitur}" class="signature-preview-img" alt="Tanda Tangan Debitur"/>
+                  <div style="font-size:12px;color:var(--text);">
+                    <div style="font-weight:700;">${escapeHtml(s.tandaTanganNama || s.namaDebitur)}</div>
+                    <div style="font-size:10.5px;color:var(--text-3);">Tanda tangan tersimpan</div>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="openSignatureModal('${s.id}', '${(s.tandaTanganNama || s.namaDebitur).replace(/'/g, "\\'")}')" style="font-size:11px;padding:3px 8px;">Ubah</button>
+              </div>
+            ` : `
+              <button type="button" class="btn btn-outline btn-sm" onclick="openSignatureModal('${s.id}', '${s.namaDebitur.replace(/'/g, "\\'")}')" style="display:inline-flex;align-items:center;gap:6px;width:100%;justify-content:center;padding:8px 12px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/></svg>
+                <span>Bubuhkan Tanda Tangan Digital Debitur di Tempat</span>
+              </button>
+            `}
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:14px;">
           <button class="btn btn-primary btn-sm" onclick="saveP3VisitResult('${s.id}')">Simpan Hasil Kunjungan</button>
         </div>
       </div>
@@ -5127,18 +5217,49 @@ async function saveP3VisitResult(id, btnEl) {
 }
 
 async function sendP3Update(id, payload) {
+  if (!navigator.onLine) {
+    try {
+      if (typeof saveOfflineDraft === 'function') {
+        await saveOfflineDraft({
+          jadwalId: id,
+          ...payload,
+          localRecordedAt: new Date().toISOString()
+        });
+      }
+      showToast('Mode Offline: Draft kunjungan tersimpan di penyimpanan lokal. Akan otomatis disinkronisasi saat terhubung internet.', 'warning');
+      closeModal('modal-p3-detail');
+      checkAndDisplayOfflineBanner();
+      return;
+    } catch (e) {
+      console.warn('Gagal menyimpan ke IndexedDB offline:', e);
+    }
+  }
+
   try {
-    showToast('Menyimpan hasil kunjungan & GPS check-in...', 'i');
+    showToast('Menyimpan hasil kunjungan & GPS check-in...', 'info');
     await apiCall(`/p3/jadwal/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(payload)
+      body: payload
     });
-    showToast('Hasil kunjungan P3 berhasil diperbarui', 's');
+    showToast('Hasil kunjungan P3 berhasil diperbarui', 'success');
     clearP3VisitDraft(id);
     viewP3Detail(id);
     if (typeof loadP3View === 'function') loadP3View();
   } catch (err) {
-    showToast(`Gagal memperbarui hasil: ${err.message}`, 'e');
+    try {
+      if (typeof saveOfflineDraft === 'function') {
+        await saveOfflineDraft({
+          jadwalId: id,
+          ...payload,
+          localRecordedAt: new Date().toISOString()
+        });
+        showToast('Koneksi terputus: Draft kunjungan berhasil diamankan di penyimpanan lokal (Offline).', 'warning');
+        closeModal('modal-p3-detail');
+        checkAndDisplayOfflineBanner();
+        return;
+      }
+    } catch (e) {}
+    showToast(`Gagal memperbarui hasil: ${err.message}`, 'danger');
   }
 }
 
@@ -5393,13 +5514,584 @@ async function saveP3Form() {
       method: 'POST',
       body: JSON.stringify(payload)
     });
-    showToast('Jadwal penagihan berhasil dibuat', 's');
+    showToast('Jadwal penagihan berhasil dibuat', 'success');
     closeModal('modal-p3-form');
     if (typeof loadP3View === 'function') loadP3View();
   } catch (err) {
-    showToast(`Gagal menyimpan jadwal: ${err.message}`, 'e');
+    showToast(`Gagal menyimpan jadwal: ${err.message}`, 'danger');
   }
 }
+
+// ==========================================================================
+// 4B. P3 FIELD OPERATIONS: MAP ROUTING, DIGITAL SIGNATURE & OFFLINE SYNC
+// ==========================================================================
+
+let _activeP3Subtab = 'list';
+let _p3RouteData = null;
+let _p3ClusterMap = null;
+let _currentSignatureJadwalId = null;
+let _signatureHasDrawn = false;
+
+function switchP3Subtab(subId) {
+  _activeP3Subtab = subId;
+  document.querySelectorAll('.p3-subtab').forEach(btn => {
+    btn.classList.remove('active');
+    btn.style.borderBottomColor = 'transparent';
+    btn.style.color = 'var(--text-2)';
+    btn.style.fontWeight = '600';
+  });
+  document.querySelectorAll('.p3-subpane').forEach(p => p.style.display = 'none');
+
+  const targetBtn = document.getElementById(`subtab-p3-${subId}`);
+  const targetPane = document.getElementById(`p3-subpane-${subId}`);
+
+  if (targetBtn) {
+    targetBtn.classList.add('active');
+    targetBtn.style.borderBottomColor = 'var(--brand)';
+    targetBtn.style.color = 'var(--brand)';
+    targetBtn.style.fontWeight = '700';
+  }
+  if (targetPane) {
+    targetPane.style.display = 'block';
+  }
+
+  if (subId === 'list') {
+    loadP3View();
+  } else if (subId === 'map') {
+    loadP3MapView();
+  }
+
+  checkAndDisplayOfflineBanner();
+}
+
+window.switchP3Subtab = switchP3Subtab;
+
+/**
+ * OFFLINE PWA & INDEXEDDB SYNC HANDLERS
+ */
+async function checkAndDisplayOfflineBanner() {
+  const banner = document.getElementById('p3-offline-sync-banner');
+  const bannerText = document.getElementById('p3-offline-banner-text');
+  if (!banner || !bannerText) return;
+
+  try {
+    let count = 0;
+    if (typeof countOfflineDrafts === 'function') {
+      count = await countOfflineDrafts();
+    }
+    if (count > 0) {
+      banner.style.display = 'flex';
+      bannerText.textContent = `Mode Offline: ${count} draft hasil kunjungan tersimpan lokal dan belum disinkronisasi ke server.`;
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch (e) {
+    banner.style.display = 'none';
+  }
+}
+
+async function triggerP3OfflineSync() {
+  if (!navigator.onLine) {
+    showToast('Tidak ada koneksi internet. Sinkronisasi akan otomatis berjalan saat online.', 'warning');
+    return;
+  }
+
+  try {
+    let drafts = [];
+    if (typeof getAllOfflineDrafts === 'function') {
+      drafts = await getAllOfflineDrafts();
+    }
+
+    if (drafts.length === 0) {
+      showToast('Tidak ada draft offline yang perlu disinkronkan.', 'info');
+      checkAndDisplayOfflineBanner();
+      return;
+    }
+
+    showToast(`Menyinkronkan ${drafts.length} draft kunjungan offline ke server...`, 'info');
+
+    const res = await apiCall('/p3/sync-batch', {
+      method: 'POST',
+      body: { drafts }
+    });
+
+    if (res && res.success) {
+      if (typeof clearAllOfflineDrafts === 'function') {
+        await clearAllOfflineDrafts();
+      }
+      showToast(`Sinkronisasi berhasil! ${res.successCount} jadwal diperbarui.`, 'success');
+      checkAndDisplayOfflineBanner();
+      if (_activeP3Subtab === 'list') loadP3View();
+      else if (_activeP3Subtab === 'map') loadP3MapView();
+    } else {
+      throw new Error(res?.error || 'Gagal sinkronisasi batch');
+    }
+  } catch (e) {
+    showToast(`Gagal sinkronisasi offline: ${e.message}`, 'danger');
+  }
+}
+
+window.triggerP3OfflineSync = triggerP3OfflineSync;
+window.checkAndDisplayOfflineBanner = checkAndDisplayOfflineBanner;
+
+// Online / Offline Global Event Listeners
+window.addEventListener('online', () => {
+  showToast('Koneksi internet terhubung kembali. Memulai sinkronisasi otomatis...', 'success');
+  triggerP3OfflineSync();
+});
+window.addEventListener('offline', () => {
+  showToast('Koneksi internet terputus. Beralih ke Mode Penyimpanan Lokal (Offline).', 'warning');
+  checkAndDisplayOfflineBanner();
+});
+
+/**
+ * SMART ROUTE & LEAFLET MAP CLUSTERING
+ */
+let _p3MapDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+let _p3MapPetugas = '';
+let _p3MapArea = '';
+
+async function loadP3MapView() {
+  const container = document.getElementById('p3-map-content');
+  if (!container) return;
+
+  container.innerHTML = `<div class="empty-st"><p>Menghitung rute kunjungan paling efisien (Smart Route)...</p></div>`;
+
+  try {
+    const params = new URLSearchParams();
+    if (_p3MapDate) params.append('tanggal', _p3MapDate);
+    if (_p3MapPetugas) params.append('petugasId', _p3MapPetugas);
+    if (_p3MapArea) params.append('area', _p3MapArea);
+
+    const [routeRes, petugasList] = await Promise.all([
+      apiCall(`/p3/route-cluster?${params.toString()}`),
+      apiCall('/p3/petugas').catch(() => [])
+    ]);
+
+    _p3RouteData = routeRes;
+    renderP3MapRouteView(routeRes, Array.isArray(petugasList) ? petugasList : []);
+  } catch (e) {
+    container.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--danger);"><p>Gagal memuat rute peta: ${escapeHtml(e.message)}</p></div>`;
+  }
+}
+
+function renderP3MapRouteView(data, petugasList) {
+  const container = document.getElementById('p3-map-content');
+  if (!container || !data) return;
+
+  const waypoints = data.optimizedRoute || [];
+  const bprsHq = data.bprsHq || { lat: -7.797068, lng: 110.370529, name: 'BPRS Mitra Harmoni' };
+  const totalDist = data.totalDistanceKm || 0;
+
+  // Build Google Maps Multi-Stop URL
+  let gmapsMultiUrl = 'https://www.google.com/maps/dir/';
+  gmapsMultiUrl += `${bprsHq.lat},${bprsHq.lng}/`;
+  waypoints.forEach(w => {
+    gmapsMultiUrl += `${w.lat},${w.lng}/`;
+  });
+  gmapsMultiUrl += `${bprsHq.lat},${bprsHq.lng}`;
+
+  container.innerHTML = `
+    <!-- MAP TOOLBAR ROW -->
+    <div class="card mb-3" style="padding:14px 18px;border-radius:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:12px;font-weight:700;color:var(--text-2);">Tanggal Rute:</span>
+        <input type="date" id="p3-map-date-input" class="form-input" value="${_p3MapDate}" style="height:36px;font-size:12.5px;width:auto;" onchange="filterP3MapDate(this.value)"/>
+
+        <select id="p3-map-petugas-input" class="form-select" style="height:36px;font-size:12.5px;width:auto;" onchange="filterP3MapPetugas(this.value)">
+          <option value="">Semua Petugas P3</option>
+          ${petugasList.map(p => `
+            <option value="${p.id}" ${_p3MapPetugas === p.id ? 'selected' : ''}>${escapeHtml(p.nama)}</option>
+          `).join('')}
+        </select>
+
+        <button class="btn btn-primary btn-sm" onclick="loadP3MapView()" style="height:36px;padding:0 14px;font-weight:700;">Refresh Rute</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        ${waypoints.length > 0 ? `
+          <a href="${gmapsMultiUrl}" target="_blank" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px;font-weight:700;height:36px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+            Buka Rute Multi-Stop di Google Maps
+          </a>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- STATS STRIP -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin-bottom:16px;">
+      <div class="stat-card" style="padding:12px 16px;border-radius:14px;">
+        <div class="stat-label" style="font-size:11px;">Total Titik Kunjungan</div>
+        <div class="stat-num" style="font-size:20px;">${waypoints.length} Debitur</div>
+        <div class="stat-sub" style="font-size:10.5px;">Urutan Rute Optimal (TSP)</div>
+      </div>
+      <div class="stat-card info" style="padding:12px 16px;border-radius:14px;">
+        <div class="stat-label" style="font-size:11px;">Estimasi Jarak Tempuh</div>
+        <div class="stat-num text-blue" style="font-size:20px;">${totalDist} KM</div>
+        <div class="stat-sub" style="font-size:10.5px;">Termasuk kembali ke Kantor BPRS</div>
+      </div>
+      <div class="stat-card success" style="padding:12px 16px;border-radius:14px;">
+        <div class="stat-label" style="font-size:11px;">Kunjungan Selesai</div>
+        <div class="stat-num text-success" style="font-size:20px;">${waypoints.filter(w => w.status === 'Selesai').length} / ${waypoints.length}</div>
+        <div class="stat-sub" style="font-size:10.5px;">Progres realisasi lapangan</div>
+      </div>
+    </div>
+
+    <!-- MAP + STOPS 2-COLUMN GRID -->
+    <div class="p3-map-grid">
+      <!-- LEFT: LEAFLET MAP -->
+      <div class="p3-map-box">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg);">
+          <div style="font-size:12.5px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            Peta Clustering &amp; Rute Terhubung
+          </div>
+          <!-- MAP LEGEND -->
+          <div style="display:flex;gap:8px;font-size:10.5px;font-weight:700;">
+            <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#0F172A;"></span> HQ</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#DC2626;"></span> Kritis</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#EA580C;"></span> Tinggi</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#16A34A;"></span> Selesai</span>
+          </div>
+        </div>
+        <div id="p3-interactive-map"></div>
+      </div>
+
+      <!-- RIGHT: ORDERED WAYPOINTS LIST -->
+      <div class="route-list-container">
+        <div style="font-size:13px;font-weight:800;color:var(--text);display:flex;justify-content:space-between;align-items:center;">
+          <span>Urutan Kunjungan Harian</span>
+          <span style="font-size:11px;color:var(--text-3);font-weight:600;">Nearest Neighbor</span>
+        </div>
+        <div class="route-stops-scroll">
+          <!-- STOP 0: HQ START -->
+          <div class="route-stop-card" style="background:#F8FAFC;border-left:4px solid #0F172A;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="route-seq-badge route-seq-bprs">HQ</div>
+              <div>
+                <div style="font-size:12.5px;font-weight:800;color:#0F172A;">${escapeHtml(bprsHq.name)}</div>
+                <div style="font-size:10.5px;color:var(--text-3);">Titik Awal Keberangkatan Petugas</div>
+              </div>
+            </div>
+          </div>
+
+          ${waypoints.length === 0 ? `
+            <div class="empty-st" style="padding:24px 10px;">
+              <p style="font-size:12px;">Tidak ada agenda penagihan pada tanggal ini.</p>
+            </div>
+          ` : waypoints.map((w) => `
+            <div class="route-stop-card ${w.status === 'Selesai' ? 'completed' : ''}" style="border-left:4px solid ${w.status === 'Selesai' ? '#16A34A' : (w.prioritas === 'Kritis' ? '#DC2626' : (w.prioritas === 'Tinggi' ? '#EA580C' : '#0284C7'))};">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div style="display:flex;align-items:flex-start;gap:10px;">
+                  <div class="route-seq-badge">${w.urutanKunjungan}</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:800;color:var(--text);">${escapeHtml(w.namaDebitur)}</div>
+                    <div style="font-size:11px;color:var(--text-3);margin-top:2px;">
+                      ${escapeHtml(w.alamat || 'Alamat tidak spesifik')}
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;font-size:10.5px;">
+                      <span class="badge ${w.status === 'Selesai' ? 'badge-green' : 'badge-yellow'}">${w.status}</span>
+                      <span class="badge badge-gray">${w.kol}</span>
+                      <span style="color:var(--brand);font-weight:700;">+${w.jarakDariSebelumnyaKm} KM</span>
+                      ${w.hasSignature ? '<span class="badge badge-teal" style="font-size:9.5px;">Sudah TTD</span>' : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACTION BUTTONS -->
+              <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);">
+                <button class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;" onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${w.lat},${w.lng}', '_blank')">
+                  Navigasi
+                </button>
+                <button class="btn btn-primary btn-sm" style="font-size:11px;padding:3px 8px;" onclick="viewP3Detail('${w.jadwalId}')">
+                  ${w.status === 'Selesai' ? 'Lihat Detail' : 'Check-in / Selesaikan'}
+                </button>
+              </div>
+            </div>
+          `).join('')}
+
+          <!-- STOP END: HQ RETURN -->
+          ${waypoints.length > 0 ? `
+            <div class="route-stop-card" style="background:#F8FAFC;border-left:4px solid #0F172A;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="route-seq-badge route-seq-bprs">FIN</div>
+                <div>
+                  <div style="font-size:12.5px;font-weight:800;color:#0F172A;">Kembali ke Kantor BPRS</div>
+                  <div style="font-size:10.5px;color:var(--text-3);">Penutupan rute &amp; serah terima setoran</div>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Initialize Leaflet Map after DOM is rendered
+  setTimeout(() => {
+    initLeafletP3Map(bprsHq, waypoints);
+  }, 100);
+}
+
+function initLeafletP3Map(bprsHq, waypoints) {
+  if (typeof L === 'undefined') return;
+
+  const mapContainer = document.getElementById('p3-interactive-map');
+  if (!mapContainer) return;
+
+  if (window._p3ClusterMap) {
+    try {
+      window._p3ClusterMap.remove();
+    } catch (e) {}
+    window._p3ClusterMap = null;
+  }
+
+  const map = L.map('p3-interactive-map').setView([bprsHq.lat, bprsHq.lng], 13);
+  window._p3ClusterMap = map;
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  // HQ Marker
+  const hqIcon = L.divIcon({
+    className: 'leaflet-div-icon',
+    html: `<div class="p3-map-pin pin-hq" title="${escapeHtml(bprsHq.name)}">HQ</div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
+  });
+  L.marker([bprsHq.lat, bprsHq.lng], { icon: hqIcon })
+    .addTo(map)
+    .bindPopup(`<b>${escapeHtml(bprsHq.name)}</b><br><span style="font-size:11px;color:#64748b;">Pusat Operasional &amp; Keberangkatan</span>`);
+
+  const latLngs = [[bprsHq.lat, bprsHq.lng]];
+
+  // Debitur Waypoint Markers
+  waypoints.forEach((w) => {
+    let pinClass = 'pin-sedang';
+    if (w.status === 'Selesai') pinClass = 'pin-selesai';
+    else if (w.prioritas === 'Kritis') pinClass = 'pin-kritis';
+    else if (w.prioritas === 'Tinggi') pinClass = 'pin-tinggi';
+
+    const debIcon = L.divIcon({
+      className: 'leaflet-div-icon',
+      html: `<div class="p3-map-pin ${pinClass}">${w.urutanKunjungan}</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+
+    const marker = L.marker([w.lat, w.lng], { icon: debIcon }).addTo(map);
+    marker.bindPopup(`
+      <div style="font-size:12px;">
+        <div style="font-weight:800;font-size:13px;color:#0F172A;">${w.urutanKunjungan}. ${escapeHtml(w.namaDebitur)}</div>
+        <div style="color:#64748b;margin:2px 0;">${escapeHtml(w.alamat || '-')}</div>
+        <div style="margin:4px 0;"><strong>Baki:</strong> ${formatRupiah(w.bakiDebet)} | <strong>Target:</strong> ${formatRupiah(w.targetTagih)}</div>
+        <div style="margin-top:6px;">
+          <button onclick="viewP3Detail('${w.jadwalId}')" style="background:#0F766E;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;">Detail / Selesaikan</button>
+        </div>
+      </div>
+    `);
+
+    latLngs.push([w.lat, w.lng]);
+  });
+
+  if (waypoints.length > 0) {
+    latLngs.push([bprsHq.lat, bprsHq.lng]); // Loop back to HQ
+    const routeLine = L.polyline(latLngs, {
+      color: '#0F766E',
+      weight: 3.5,
+      opacity: 0.8,
+      dashArray: '6, 6'
+    }).addTo(map);
+
+    map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+  }
+}
+
+function filterP3MapDate(val) {
+  _p3MapDate = val;
+  loadP3MapView();
+}
+function filterP3MapPetugas(val) {
+  _p3MapPetugas = val;
+  loadP3MapView();
+}
+
+window.filterP3MapDate = filterP3MapDate;
+window.filterP3MapPetugas = filterP3MapPetugas;
+
+/**
+ * DIGITAL SIGNATURE CANVAS COMPONENT
+ */
+function openSignatureModal(jadwalId, currentSignerName) {
+  _currentSignatureJadwalId = jadwalId;
+  _signatureHasDrawn = false;
+
+  const signerInput = document.getElementById('signature-signer-name');
+  if (signerInput) signerInput.value = currentSignerName || '';
+
+  const hint = document.getElementById('signature-placeholder-hint');
+  if (hint) hint.style.display = 'block';
+
+  openModal('modal-signature-p3');
+
+  setTimeout(() => {
+    initSignatureCanvas();
+  }, 150);
+}
+
+function initSignatureCanvas() {
+  const canvas = document.getElementById('signature-canvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Setup HiDPI resolution
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  ctx.strokeStyle = '#0F172A';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  ctx.clearRect(0, 0, rect.width, rect.height);
+
+  let isDrawing = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    if (e.touches && e.touches.length > 0) {
+      return {
+        x: e.touches[0].clientX - r.left,
+        y: e.touches[0].clientY - r.top
+      };
+    }
+    return {
+      x: e.clientX - r.left,
+      y: e.clientY - r.top
+    };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    isDrawing = true;
+    _signatureHasDrawn = true;
+    const hint = document.getElementById('signature-placeholder-hint');
+    if (hint) hint.style.display = 'none';
+
+    const pos = getPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+  }
+
+  function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+
+  function stopDraw(e) {
+    if (isDrawing) {
+      e.preventDefault();
+      isDrawing = false;
+    }
+  }
+
+  // Remove previous listeners
+  canvas.onmousedown = startDraw;
+  canvas.onmousemove = draw;
+  canvas.onmouseup = stopDraw;
+  canvas.onmouseleave = stopDraw;
+
+  canvas.ontouchstart = startDraw;
+  canvas.ontouchmove = draw;
+  canvas.ontouchend = stopDraw;
+  canvas.ontouchcancel = stopDraw;
+}
+
+function clearSignatureCanvas() {
+  const canvas = document.getElementById('signature-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const rect = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  _signatureHasDrawn = false;
+
+  const hint = document.getElementById('signature-placeholder-hint');
+  if (hint) hint.style.display = 'block';
+}
+
+async function saveSignatureAndApply() {
+  if (!_signatureHasDrawn) {
+    showToast('Silakan bubuhkan tanda tangan pada area canvas terlebih dahulu', 'warning');
+    return;
+  }
+
+  const canvas = document.getElementById('signature-canvas');
+  if (!canvas) return;
+
+  const dataUrl = canvas.toDataURL('image/png');
+  const signerName = document.getElementById('signature-signer-name')?.value || 'Debitur';
+  const jadwalId = _currentSignatureJadwalId;
+
+  // Update container in visit form
+  const container = document.getElementById('p3d-signature-container');
+  if (container) {
+    container.innerHTML = `
+      <div class="signature-preview-box">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img src="${dataUrl}" class="signature-preview-img" alt="Tanda Tangan Debitur"/>
+          <div style="font-size:12px;color:var(--text);">
+            <div style="font-weight:700;">${escapeHtml(signerName)}</div>
+            <div style="font-size:10.5px;color:var(--text-3);">Tanda tangan siap disimpan</div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="openSignatureModal('${jadwalId}', '${signerName.replace(/'/g, "\\'")}')" style="font-size:11px;padding:3px 8px;">Ubah</button>
+      </div>
+    `;
+  }
+
+  // If online, save directly to server
+  if (navigator.onLine && jadwalId) {
+    try {
+      await apiCall(`/p3/signature/${jadwalId}`, {
+        method: 'POST',
+        body: {
+          signatureBase64: dataUrl,
+          signerName
+        }
+      });
+      showToast('Tanda tangan digital berhasil disimpan!', 'success');
+    } catch (e) {
+      console.warn('Gagal menyimpan signature langsung ke server:', e);
+    }
+  }
+
+  closeModal('modal-signature-p3');
+}
+
+window.openSignatureModal = openSignatureModal;
+window.clearSignatureCanvas = clearSignatureCanvas;
+window.saveSignatureAndApply = saveSignatureAndApply;
+
 
 // 5. LEGAL VIEW
 let legalState = {
@@ -6974,6 +7666,655 @@ function buildKPICharts() {
   }
 }
 
+// ==========================================================================
+// 7B. EXECUTIVE ANALYTICS: MIGRATION MATRIX, STRESS TEST & REPORT VIEWS
+// ==========================================================================
+
+let _activeKpiSubtab = 'scorecard';
+let _migrationMatrixData = null;
+let _stressTestState = {
+  targetRecovery: 0,
+  restrukKol3: 0,
+  dpkRoll: 0
+};
+
+function switchKpiSubtab(subId) {
+  _activeKpiSubtab = subId;
+  document.querySelectorAll('.kpi-subtab').forEach(btn => {
+    btn.classList.remove('active');
+    btn.style.borderBottomColor = 'transparent';
+    btn.style.color = 'var(--text-2)';
+    btn.style.fontWeight = '600';
+  });
+  document.querySelectorAll('.kpi-subpane').forEach(p => p.style.display = 'none');
+
+  const targetBtn = document.getElementById(`subtab-kpi-${subId}`);
+  const targetPane = document.getElementById(`kpi-subpane-${subId}`);
+
+  if (targetBtn) {
+    targetBtn.classList.add('active');
+    targetBtn.style.borderBottomColor = 'var(--brand)';
+    targetBtn.style.color = 'var(--brand)';
+    targetBtn.style.fontWeight = '700';
+  }
+  if (targetPane) {
+    targetPane.style.display = 'block';
+  }
+
+  if (subId === 'scorecard') loadKpiView();
+  if (subId === 'migration') loadKpiMigrationView();
+  if (subId === 'stresstest') loadKpiStressTestView();
+  if (subId === 'report') loadKpiReportView();
+}
+
+window.switchKpiSubtab = switchKpiSubtab;
+
+/**
+ * 1. MIGRATION MATRIX VIEW
+ */
+async function loadKpiMigrationView() {
+  const container = document.getElementById('kpi-migration-content');
+  if (!container) return;
+
+  container.innerHTML = `<div class="empty-st"><p>Memuat matriks transisi &amp; migrasi kolektibilitas...</p></div>`;
+
+  try {
+    const res = await apiCall('/kpi/migration-matrix');
+    _migrationMatrixData = res;
+    renderMigrationMatrixContent(res);
+  } catch (e) {
+    container.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--danger);"><p>Gagal memuat matriks migrasi: ${escapeHtml(e.message)}</p></div>`;
+  }
+}
+
+function renderMigrationMatrixContent(data) {
+  const container = document.getElementById('kpi-migration-content');
+  if (!container || !data) return;
+
+  const s = data.summary || {};
+  const snapshots = data.availableSnapshots || [];
+
+  container.innerHTML = `
+    <!-- CONTROLS & DATE FILTER -->
+    <div class="card mb-4" style="padding:16px 20px;border-radius:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="font-size:12px;font-weight:700;color:var(--text-2);">Periode Pembanding:</div>
+        <select id="matrix-from-select" class="form-select" style="height:38px;font-size:12.5px;min-width:160px;">
+          ${snapshots.map((snap, idx) => `
+            <option value="${snap.periodeStr}" ${idx === 0 ? 'selected' : ''}>${snap.bulanLabel || snap.periodeStr}</option>
+          `).join('')}
+          ${snapshots.length === 0 ? '<option value="">Snapshot Terakhir</option>' : ''}
+        </select>
+        <div style="font-size:12px;font-weight:700;color:var(--text-3);">&rarr;</div>
+        <select id="matrix-to-select" class="form-select" style="height:38px;font-size:12.5px;min-width:160px;">
+          <option value="" selected>Posisi Live (Terkini)</option>
+          ${snapshots.map((snap) => `
+            <option value="${snap.periodeStr}">${snap.bulanLabel || snap.periodeStr}</option>
+          `).join('')}
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="filterMigrationMatrix()" style="height:38px;padding:0 16px;font-weight:700;">Terapkan</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--text-3);">
+        Basis Evaluasi: <strong style="color:var(--text);">${data.fromLabel}</strong> &rarr; <strong style="color:var(--text);">${data.toLabel}</strong>
+      </div>
+    </div>
+
+    <!-- 4 SUMMARY CARDS -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:20px;">
+      <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+        <div class="stat-card-top"><span class="stat-label">Total NOA Dievaluasi</span><span class="stat-pill stat-pill-blue">NOA</span></div>
+        <div class="stat-val" style="font-size:22px;font-weight:800;color:var(--text);">${(s.totalEvaluatedNoa || 0).toLocaleString('id-ID')}</div>
+        <div class="stat-sub" style="font-size:11px;color:var(--text-3);">Baki: ${formatRupiah(s.totalEvaluatedBaki || 0)}</div>
+      </div>
+      <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+        <div class="stat-card-top"><span class="stat-label">Tingkat Penyehatan (Cure)</span><span class="stat-pill stat-pill-teal">CURE</span></div>
+        <div class="stat-val" style="font-size:22px;font-weight:800;color:#0D7A4E;">${(s.overallCureRatePct || 0).toFixed(1)}%</div>
+        <div class="stat-sub" style="font-size:11px;color:var(--text-3);">${(s.totalCuredNoa || 0).toLocaleString('id-ID')} Debitur Membaik / Lunas</div>
+      </div>
+      <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+        <div class="stat-card-top"><span class="stat-label">Tingkat Pemburukan (Roll)</span><span class="stat-pill stat-pill-yellow">ROLL</span></div>
+        <div class="stat-val" style="font-size:22px;font-weight:800;color:#C0392C;">${(s.overallRollRatePct || 0).toFixed(1)}%</div>
+        <div class="stat-sub" style="font-size:11px;color:var(--text-3);">${(s.totalRolledNoa || 0).toLocaleString('id-ID')} Debitur Mengalami Degradasi</div>
+      </div>
+      <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+        <div class="stat-card-top"><span class="stat-label">Net Migrasi NPF (In/Out)</span><span class="stat-pill stat-pill-purple">NET</span></div>
+        <div class="stat-val" style="font-size:18px;font-weight:800;color:${(s.netNpfMigrationNominal || 0) <= 0 ? '#0D7A4E' : '#C0392C'};">${(s.netNpfMigrationNominal || 0) <= 0 ? '-' : '+'}${formatRupiah(Math.abs(s.netNpfMigrationNominal || 0))}</div>
+        <div class="stat-sub" style="font-size:11px;color:var(--text-3);">Inflow: ${formatRupiah(s.npfInflowBaki || 0)} | Outflow: ${formatRupiah(s.npfOutflowBaki || 0)}</div>
+      </div>
+    </div>
+
+    <!-- 5x6 TRANSITION HEATMAP TABLE -->
+    <div class="matrix-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h3 style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:2px;">Matriks Transisi &amp; Migrasi Kolektibilitas (5×6)</h3>
+          <p style="font-size:12px;color:var(--text-3);margin:0;">Perpindahan status kolektibilitas debitur dari periode awal (baris) ke periode akhir (kolom).</p>
+        </div>
+        <!-- LEGEND -->
+        <div style="display:flex;gap:10px;font-size:11px;font-weight:700;">
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#ECFDF5;border:1px solid #A7F3D0;"></span> Membaik (Cure)</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#FFFBEB;border:1px solid #FDE68A;"></span> Tetap (Steady)</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#FEF2F2;border:1px solid #FECACA;"></span> Memburuk (Roll)</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#F0FDF4;border:1px solid #86EFAC;"></span> Lunas</span>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="migration-table">
+          <thead>
+            <tr>
+              <th style="text-align:left;min-width:140px;">Kolektibilitas Awal</th>
+              ${data.colKols.map(c => `<th>${c}</th>`).join('')}
+              <th style="background:var(--bg-card);border:1px solid var(--border);">Total NOA (100%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.rowKols.map(r => {
+              const rTotal = data.rowTotals[r] || { noa: 0, bakiDebet: 0 };
+              return `
+                <tr>
+                  <td style="text-align:left;font-weight:800;color:var(--text);background:var(--bg);border-radius:8px;padding-left:12px;">
+                    ${r}
+                  </td>
+                  ${data.colKols.map(c => {
+                    const cell = data.matrix[r] ? data.matrix[r][c] : { noa: 0, bakiDebet: 0, percent: 0, movement: 'steady' };
+                    let cellClass = 'cell-empty';
+                    if (cell.noa > 0) {
+                      if (cell.movement === 'cure') cellClass = 'cell-cure';
+                      else if (cell.movement === 'roll') cellClass = 'cell-roll';
+                      else if (cell.movement === 'lunas') cellClass = 'cell-lunas';
+                      else cellClass = 'cell-steady';
+                    }
+                    return `
+                      <td class="${cellClass}">
+                        <div style="font-weight:800;font-size:13px;">${cell.percent > 0 ? cell.percent + '%' : '-'}</div>
+                        <div style="font-size:10px;opacity:0.85;margin-top:2px;">
+                          ${cell.noa > 0 ? `${cell.noa} NOA` : ''}
+                        </div>
+                      </td>
+                    `;
+                  }).join('')}
+                  <td style="font-weight:800;color:var(--text);background:var(--bg);border-radius:8px;">
+                    ${rTotal.noa.toLocaleString('id-ID')} NOA
+                    <div style="font-size:10px;color:var(--text-3);font-weight:600;">${formatRupiah(rTotal.bakiDebet)}</div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function filterMigrationMatrix() {
+  const fromSel = document.getElementById('matrix-from-select');
+  const toSel = document.getElementById('matrix-to-select');
+  if (!fromSel || !toSel) return;
+
+  const fromPeriode = fromSel.value;
+  const toPeriode = toSel.value;
+
+  const container = document.getElementById('kpi-migration-content');
+  if (container) container.innerHTML = `<div class="empty-st"><p>Mengalkulasi ulang matriks migrasi...</p></div>`;
+
+  try {
+    const params = new URLSearchParams();
+    if (fromPeriode) params.append('fromPeriode', fromPeriode);
+    if (toPeriode) params.append('toPeriode', toPeriode);
+
+    const res = await apiCall(`/kpi/migration-matrix?${params.toString()}`);
+    _migrationMatrixData = res;
+    renderMigrationMatrixContent(res);
+  } catch (e) {
+    showToast(`Gagal memuat matriks: ${e.message}`, 'danger');
+  }
+}
+
+window.filterMigrationMatrix = filterMigrationMatrix;
+
+/**
+ * 2. STRESS TEST & SCENARIO SIMULATOR VIEW
+ */
+async function loadKpiStressTestView() {
+  const container = document.getElementById('kpi-stresstest-content');
+  if (!container) return;
+
+  container.innerHTML = `<div class="empty-st"><p>Memuat kalkulator simulasi &amp; stress test...</p></div>`;
+
+  try {
+    const res = await apiCall('/kpi/stress-test', {
+      method: 'POST',
+      body: _stressTestState
+    });
+    renderStressTestContent(res);
+  } catch (e) {
+    container.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--danger);"><p>Gagal memuat simulator: ${escapeHtml(e.message)}</p></div>`;
+  }
+}
+
+function renderStressTestContent(data) {
+  const container = document.getElementById('kpi-stresstest-content');
+  if (!container || !data) return;
+
+  const b = data.baseline || {};
+  const s = data.simulation || {};
+
+  container.innerHTML = `
+    <!-- HEADER -->
+    <div class="card mb-4" style="padding:18px 22px;border-radius:18px;background:linear-gradient(135deg, #0f766e 0%, #115e59 100%);color:#ffffff;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h3 style="font-size:17px;font-weight:800;margin-bottom:3px;">Simulasi Target NPF &amp; Stress Testing Risiko</h3>
+          <p style="font-size:12.5px;opacity:0.9;margin:0;">Uji ketahanan portofolio secara real-time terhadap target pemulihan, restrukturisasi akad, dan potensi pemburukan DPK.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" onclick="resetStressTest()" style="background:rgba(255,255,255,0.15);color:#ffffff;border:1px solid rgba(255,255,255,0.3);font-weight:700;">Reset Parameter</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2-COLUMN SIMULATOR GRID -->
+    <div class="sim-grid">
+      <!-- LEFT: CONTROLS & SLIDERS -->
+      <div class="sim-control-box">
+        <h4 style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Parameter Skenario Simulasi
+        </h4>
+
+        <!-- SLIDER 1: RECOVERY TARGET -->
+        <div class="sim-slider-group">
+          <div class="sim-slider-header">
+            <span class="sim-slider-label">1. Target Recovery Penagihan Tunai (KOL 3-5)</span>
+            <span class="sim-slider-val" id="val-recovery">${formatRupiah(_stressTestState.targetRecovery)}</span>
+          </div>
+          <input type="range" class="sim-slider-input" min="0" max="${b.npfBaki || 1000000000}" step="50000000" value="${_stressTestState.targetRecovery}" oninput="updateStressTestSlider('recovery', this.value)"/>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('recovery', 250000000)">+250 Jt</button>
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('recovery', 500000000)">+500 Jt</button>
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('recovery', 1000000000)">+1 M</button>
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('recovery', 2000000000)">+2 M</button>
+          </div>
+        </div>
+
+        <!-- SLIDER 2: RESTRUCTURING ON KL -->
+        <div class="sim-slider-group">
+          <div class="sim-slider-header">
+            <span class="sim-slider-label">2. Target Restrukturisasi Penyehatan (KOL 3 &rarr; KOL 2)</span>
+            <span class="sim-slider-val" id="val-restruk">${formatRupiah(_stressTestState.restrukKol3)}</span>
+          </div>
+          <input type="range" class="sim-slider-input" min="0" max="${b.klBaki || 500000000}" step="25000000" value="${_stressTestState.restrukKol3}" oninput="updateStressTestSlider('restruk', this.value)"/>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('restruk', 100000000)">+100 Jt</button>
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('restruk', 250000000)">+250 Jt</button>
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('restruk', 500000000)">+500 Jt</button>
+          </div>
+        </div>
+
+        <!-- SLIDER 3: DPK SHOCK -->
+        <div class="sim-slider-group">
+          <div class="sim-slider-header">
+            <span class="sim-slider-label">3. Skenario Shock Degradasi DPK (KOL 2 &rarr; KOL 3)</span>
+            <span class="sim-slider-val" id="val-dpkroll">${_stressTestState.dpkRoll}%</span>
+          </div>
+          <input type="range" class="sim-slider-input" min="0" max="50" step="5" value="${_stressTestState.dpkRoll}" oninput="updateStressTestSlider('dpkroll', this.value)"/>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('dpkroll', 5)">Shock +5%</button>
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('dpkroll', 15)">Shock +15%</button>
+            <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="setPresetStress('dpkroll', 30)">Extreme +30%</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: LIVE RESULTS & NARRATIVE -->
+      <div class="sim-result-box">
+        <div>
+          <h4 style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D7A4E" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Proyeksi Rasio &amp; Kesehatan Portofolio
+          </h4>
+
+          <div class="sim-metric-row">
+            <!-- METRIC 1: NPF GROSS -->
+            <div class="sim-metric-card">
+              <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">NPF Gross Proyeksi</div>
+              <div style="font-size:24px;font-weight:800;color:${s.simNpfGross <= 5.0 ? '#0D7A4E' : '#C0392C'};margin:4px 0;">
+                ${s.simNpfGross}%
+              </div>
+              <div style="font-size:11px;color:var(--text-3);">
+                Baseline: <strong>${b.npfGross}%</strong>
+              </div>
+              <div class="sim-delta-badge ${s.npfDeltaPercent <= 0 ? 'sim-delta-good' : 'sim-delta-bad'}">
+                ${s.npfDeltaPercent <= 0 ? '&darr;' : '&uarr;'} ${s.npfDeltaPercent <= 0 ? '' : '+'}${s.npfDeltaPercent}%
+              </div>
+            </div>
+
+            <!-- METRIC 2: LOAN AT RISK -->
+            <div class="sim-metric-card">
+              <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Loan at Risk (LAR)</div>
+              <div style="font-size:24px;font-weight:800;color:#0F172A;margin:4px 0;">
+                ${s.simLar}%
+              </div>
+              <div style="font-size:11px;color:var(--text-3);">
+                Baseline: <strong>${b.lar}%</strong>
+              </div>
+              <div class="sim-delta-badge ${s.simLar <= b.lar ? 'sim-delta-good' : 'sim-delta-bad'}">
+                ${(s.simLar - b.lar) <= 0 ? '&darr;' : '&uarr;'} ${parseFloat((s.simLar - b.lar).toFixed(2))}%
+              </div>
+            </div>
+
+            <!-- METRIC 3: PPAP REQUIREMENT -->
+            <div class="sim-metric-card">
+              <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Cadangan PPAP Wajib</div>
+              <div style="font-size:16px;font-weight:800;color:#0F172A;margin:4px 0;">
+                ${formatRupiah(s.simPpapRequirement)}
+              </div>
+              <div style="font-size:11px;color:var(--text-3);">
+                Baseline: ${formatRupiah(b.ppapRequirement)}
+              </div>
+              <div class="sim-delta-badge ${s.ppapDeltaNominal <= 0 ? 'sim-delta-good' : 'sim-delta-bad'}">
+                Delta: ${s.ppapDeltaNominal <= 0 ? '-' : '+'}${formatRupiah(Math.abs(s.ppapDeltaNominal))}
+              </div>
+            </div>
+
+            <!-- METRIC 4: TOTAL BAKI NPF -->
+            <div class="sim-metric-card">
+              <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Nominal Baki NPF</div>
+              <div style="font-size:16px;font-weight:800;color:#0F172A;margin:4px 0;">
+                ${formatRupiah(s.simNpfBaki)}
+              </div>
+              <div style="font-size:11px;color:var(--text-3);">
+                Baseline: ${formatRupiah(b.npfBaki)}
+              </div>
+              <div class="sim-delta-badge ${s.simNpfBaki <= b.npfBaki ? 'sim-delta-good' : 'sim-delta-bad'}">
+                ${s.simNpfBaki <= b.npfBaki ? 'Turun' : 'Naik'} ${formatRupiah(Math.abs(s.simNpfBaki - b.npfBaki))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NARRATIVE BOX -->
+        <div style="background:${s.simNpfGross <= 5.0 ? '#ECFDF5' : '#FEF3C7'};border:1.5px solid ${s.simNpfGross <= 5.0 ? '#86EFAC' : '#FCD34D'};border-radius:14px;padding:14px 16px;margin-top:10px;">
+          <div style="font-size:12.5px;font-weight:700;color:${s.simNpfGross <= 5.0 ? '#065F46' : '#92400E'};line-height:1.5;">
+            ${escapeHtml(s.conclusion)}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+let _stressDebounceTimer = null;
+function updateStressTestSlider(key, val) {
+  const num = parseFloat(val) || 0;
+  if (key === 'recovery') {
+    _stressTestState.targetRecovery = num;
+    const el = document.getElementById('val-recovery');
+    if (el) el.textContent = formatRupiah(num);
+  } else if (key === 'restruk') {
+    _stressTestState.restrukKol3 = num;
+    const el = document.getElementById('val-restruk');
+    if (el) el.textContent = formatRupiah(num);
+  } else if (key === 'dpkroll') {
+    _stressTestState.dpkRoll = num;
+    const el = document.getElementById('val-dpkroll');
+    if (el) el.textContent = num + '%';
+  }
+
+  clearTimeout(_stressDebounceTimer);
+  _stressDebounceTimer = setTimeout(async () => {
+    try {
+      const res = await apiCall('/kpi/stress-test', {
+        method: 'POST',
+        body: _stressTestState
+      });
+      renderStressTestContent(res);
+    } catch (e) {}
+  }, 250);
+}
+
+function setPresetStress(key, val) {
+  if (key === 'recovery') _stressTestState.targetRecovery = val;
+  if (key === 'restruk') _stressTestState.restrukKol3 = val;
+  if (key === 'dpkroll') _stressTestState.dpkRoll = val;
+  loadKpiStressTestView();
+}
+
+function resetStressTest() {
+  _stressTestState = { targetRecovery: 0, restrukKol3: 0, dpkRoll: 0 };
+  loadKpiStressTestView();
+}
+
+window.updateStressTestSlider = updateStressTestSlider;
+window.setPresetStress = setPresetStress;
+window.resetStressTest = resetStressTest;
+
+/**
+ * 3. EXECUTIVE REPORT & PDF EXPORT VIEW
+ */
+async function loadKpiReportView() {
+  const container = document.getElementById('kpi-report-content');
+  if (!container) return;
+
+  container.innerHTML = `<div class="empty-st"><p>Menyiapkan dokumen Laporan Eksekutif Direksi...</p></div>`;
+
+  try {
+    const report = await apiCall('/kpi/executive-report');
+    renderExecutiveReportContent(report);
+  } catch (e) {
+    container.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--danger);"><p>Gagal memuat laporan eksekutif: ${escapeHtml(e.message)}</p></div>`;
+  }
+}
+
+function renderExecutiveReportContent(report) {
+  const container = document.getElementById('kpi-report-content');
+  if (!container || !report) return;
+
+  const kpi = report.kpi || {};
+  const stats = kpi.stats || {};
+  const target = kpi.target || {};
+  const inst = report.institution || {};
+  const topNpf = report.topNpfDebitur || [];
+  const aoList = report.aoPerformance || [];
+  const mig = report.migrationSummary || {};
+
+  container.innerHTML = `
+    <!-- PRINT BUTTON BAR -->
+    <div class="toolbar-wrap btn-print-hide mb-4" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-card);padding:14px 18px;border-radius:14px;border:1px solid var(--border);">
+      <div>
+        <h4 style="font-size:14px;font-weight:800;color:var(--text);margin:0;">Laporan Eksekutif Manajemen &amp; Kualitas Portofolio</h4>
+        <p style="font-size:12px;color:var(--text-3);margin:0;">Format cetak PDF formal untuk Rapat Direksi &amp; Dewan Pengawas Syariah (DPS).</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="printExecutiveReport()" style="display:inline-flex;align-items:center;gap:6px;font-weight:700;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Cetak / Export PDF Laporan
+        </button>
+      </div>
+    </div>
+
+    <!-- FORMAL REPORT PAPER -->
+    <div class="report-paper">
+      <!-- HEADER -->
+      <div class="report-header-grid">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:48px;height:48px;border-radius:12px;background:#0F766E;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;">
+            BM
+          </div>
+          <div>
+            <h2 style="font-size:18px;font-weight:800;color:#0f172a;margin:0;">${escapeHtml(inst.name)}</h2>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtml(inst.address)} &bull; Telp: ${escapeHtml(inst.phone)}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;font-weight:800;color:#0F766E;text-transform:uppercase;letter-spacing:0.5px;">Dokumen Laporan Resmi</div>
+          <div style="font-size:15px;font-weight:800;color:#0f172a;">Periode: ${escapeHtml(report.periode)}</div>
+          <div style="font-size:11px;color:#64748b;">Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+        </div>
+      </div>
+
+      <!-- SECTION 1: EXECUTIVE SUMMARY -->
+      <div style="margin-bottom:24px;">
+        <h3 style="font-size:14px;font-weight:800;color:#0f172a;border-bottom:1.5px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+          I. Ringkasan Eksekutif &amp; Scorecard Kepatuhan RBB
+        </h3>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid #cbd5e1;text-align:left;">
+              <th style="padding:8px 10px;">Indikator Utama</th>
+              <th style="padding:8px 10px;">Realisasi</th>
+              <th style="padding:8px 10px;">Target RBB</th>
+              <th style="padding:8px 10px;">Capaian (%)</th>
+              <th style="padding:8px 10px;">Status Kepatuhan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:8px 10px;font-weight:700;">NPF Gross</td>
+              <td style="padding:8px 10px;font-weight:800;color:${(stats.npfGross || 0) <= (target.npfGross || 7.0) ? '#0D7A4E' : '#C0392C'};">${(stats.npfGross || 0).toFixed(2)}%</td>
+              <td style="padding:8px 10px;">&le; ${(target.npfGross || 7.0).toFixed(2)}%</td>
+              <td style="padding:8px 10px;">${(stats.npfGross || 0) <= (target.npfGross || 7.0) ? '100%' : 'Under Target'}</td>
+              <td style="padding:8px 10px;"><span style="font-weight:800;color:${(stats.npfGross || 0) <= 5.0 ? '#0D7A4E' : '#C0392C'};">${(stats.npfGross || 0) <= 5.0 ? 'Sehat (OJK)' : 'Perlu Pengawasan Khusus'}</span></td>
+            </tr>
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:8px 10px;font-weight:700;">PPAP Coverage Ratio</td>
+              <td style="padding:8px 10px;font-weight:800;">${(stats.ppapCoverage || 100).toFixed(1)}%</td>
+              <td style="padding:8px 10px;">&ge; ${(target.ppapCoverage || 100).toFixed(1)}%</td>
+              <td style="padding:8px 10px;">${((stats.ppapCoverage || 100) / (target.ppapCoverage || 100) * 100).toFixed(0)}%</td>
+              <td style="padding:8px 10px;"><span style="font-weight:800;color:#0D7A4E;">Terpenuhi</span></td>
+            </tr>
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:8px 10px;font-weight:700;">Recovery Rate</td>
+              <td style="padding:8px 10px;font-weight:800;">${(stats.recoveryRate || 0).toFixed(1)}%</td>
+              <td style="padding:8px 10px;">&ge; ${(target.recoveryRate || 40.0).toFixed(1)}%</td>
+              <td style="padding:8px 10px;">${((stats.recoveryRate || 0) / (target.recoveryRate || 40.0) * 100).toFixed(0)}%</td>
+              <td style="padding:8px 10px;">${(stats.recoveryRate || 0) >= (target.recoveryRate || 40.0) ? '<span style="color:#0D7A4E;font-weight:800;">Target Tercapai</span>' : '<span style="color:#B05C08;font-weight:800;">Dalam Pemulihan</span>'}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:8px 10px;font-weight:700;">Collection Rate</td>
+              <td style="padding:8px 10px;font-weight:800;">${(stats.collectionRate || 0).toFixed(1)}%</td>
+              <td style="padding:8px 10px;">&ge; ${(target.collectionRate || 70.0).toFixed(1)}%</td>
+              <td style="padding:8px 10px;">${((stats.collectionRate || 0) / (target.collectionRate || 70.0) * 100).toFixed(0)}%</td>
+              <td style="padding:8px 10px;">${(stats.collectionRate || 0) >= (target.collectionRate || 70.0) ? '<span style="color:#0D7A4E;font-weight:800;">Optimal</span>' : '<span style="color:#B05C08;font-weight:800;">Perlu Ditingkatkan</span>'}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SECTION 2: MIGRATION & DYNAMICS -->
+      <div style="margin-bottom:24px;">
+        <h3 style="font-size:14px;font-weight:800;color:#0f172a;border-bottom:1.5px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+          II. Dinamika Migrasi Kolektibilitas (Roll Rate vs Cure Rate)
+        </h3>
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;background:#f8fafc;padding:12px 16px;border-radius:10px;border:1px solid #e2e8f0;font-size:12px;">
+          <div>
+            <div style="color:#64748b;font-weight:700;font-size:11px;">Tingkat Penyehatan (Cure)</div>
+            <div style="font-size:16px;font-weight:800;color:#0D7A4E;margin-top:2px;">${(mig.overallCureRatePct || 0).toFixed(1)}%</div>
+          </div>
+          <div>
+            <div style="color:#64748b;font-weight:700;font-size:11px;">Tingkat Pemburukan (Roll)</div>
+            <div style="font-size:16px;font-weight:800;color:#C0392C;margin-top:2px;">${(mig.overallRollRatePct || 0).toFixed(1)}%</div>
+          </div>
+          <div>
+            <div style="color:#64748b;font-weight:700;font-size:11px;">Net Migrasi Portofolio NPF</div>
+            <div style="font-size:15px;font-weight:800;color:${(mig.netNpfMigrationNominal || 0) <= 0 ? '#0D7A4E' : '#C0392C'};margin-top:2px;">
+              ${(mig.netNpfMigrationNominal || 0) <= 0 ? '-' : '+'}${formatRupiah(Math.abs(mig.netNpfMigrationNominal || 0))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: TOP 10 LARGEST NPF EXPOSURES -->
+      <div style="margin-bottom:24px;">
+        <h3 style="font-size:14px;font-weight:800;color:#0f172a;border-bottom:1.5px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+          III. 10 Debitur dengan Eksposur NPF Terbesar (Watchlist Prioritas Direksi)
+        </h3>
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+          <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid #cbd5e1;text-align:left;">
+              <th style="padding:6px 8px;">No. Rekening</th>
+              <th style="padding:6px 8px;">Nama Debitur</th>
+              <th style="padding:6px 8px;">AO</th>
+              <th style="padding:6px 8px;">KOL</th>
+              <th style="padding:6px 8px;text-align:right;">Baki Debet</th>
+              <th style="padding:6px 8px;text-align:right;">Tunggakan</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${topNpf.map((d) => `
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:6px 8px;font-family:monospace;font-weight:700;">${escapeHtml(d.id)}</td>
+                <td style="padding:6px 8px;font-weight:700;">${escapeHtml(d.nama)}</td>
+                <td style="padding:6px 8px;">${escapeHtml(d.ao || '-')}</td>
+                <td style="padding:6px 8px;"><span style="font-weight:800;color:#C0392C;">${escapeHtml(d.kol)}</span></td>
+                <td style="padding:6px 8px;text-align:right;font-weight:700;">${formatRupiah(d.bakiDebet)}</td>
+                <td style="padding:6px 8px;text-align:right;color:#C0392C;font-weight:700;">${formatRupiah(d.totalTunggakan)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SECTION 4: AO PERFORMANCE SUMMARY -->
+      <div style="margin-bottom:28px;">
+        <h3 style="font-size:14px;font-weight:800;color:#0f172a;border-bottom:1.5px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+          IV. Rekapitulasi Kualitas Portofolio Account Officer (AO)
+        </h3>
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+          <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid #cbd5e1;text-align:left;">
+              <th style="padding:6px 8px;">Nama AO</th>
+              <th style="padding:6px 8px;text-align:center;">NOA</th>
+              <th style="padding:6px 8px;text-align:right;">Total Baki Debet</th>
+              <th style="padding:6px 8px;text-align:right;">Baki NPF</th>
+              <th style="padding:6px 8px;text-align:center;">Rasio NPF (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${aoList.slice(0, 8).map((a) => `
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:6px 8px;font-weight:700;">${escapeHtml(a.ao)}</td>
+                <td style="padding:6px 8px;text-align:center;">${a.noa}</td>
+                <td style="padding:6px 8px;text-align:right;">${formatRupiah(a.totalBaki)}</td>
+                <td style="padding:6px 8px;text-align:right;color:#C0392C;font-weight:700;">${formatRupiah(a.npfBaki)}</td>
+                <td style="padding:6px 8px;text-align:center;font-weight:800;color:${a.npfRatio <= 5.0 ? '#0D7A4E' : '#C0392C'};">${a.npfRatio}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- FORMAL SIGNATURE BOX -->
+      <div class="report-sign-grid">
+        <div class="report-sign-box">
+          <div style="font-size:11.5px;color:#64748b;font-weight:700;">Disiapkan Oleh:</div>
+          <div style="font-size:12px;font-weight:800;color:#0f172a;margin-top:2px;">Kabid Remedial &amp; Penagihan</div>
+          <div class="report-sign-line">( .................................................... )</div>
+        </div>
+        <div class="report-sign-box">
+          <div style="font-size:11.5px;color:#64748b;font-weight:700;">Diperiksa Oleh:</div>
+          <div style="font-size:12px;font-weight:800;color:#0f172a;margin-top:2px;">Direktur Operasional &amp; Kepatuhan</div>
+          <div class="report-sign-line">( .................................................... )</div>
+        </div>
+        <div class="report-sign-box">
+          <div style="font-size:11.5px;color:#64748b;font-weight:700;">Disetujui Oleh:</div>
+          <div style="font-size:12px;font-weight:800;color:#0f172a;margin-top:2px;">Direktur Utama</div>
+          <div class="report-sign-line">( .................................................... )</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function printExecutiveReport() {
+  window.print();
+}
+
+window.printExecutiveReport = printExecutiveReport;
+
+
 // 8. MANAJEMEN USER VIEW
 let _allUsersCache = [];
 
@@ -7782,7 +9123,7 @@ async function loadAboutView() {
             </div>
             <div>
               <div style="font-size:22px;font-weight:900;color:var(--text);letter-spacing:-0.5px;display:flex;align-items:center;gap:10px;">
-                Sistem Informasi Penagihan Terpadu (SISPENG)
+                Sistem Informasi Penagihan Terpadu
               </div>
               <div style="font-size:14.5px;font-weight:800;color:var(--brand);margin-top:3px;letter-spacing:0.2px;">${ptName}</div>
               <div style="font-size:12.5px;color:var(--text-3);margin-top:3px;font-weight:500;">Portal Perbankan Syariah Terintegrasi (Account Officer, P3, Desk Call, &amp; Legal)</div>
@@ -7825,7 +9166,7 @@ async function loadAboutView() {
         </div>
 
         <div style="font-size:13.5px;line-height:1.75;color:var(--text-2);background:var(--card-bg);padding:18px 22px;border-radius:14px;border:1px solid var(--border);">
-          <strong>SISPENG (Sistem Informasi Penagihan Terpadu)</strong> dirancang secara khusus untuk mengelola, melacak, dan mengoptimalkan seluruh ekosistem penagihan pembiayaan (NPF) secara presisi, terukur, dan akuntabel. Sistem menghubungkan kerja kolaboratif lintas divisi antara <strong>Account Officer (AO)</strong> untuk pemantauan dini portofolio binaan, <strong>Penagihan Pihak Ke-3 (P3)</strong> untuk kunjungan lapangan fisik debitur NPF, <strong>Desk Call</strong> untuk komunikasi penagihan jarak jauh, serta <strong>Legal</strong> untuk audit dokumen legalitas akad dan penanganan Agunan Yang Diambil Alih (AYDA).
+          <strong>Sistem Informasi Penagihan Terpadu</strong> dirancang secara khusus untuk mengelola, melacak, dan mengoptimalkan seluruh ekosistem penagihan pembiayaan (NPF) secara presisi, terukur, dan akuntabel. Sistem menghubungkan kerja kolaboratif lintas divisi antara <strong>Account Officer (AO)</strong> untuk pemantauan dini portofolio binaan, <strong>Penagihan Pihak Ke-3 (P3)</strong> untuk kunjungan lapangan fisik debitur NPF, <strong>Desk Call</strong> untuk komunikasi penagihan jarak jauh, serta <strong>Legal</strong> untuk audit dokumen legalitas akad dan penanganan Agunan Yang Diambil Alih (AYDA).
         </div>
       </div>
 
@@ -9981,3 +11322,569 @@ window.loadHistorisView = loadHistorisView;
 window.setHistorisMonths = setHistorisMonths;
 window.searchHistorisTable = searchHistorisTable;
 window.setHistorisPage = setHistorisPage;
+
+// ==========================================================================
+// 10. VISUAL AUDIT TRAIL & BEFORE VS AFTER DIFF ENGINE
+// ==========================================================================
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+const auditState = {
+  page: 1,
+  limit: 20,
+  tableName: '',
+  action: '',
+  search: '',
+  startDate: '',
+  endDate: '',
+  logs: [],
+  total: 0,
+  totalPages: 1
+};
+
+async function loadAuditView() {
+  const container = document.getElementById('audit-content');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div style="padding: 4px 0;">
+      <!-- TOP SUMMARY STATS -->
+      <div id="audit-stats-row" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:20px;">
+        <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+          <div class="stat-card-top">
+            <span class="stat-label">Total Log Aktivitas</span>
+            <div class="stat-icon-wrap" style="width:36px;height:36px;border-radius:10px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+              </svg>
+            </div>
+          </div>
+          <div class="stat-val" id="stat-audit-total" style="font-size:24px;font-weight:800;color:var(--text);">-</div>
+          <div class="stat-sub" style="font-size:11px;color:var(--text-3);">Semua jejak perubahan tersimpan</div>
+        </div>
+        <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+          <div class="stat-card-top">
+            <span class="stat-label">Aktivitas Hari Ini</span>
+            <div class="stat-icon-wrap" style="width:36px;height:36px;border-radius:10px;background:#dbeafe;color:#1e40af;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </div>
+          </div>
+          <div class="stat-val" id="stat-audit-today" style="font-size:24px;font-weight:800;color:#0f766e;">-</div>
+          <div class="stat-sub" style="font-size:11px;color:var(--text-3);">Perubahan data per hari ini</div>
+        </div>
+        <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+          <div class="stat-card-top">
+            <span class="stat-label">Keamanan &amp; Integritas</span>
+            <div class="stat-icon-wrap" style="width:36px;height:36px;border-radius:10px;background:#fef3c7;color:#92400e;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="m9 12 2 2 4-4"/>
+              </svg>
+            </div>
+          </div>
+          <div class="stat-val" style="font-size:18px;font-weight:800;color:#0f172a;">Audit Diff Guard</div>
+          <div class="stat-sub" style="font-size:11px;color:var(--text-3);">Dilengkapi IP &amp; Visual Before/After</div>
+        </div>
+      </div>
+
+      <!-- AUDIT FILTER BOX -->
+      <div class="audit-filter-box">
+        <!-- ROW 1: SEARCH & ACTION BUTTONS -->
+        <div class="audit-filter-top">
+          <div class="audit-search-wrap">
+            <svg class="audit-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="audit-search-input" class="audit-search-input" placeholder="Cari nama petugas, no rekening, IP, aksi..." value="${escapeHtml(auditState.search)}" onkeydown="if(event.key==='Enter') triggerAuditSearch()"/>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="triggerAuditSearch()" style="height:42px;padding:0 20px;font-weight:700;font-size:13px;border-radius:11px;display:inline-flex;align-items:center;gap:6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Cari
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="resetAuditFilters()" style="height:42px;padding:0 16px;font-size:12.5px;border-radius:11px;border:1.5px solid var(--border);">
+            Reset Filter
+          </button>
+        </div>
+
+        <!-- ROW 2: ADVANCED FILTER DROPDOWNS & DATE RANGE -->
+        <div class="audit-filter-bottom">
+          <div class="audit-filter-cell">
+            <label class="audit-filter-label">Entitas / Modul</label>
+            <select id="audit-table-filter" class="audit-select-input" onchange="auditState.tableName=this.value;auditState.page=1;fetchAuditLogs();">
+              <option value="" ${!auditState.tableName ? 'selected' : ''}>Semua Entitas</option>
+              <option value="debitur" ${auditState.tableName === 'debitur' ? 'selected' : ''}>Data Debitur</option>
+              <option value="pembayaran" ${auditState.tableName === 'pembayaran' ? 'selected' : ''}>Pembayaran</option>
+              <option value="desk_call" ${auditState.tableName === 'desk_call' ? 'selected' : ''}>Desk Call</option>
+              <option value="jadwal_penagihan" ${auditState.tableName === 'jadwal_penagihan' ? 'selected' : ''}>Jadwal P3</option>
+              <option value="users" ${auditState.tableName === 'users' ? 'selected' : ''}>User &amp; Akses</option>
+              <option value="surat_legal" ${auditState.tableName === 'surat_legal' ? 'selected' : ''}>Surat Legal (SP)</option>
+              <option value="legal_berkas" ${auditState.tableName === 'legal_berkas' ? 'selected' : ''}>Berkas &amp; Arsip</option>
+              <option value="import_batches" ${auditState.tableName === 'import_batches' ? 'selected' : ''}>Import CBS</option>
+              <option value="app_settings" ${auditState.tableName === 'app_settings' ? 'selected' : ''}>Pengaturan</option>
+            </select>
+          </div>
+
+          <div class="audit-filter-cell">
+            <label class="audit-filter-label">Jenis Aksi</label>
+            <select id="audit-action-filter" class="audit-select-input" onchange="auditState.action=this.value;auditState.page=1;fetchAuditLogs();">
+              <option value="" ${!auditState.action ? 'selected' : ''}>Semua Aksi</option>
+              <option value="create" ${auditState.action === 'create' ? 'selected' : ''}>Pembuatan (Create)</option>
+              <option value="update" ${auditState.action === 'update' ? 'selected' : ''}>Perubahan (Update)</option>
+              <option value="delete" ${auditState.action === 'delete' ? 'selected' : ''}>Penghapusan (Delete)</option>
+              <option value="commit_cbs_import" ${auditState.action === 'commit_cbs_import' ? 'selected' : ''}>Import CBS</option>
+              <option value="login" ${auditState.action === 'login' ? 'selected' : ''}>Login / Sesi</option>
+            </select>
+          </div>
+
+          <div class="audit-filter-cell">
+            <label class="audit-filter-label">Dari Tanggal</label>
+            <input type="date" id="audit-start-date" class="audit-date-input" value="${auditState.startDate}" onchange="auditState.startDate=this.value;auditState.page=1;fetchAuditLogs();"/>
+          </div>
+
+          <div class="audit-filter-cell">
+            <label class="audit-filter-label">Sampai Tanggal</label>
+            <input type="date" id="audit-end-date" class="audit-date-input" value="${auditState.endDate}" onchange="auditState.endDate=this.value;auditState.page=1;fetchAuditLogs();"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIT LOG TABLE CONTAINER -->
+      <div id="audit-table-wrap" class="card" style="padding:0;overflow:hidden;border-radius:16px;">
+        <div style="padding:24px;text-align:center;color:var(--text-3);">Memuat data log aktivitas...</div>
+      </div>
+    </div>
+  `;
+
+  loadAuditSummary();
+  fetchAuditLogs();
+}
+
+async function loadAuditSummary() {
+  try {
+    const summary = await apiCall('/audit/summary');
+    if (!summary) return;
+    const totalEl = document.getElementById('stat-audit-total');
+    const todayEl = document.getElementById('stat-audit-today');
+    if (totalEl) totalEl.textContent = (summary.totalLogs || 0).toLocaleString('id-ID');
+    if (todayEl) todayEl.textContent = (summary.todayLogs || 0).toLocaleString('id-ID');
+  } catch (e) {}
+}
+
+async function fetchAuditLogs() {
+  const wrap = document.getElementById('audit-table-wrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = `<div style="padding:32px;text-align:center;color:var(--text-3);"><p>Mengambil jejak audit...</p></div>`;
+
+  try {
+    const params = new URLSearchParams({
+      page: String(auditState.page),
+      limit: String(auditState.limit)
+    });
+    if (auditState.tableName) params.append('tableName', auditState.tableName);
+    if (auditState.action) params.append('action', auditState.action);
+    if (auditState.search) params.append('search', auditState.search);
+    if (auditState.startDate) params.append('startDate', auditState.startDate);
+    if (auditState.endDate) params.append('endDate', auditState.endDate);
+
+    const res = await apiCall(`/audit?${params.toString()}`);
+    if (!res || !res.logs) {
+      wrap.innerHTML = `<div style="padding:32px;text-align:center;color:var(--text-3);">Tidak ada data audit ditemukan.</div>`;
+      return;
+    }
+
+    auditState.logs = res.logs;
+    auditState.total = res.total;
+    auditState.totalPages = res.totalPages;
+
+    renderAuditTable(res.logs, res.total, res.page, res.totalPages);
+  } catch (err) {
+    wrap.innerHTML = `<div class="auth-error" style="margin:16px;">Gagal memuat audit log: ${err.message}</div>`;
+  }
+}
+
+function renderAuditTable(logs, total, page, totalPages) {
+  const wrap = document.getElementById('audit-table-wrap');
+  if (!wrap) return;
+
+  if (!logs || logs.length === 0) {
+    wrap.innerHTML = `
+      <div style="padding:48px 20px;text-align:center;">
+        <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px;">Tidak Ada Log Aktivitas</div>
+        <div style="font-size:12.5px;color:var(--text-3);margin-bottom:16px;">Tidak ada riwayat aktivitas yang sesuai dengan kriteria filter saat ini.</div>
+        <button class="btn btn-primary btn-sm" onclick="resetAuditFilters()">Reset Semua Filter</button>
+      </div>
+    `;
+    return;
+  }
+
+  const rows = logs.map((log, idx) => {
+    const rowNum = (page - 1) * auditState.limit + idx + 1;
+    const createdAt = new Date(log.createdAt);
+    const dateStr = !isNaN(createdAt.getTime())
+      ? createdAt.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB'
+      : '-';
+
+    const actorName = log.user?.nama || log.user?.username || 'Sistem Otomatis';
+    const actorRole = (log.user?.posisi || 'system').toUpperCase();
+    const actionBadge = getAuditActionBadge(log.action);
+    const tableBadge = getAuditTableBadge(log.tableName);
+
+    // Summary Diff Pills
+    let diffSummaryHtml = '';
+    if (log.diffCount > 0 && log.summaryDiff && log.summaryDiff.length > 0) {
+      const pills = log.summaryDiff.map(d => {
+        return `<span style="font-size:11px;background:rgba(15,118,110,0.08);color:#0f766e;border:1px solid rgba(15,118,110,0.2);padding:2px 7px;border-radius:6px;font-weight:600;display:inline-block;">${escapeHtml(d.label)}</span>`;
+      }).join(' ');
+      const extraCount = log.diffCount - log.summaryDiff.length;
+      diffSummaryHtml = `
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:4px;">
+          ${pills}
+          ${extraCount > 0 ? `<span style="font-size:10.5px;color:var(--text-3);font-weight:700;">+${extraCount} lainnya</span>` : ''}
+        </div>
+      `;
+    } else {
+      diffSummaryHtml = `<span style="font-size:11px;color:var(--text-3);font-style:italic;">Aktivitas Sistem / Sesi</span>`;
+    }
+
+    return `
+      <tr>
+        <td style="text-align:center;font-size:11.5px;color:var(--text-3);font-weight:700;">${rowNum}</td>
+        <td style="white-space:nowrap;">
+          <div style="font-weight:700;font-size:12.5px;color:var(--text);">${dateStr}</div>
+          <div class="mono" style="font-size:11px;color:var(--text-3);margin-top:2px;">IP: ${escapeHtml(log.ipAddress || '127.0.0.1')}</div>
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#ccfbf1;color:#0f766e;font-weight:800;font-size:11.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              ${escapeHtml((actorName[0] || 'U').toUpperCase())}
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:12.5px;color:var(--text);">${escapeHtml(actorName)}</div>
+              <span class="badge" style="font-size:10px;padding:2px 7px;border-radius:10px;background:#f1f5f9;color:#475569;font-weight:700;">${escapeHtml(actorRole)}</span>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${tableBadge}
+            <span class="mono" style="font-size:11.5px;font-weight:700;color:var(--text-2);">${escapeHtml(log.recordId)}</span>
+          </div>
+          ${diffSummaryHtml}
+        </td>
+        <td style="text-align:center;">
+          ${actionBadge}
+          <div class="mono" style="font-size:10px;color:var(--text-3);margin-top:3px;">${escapeHtml(log.action)}</div>
+        </td>
+        <td style="text-align:right;">
+          <button class="btn btn-outline btn-sm" onclick="openAuditDiffModal('${log.id}')" style="font-size:11.5px;font-weight:700;padding:4px 12px;border-radius:10px;display:inline-flex;align-items:center;gap:5px;border-color:var(--brand);color:var(--brand);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Lihat Diff
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="table-responsive">
+      <table class="table" style="margin:0;">
+        <thead>
+          <tr>
+            <th style="width:40px;text-align:center;">No</th>
+            <th>Waktu &amp; IP</th>
+            <th>Petugas / Aktor</th>
+            <th>Entitas &amp; ID Data</th>
+            <th style="text-align:center;">Aksi</th>
+            <th style="text-align:right;">Komparasi</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:var(--bg);border-top:1px solid var(--border);flex-wrap:wrap;gap:10px;">
+      <div style="font-size:12px;color:var(--text-2);font-weight:600;">
+        Menampilkan <strong>${logs.length}</strong> dari <strong>${total.toLocaleString('id-ID')}</strong> riwayat aktivitas
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn btn-ghost btn-sm" ${page <= 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : `onclick="auditState.page=${page - 1};fetchAuditLogs();"`}>&larr; Sebelumnya</button>
+        <span style="font-size:12px;font-weight:700;padding:0 8px;">Halaman ${page} / ${totalPages}</span>
+        <button class="btn btn-ghost btn-sm" ${page >= totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : `onclick="auditState.page=${page + 1};fetchAuditLogs();"`}>Berikutnya &rarr;</button>
+      </div>
+    </div>
+  `;
+}
+
+function triggerAuditSearch() {
+  const searchInput = document.getElementById('audit-search-input');
+  if (searchInput) auditState.search = searchInput.value.trim();
+  auditState.page = 1;
+  fetchAuditLogs();
+}
+
+function resetAuditFilters() {
+  auditState.search = '';
+  auditState.tableName = '';
+  auditState.action = '';
+  auditState.startDate = '';
+  auditState.endDate = '';
+  auditState.page = 1;
+  loadAuditView();
+}
+
+function getAuditActionBadge(action) {
+  const act = (action || '').toLowerCase();
+  if (act.startsWith('create') || act === 'register' || act.includes('add')) {
+    return `<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac;font-weight:800;font-size:10.5px;padding:3px 8px;">CREATE</span>`;
+  }
+  if (act.startsWith('update') || act.startsWith('edit') || act.startsWith('toggle') || act.startsWith('save') || act.startsWith('resolve') || act.startsWith('approve')) {
+    return `<span class="badge" style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;font-weight:800;font-size:10.5px;padding:3px 8px;">UPDATE</span>`;
+  }
+  if (act.startsWith('delete') || act.startsWith('reject') || act.includes('cancel')) {
+    return `<span class="badge" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:800;font-size:10.5px;padding:3px 8px;">DELETE</span>`;
+  }
+  if (act.includes('import') || act.includes('commit') || act.includes('cbs')) {
+    return `<span class="badge" style="background:#ccfbf1;color:#0f766e;border:1px solid #99f6e4;font-weight:800;font-size:10.5px;padding:3px 8px;">IMPORT</span>`;
+  }
+  return `<span class="badge" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-weight:800;font-size:10.5px;padding:3px 8px;">${act.toUpperCase()}</span>`;
+}
+
+function getAuditTableBadge(tableName) {
+  const t = (tableName || '').toLowerCase();
+  const labelMap = {
+    debitur: 'Debitur',
+    pembayaran: 'Bayar',
+    desk_call: 'Desk Call',
+    jadwal_penagihan: 'P3 Jadwal',
+    penagihan_foto: 'P3 Foto',
+    users: 'User',
+    surat_legal: 'Surat Legal',
+    legal_berkas: 'Berkas Legal',
+    legal_files: 'File Legal',
+    import_batches: 'Import CBS',
+    app_settings: 'Pengaturan'
+  };
+  const label = labelMap[t] || t.toUpperCase();
+  return `<span class="badge badge-purple" style="font-size:10.5px;padding:2px 8px;font-weight:700;">${escapeHtml(label)}</span>`;
+}
+
+function formatAuditVal(field, val) {
+  if (val === null || val === undefined || val === '') return '<span style="color:#94a3b8;font-style:italic;">(Kosong / Null)</span>';
+  if (typeof val === 'boolean') return val ? '<span style="color:#059669;font-weight:700;">Ya / Aktif</span>' : '<span style="color:#dc2626;font-weight:700;">Tidak / Non-Aktif</span>';
+  if (typeof val === 'number') {
+    const isMoney = ['bakiDebet', 'plafon', 'nominal', 'tPokok', 'tMargin', 'totalTunggakan', 'targetTagih', 'nominalRealisasi', 'nominalJanji', 'angsPrincipal', 'angsMargin', 'nilaiJaminan'].some(k => (field || '').toLowerCase().includes(k.toLowerCase()));
+    if (isMoney) return formatRupiah(val);
+    return val.toLocaleString('id-ID');
+  }
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+    const dt = new Date(val);
+    if (!isNaN(dt.getTime())) return formatDate(val);
+  }
+  if (typeof val === 'object') {
+    return `<pre style="font-size:11px;margin:0;max-height:140px;overflow:auto;background:rgba(0,0,0,0.03);padding:6px;border-radius:6px;">${escapeHtml(JSON.stringify(val, null, 2))}</pre>`;
+  }
+  return escapeHtml(String(val));
+}
+
+// ── AUDIT DIFF MODAL VIEWER (BEFORE VS AFTER) ──
+async function openAuditDiffModal(auditId) {
+  const body = document.getElementById('auditdiff-body');
+  const title = document.getElementById('auditdiff-title');
+  if (!body) return;
+
+  body.innerHTML = `<div style="padding:32px;text-align:center;color:var(--text-3);"><p>Mengambil komparasi data...</p></div>`;
+  openModal('modal-audit-diff');
+
+  try {
+    const log = await apiCall(`/audit/${auditId}`);
+    if (!log) {
+      body.innerHTML = `<div class="auth-error">Data log tidak ditemukan</div>`;
+      return;
+    }
+
+    const createdAt = new Date(log.createdAt);
+    const dateStr = !isNaN(createdAt.getTime())
+      ? createdAt.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB'
+      : '-';
+
+    const actorName = log.user?.nama || log.user?.username || 'Sistem Otomatis';
+    const actorRole = (log.user?.posisi || 'system').toUpperCase();
+
+    let diffCardsHtml = '';
+
+    if (log.diff && log.diff.length > 0) {
+      diffCardsHtml = log.diff.map(d => {
+        let badgeTypeClass = 'diff-type-modified';
+        let badgeLabel = 'Diubah';
+        if (d.type === 'added') {
+          badgeTypeClass = 'diff-type-added';
+          badgeLabel = 'Ditambahkan';
+        } else if (d.type === 'removed') {
+          badgeTypeClass = 'diff-type-removed';
+          badgeLabel = 'Dihapus';
+        }
+
+        const oldFormatted = formatAuditVal(d.field, d.oldValue);
+        const newFormatted = formatAuditVal(d.field, d.newValue);
+
+        return `
+          <div class="diff-card">
+            <div class="diff-field-hdr">
+              <div class="diff-field-name">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                ${escapeHtml(d.label || d.field)}
+                <span class="mono" style="font-size:11px;color:var(--text-3);font-weight:600;">(${escapeHtml(d.field)})</span>
+              </div>
+              <span class="diff-type-badge ${badgeTypeClass}">${badgeLabel}</span>
+            </div>
+            <div class="diff-grid-compare">
+              <div class="diff-box diff-box-before">
+                <span class="diff-box-label">&larr; Nilai Sebelumnya (Before)</span>
+                <div class="diff-val">${oldFormatted}</div>
+              </div>
+              <div class="diff-box diff-box-after">
+                <span class="diff-box-label">&rarr; Nilai Baru (After)</span>
+                <div class="diff-val">${newFormatted}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      diffCardsHtml = `
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;">
+          <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">Aktivitas Tidak Memiliki Perubahan Nilai Field</div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Log ini mencatat aktivitas sistem, autentikasi login/logout, atau aksi yang tidak memodifikasi field tabel langsung.</div>
+          <div style="text-align:left;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;max-height:180px;overflow:auto;">
+            <pre class="mono" style="font-size:11.5px;margin:0;">${escapeHtml(JSON.stringify({ oldValue: log.oldValue, newValue: log.newValue }, null, 2))}</pre>
+          </div>
+        </div>
+      `;
+    }
+
+    body.innerHTML = `
+      <!-- METADATA HERO BANNER -->
+      <div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+            ${getAuditActionBadge(log.action)}
+            ${getAuditTableBadge(log.tableName)}
+            <span class="mono" style="font-size:12px;font-weight:800;color:var(--text);">ID: ${escapeHtml(log.recordId)}</span>
+          </div>
+          <div style="font-size:12.5px;color:var(--text-2);">
+            Dilakukan oleh <strong>${escapeHtml(actorName)}</strong> (${escapeHtml(actorRole)}) &bull; IP: <span class="mono">${escapeHtml(log.ipAddress || '127.0.0.1')}</span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Waktu Pencatatan</div>
+          <div style="font-size:13px;font-weight:800;color:var(--text);margin-top:2px;">${dateStr}</div>
+        </div>
+      </div>
+
+      <!-- DIFF LIST -->
+      <div class="diff-container">
+        ${diffCardsHtml}
+      </div>
+    `;
+  } catch (err) {
+    body.innerHTML = `<div class="auth-error">Gagal memuat detail diff: ${err.message}</div>`;
+  }
+}
+
+// ── RECORD SPECIFIC AUDIT TIMELINE (e.g. For Debitur Detail) ──
+async function openRecordAuditModal(tableName, recordId) {
+  const body = document.getElementById('auditdiff-body');
+  const title = document.getElementById('auditdiff-title');
+  const sub = document.getElementById('auditdiff-sub');
+  if (!body) return;
+
+  if (title) title.innerHTML = `Riwayat Perubahan Record — ${escapeHtml(recordId)}`;
+  if (sub) sub.textContent = `Riwayat seluruh jejak audit untuk entitas ${tableName} (${recordId})`;
+
+  body.innerHTML = `<div style="padding:32px;text-align:center;color:var(--text-3);"><p>Mengambil riwayat perubahan record...</p></div>`;
+  openModal('modal-audit-diff');
+
+  try {
+    const res = await apiCall(`/audit/record/${tableName}/${recordId}`);
+    if (!res || !res.history || res.history.length === 0) {
+      body.innerHTML = `
+        <div style="padding:36px;text-align:center;">
+          <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px;">Belum Ada Riwayat Perubahan</div>
+          <div style="font-size:12px;color:var(--text-3);">Record ini belum pernah dimodifikasi atau dicatat dalam log audit.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const timelineHtml = res.history.map(item => {
+      const dt = new Date(item.createdAt);
+      const dateStr = !isNaN(dt.getTime())
+        ? dt.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB'
+        : '-';
+
+      const actorName = item.user?.nama || item.user?.username || 'Sistem';
+
+      let diffRows = '';
+      if (item.diff && item.diff.length > 0) {
+        diffRows = item.diff.map(d => `
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:12.5px;gap:10px;flex-wrap:wrap;">
+            <div style="font-weight:700;color:var(--text);">${escapeHtml(d.label || d.field)}</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span style="color:#991b1b;text-decoration:line-through;background:#fee2e2;padding:1px 6px;border-radius:4px;">${formatAuditVal(d.field, d.oldValue)}</span>
+              <span style="font-weight:800;color:#065f46;background:#dcfce7;padding:1px 6px;border-radius:4px;">&rarr; ${formatAuditVal(d.field, d.newValue)}</span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        diffRows = `<div style="font-size:12px;color:var(--text-3);font-style:italic;">Aktivitas tercatat tanpa modifikasi field langsung</div>`;
+      }
+
+      return `
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:var(--sh-sm);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${getAuditActionBadge(item.action)}
+              <span style="font-size:12.5px;font-weight:800;color:var(--text);">${escapeHtml(actorName)}</span>
+              <span class="mono" style="font-size:11px;color:var(--text-3);">IP: ${escapeHtml(item.ipAddress || '127.0.0.1')}</span>
+            </div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-2);">${dateStr}</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
+            ${diffRows}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        ${timelineHtml}
+      </div>
+    `;
+  } catch (err) {
+    body.innerHTML = `<div class="auth-error">Gagal memuat riwayat record: ${err.message}</div>`;
+  }
+}
+
+window.loadAuditView = loadAuditView;
+window.fetchAuditLogs = fetchAuditLogs;
+window.triggerAuditSearch = triggerAuditSearch;
+window.resetAuditFilters = resetAuditFilters;
+window.openAuditDiffModal = openAuditDiffModal;
+window.openRecordAuditModal = openRecordAuditModal;
+

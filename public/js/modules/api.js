@@ -12,9 +12,12 @@ export async function apiCall(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${state.accessToken}`;
   }
 
+  let reqBody = options.body;
   // Remove Content-Type if uploading FormData
   if (options.body instanceof FormData) {
     delete headers['Content-Type'];
+  } else if (reqBody && typeof reqBody === 'object' && !(reqBody instanceof Blob)) {
+    reqBody = JSON.stringify(reqBody);
   }
 
   let url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
@@ -28,7 +31,7 @@ export async function apiCall(endpoint, options = {}) {
   }
 
   try {
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetch(url, { ...options, headers, body: reqBody });
 
     if (res.status === 401 && !endpoint.includes('/auth/login')) {
       if (typeof window.doLogout === 'function') {
