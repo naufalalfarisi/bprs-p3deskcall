@@ -17,6 +17,10 @@ model User {
   posisi                  String         // admin, kabid_p3, staff_p3, desk_call, legal, ao, kabid_ao
   aoNameRef               String?
   status                  String         // pending, active, rejected, inactive
+  emailVerified           Boolean        @default(false)
+  roleConfirmed           Boolean        @default(false)
+  confirmedBy             String?
+  confirmedAt             DateTime?
   avatarUrl               String?
   registerAttemptCount    Int            @default(0)
   lastRegisterAttemptAt   DateTime?
@@ -34,6 +38,20 @@ model User {
   aoCollectionLogs        AoCollectionLog[]
   createdAoLogs           AoCollectionLog[]      @relation("CreatedByAoLog")
   aoReminderEmailLogs     AoReminderEmailLog[]
+}
+
+model EmailOtp {
+  id          String   @id @default(uuid())
+  email       String
+  otpCode     String
+  purpose     String   @default("register") // register, reset_password
+  expiresAt   DateTime
+  consumed    Boolean  @default(false)
+  attempts    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([email, consumed])
+  @@index([email, otpCode])
 }
 
 model RefreshToken {

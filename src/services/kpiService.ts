@@ -863,3 +863,235 @@ export async function getExecutiveReportData(periode?: string) {
   };
 }
 
+/**
+ * Detailed Financing Performance Report per Account Officer (AO) & KOL Breakdown with Health Score & Recommendations.
+ */
+export async function getAoPerformanceReport() {
+  const allDebs = await prisma.debitur.findMany({
+    where: { statusDebitur: 'Aktif' },
+    select: {
+      id: true,
+      nama: true,
+      jenisMargin: true,
+      ao: true,
+      kol: true,
+      bakiDebet: true,
+      totalTunggakan: true,
+      frHari: true,
+      angsPrincipal: true,
+      angsMargin: true
+    }
+  });
+
+  const totalBankNoa = allDebs.length;
+  const totalBankBaki = allDebs.reduce((sum, d) => sum + (d.bakiDebet || 0), 0);
+  const npfDebs = allDebs.filter(d => ['Kurang Lancar', 'Diragukan', 'Macet'].includes(d.kol));
+  const totalBankNpfBaki = npfDebs.reduce((sum, d) => sum + (d.bakiDebet || 0), 0);
+  const bankNpfRatio = totalBankBaki > 0 ? parseFloat(((totalBankNpfBaki / totalBankBaki) * 100).toFixed(2)) : 0;
+  const totalBankPerformingBaki = totalBankBaki - totalBankNpfBaki;
+  const bankPerformingRatio = totalBankBaki > 0 ? parseFloat(((totalBankPerformingBaki / totalBankBaki) * 100).toFixed(2)) : 0;
+
+  const aoMap: Record<string, {
+    ao: string;
+    noaTotal: number;
+    totalBaki: number;
+    kol1: { noa: number; baki: number; pct: number };
+    kol2: { noa: number; baki: number; pct: number };
+    kol3: { noa: number; baki: number; pct: number };
+    kol4: { noa: number; baki: number; pct: number };
+    kol5: { noa: number; baki: number; pct: number };
+    npfDebs: typeof allDebs;
+  }> = {};
+
+  allDebs.forEach(d => {
+    const aoName = d.ao || 'Tanpa AO';
+    if (!aoMap[aoName]) {
+      aoMap[aoName] = {
+        ao: aoName,
+        noaTotal: 0,
+        totalBaki: 0,
+        kol1: { noa: 0, baki: 0, pct: 0 },
+        kol2: { noa: 0, baki: 0, pct: 0 },
+        kol3: { noa: 0, baki: 0, pct: 0 },
+        kol4: { noa: 0, baki: 0, pct: 0 },
+        kol5: { noa: 0, baki: 0, pct: 0 },
+        npfDebs: []
+      };
+    }
+
+    const item = aoMap[aoName];
+    item.noaTotal++;
+    item.totalBaki += (d.bakiDebet || 0);
+
+    if (d.kol === 'Lancar') {
+      item.kol1.noa++;
+      item.kol1.baki += (d.bakiDebet || 0);
+    } else if (d.kol === 'DPK') {
+      item.kol2.noa++;
+      item.kol2.baki += (d.bakiDebet || 0);
+    } else if (d.kol === 'Kurang Lancar') {
+      item.kol3.noa++;
+      item.kol3.baki += (d.bakiDebet || 0);
+      item.npfDebs.push(d);
+    } else if (d.kol === 'Diragukan') {
+      item.kol4.noa++;
+      item.kol4.baki += (d.bakiDebet || 0);
+      item.npfDebs.push(d);
+    } else if (d.kol === 'Macet') {
+      item.kol5.noa++;
+      item.kol5.baki += (d.bakiDebet || 0);
+      item.npfDebs.push(d);
+    }
+  });
+
+  const aoList = Object.values(aoMap).map(a => {
+    const npfBaki = a.kol3.baki + a.kol4.baki + a.kol5.baki;
+    const npfNoa = a.kol3.noa + a.kol4.noa + a.kol5.noa;
+    const npfRatio = a.totalBaki > 0 ? parseFloat(((npfBaki / a.totalBaki) * 100).toFixed(2)) : 0;
+    const performingBaki = a.kol1.baki + a.kol2.baki;
+    const performingNoa = a.kol1.noa + a.kol2.noa;
+    const performingRatio = a.totalBaki > 0 ? parseFloat(((performingBaki / a.totalBaki) * 100).toFixed(2)) : 0;
+
+    a.kol1.pct = a.totalBaki > 0 ? parseFloat(((a.kol1.baki / a.totalBaki) * 100).toFixed(1)) : 0;
+    a.kol2.pct = a.totalBaki > 0 ? parseFloat(((a.kol2.baki / a.totalBaki) * 100).toFixed(1)) : 0;
+    a.kol3.pct = a.totalBaki > 0 ? parseFloat(((a.kol3.baki / a.totalBaki) * 100).toFixed(1)) : 0;
+    a.kol4.pct = a.totalBaki > 0 ? parseFloat(((a.kol4.baki / a.totalBaki) * 100).toFixed(1)) : 0;
+    a.kol5.pct = a.totalBaki > 0 ? parseFloat(((a.kol5.baki / a.totalBaki) * 100).toFixed(1)) : 0;
+
+    let healthStatus: 'PRIME' | 'GOOD' | 'WATCHLIST' | 'CRITICAL' = 'GOOD';
+    let healthLabel = 'Baik (Good)';
+    let isHealthy = true;
+    let score = 80;
+    let recommendation = '';
+
+    if (npfRatio <= 3.00) {
+      healthStatus = 'PRIME';
+      healthLabel = 'Sangat Baik (Prime)';
+      isHealthy = true;
+      score = Math.max(90, Math.round(100 - (npfRatio * 3)));
+      recommendation = 'Kualitas portofolio sangat prima dan sehat. Pertahankan kehati-hatian analisis pembiayaan serta dampingi debitur eksisting.';
+    } else if (npfRatio <= 5.00) {
+      healthStatus = 'GOOD';
+      healthLabel = 'Baik (Terkendali OJK)';
+      isHealthy = true;
+      score = Math.round(89 - ((npfRatio - 3.0) * 7));
+      recommendation = 'Portofolio sehat dan berada di bawah ambang batas OJK (<= 5%). Tingkatkan monitoring nasabah KOL 2 (DPK) agar tidak menyeberang ke NPF.';
+    } else if (npfRatio <= 7.00) {
+      healthStatus = 'WATCHLIST';
+      healthLabel = 'Perhatian Khusus (Watchlist)';
+      isHealthy = false;
+      score = Math.round(74 - ((npfRatio - 5.0) * 12));
+      recommendation = 'Portofolio memerlukan perhatian ekstra karena NPF di atas standar ideal (5-7%). Segera intensifkan desk call dan kunjungan pendampingan bagi debitur KOL 2 & 3.';
+    } else {
+      healthStatus = 'CRITICAL';
+      healthLabel = 'Kritis / Belum Baik (High Risk)';
+      isHealthy = false;
+      score = Math.max(20, Math.round(50 - (npfRatio - 7.0) * 5));
+      recommendation = 'Portofolio berada pada kategori risiko tinggi (NPF > 7%). Diperlukan restrukturisasi mendesak, kolaborasi intensif dengan tim remedial/legal, dan pengetatan debitur baru.';
+    }
+
+    const topRiskDebitur = a.npfDebs
+      .sort((x, y) => (y.bakiDebet || 0) - (x.bakiDebet || 0))
+      .slice(0, 3)
+      .map(d => ({
+        id: d.id,
+        nama: d.nama,
+        kol: d.kol,
+        bakiDebet: d.bakiDebet,
+        totalTunggakan: d.totalTunggakan,
+        dpd: d.frHari
+      }));
+
+    return {
+      ao: a.ao,
+      noaTotal: a.noaTotal,
+      totalBaki: a.totalBaki,
+      kol1: a.kol1,
+      kol2: a.kol2,
+      kol3: a.kol3,
+      kol4: a.kol4,
+      kol5: a.kol5,
+      performingBaki,
+      performingNoa,
+      performingRatio,
+      npfBaki,
+      npfNoa,
+      npfRatio,
+      healthStatus,
+      healthLabel,
+      isHealthy,
+      score,
+      recommendation,
+      topRiskDebitur
+    };
+  }).sort((a, b) => b.totalBaki - a.totalBaki);
+
+  const primeCount = aoList.filter(a => a.healthStatus === 'PRIME').length;
+  const goodCount = aoList.filter(a => a.healthStatus === 'GOOD').length;
+  const watchlistCount = aoList.filter(a => a.healthStatus === 'WATCHLIST').length;
+  const criticalCount = aoList.filter(a => a.healthStatus === 'CRITICAL').length;
+
+  const topAo = aoList.length > 0 ? aoList[0].ao : '-';
+  const lowestNpfAo = [...aoList].sort((a, b) => a.npfRatio - b.npfRatio)[0]?.ao || '-';
+  const highestRiskAo = [...aoList].sort((a, b) => b.npfRatio - a.npfRatio)[0]?.ao || '-';
+
+  return {
+    summary: {
+      totalBankBaki,
+      totalBankNoa,
+      totalBankNpfBaki,
+      bankNpfRatio,
+      totalBankPerformingBaki,
+      bankPerformingRatio,
+      totalAOCount: aoList.length,
+      primeCount,
+      goodCount,
+      watchlistCount,
+      criticalCount,
+      healthyAoCount: primeCount + goodCount,
+      topAo,
+      lowestNpfAo,
+      highestRiskAo
+    },
+    aoList
+  };
+}
+
+/**
+ * Get detailed debtors of an AO grouped by KOL for drill-down modal.
+ */
+export async function getAoDebiturDrilldown(aoName: string) {
+  const debiturs = await prisma.debitur.findMany({
+    where: {
+      ao: aoName,
+      statusDebitur: 'Aktif'
+    },
+    select: {
+      id: true,
+      nama: true,
+      jenisMargin: true,
+      ao: true,
+      kol: true,
+      bakiDebet: true,
+      totalTunggakan: true,
+      angsPrincipal: true,
+      angsMargin: true,
+      frHari: true,
+      telepon: true,
+      alamat: true,
+      tglJt: true
+    },
+    orderBy: [{ kol: 'desc' }, { bakiDebet: 'desc' }]
+  });
+
+  return {
+    ao: aoName,
+    total: debiturs.length,
+    debiturs: debiturs.map(d => ({
+      ...d,
+      dpd: d.frHari,
+      angsuranBulanan: (d.angsPrincipal || 0) + (d.angsMargin || 0)
+    }))
+  };
+}
+

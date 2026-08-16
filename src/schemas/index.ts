@@ -4,3 +4,6 @@ export * from './pembayaran.schema.js';
 export * from './ews.schema.js';
 export * from './legal.schema.js';
 export * from './kpi.schema.js';
+export * from './auth.schema.js';
+export * from './user.schema.js';
+

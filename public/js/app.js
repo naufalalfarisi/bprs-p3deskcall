@@ -549,16 +549,17 @@ function togglePw(id) {
 function switchAuthTab(tab) {
   const pageLogin = document.getElementById('page-login');
   const pageReg = document.getElementById('page-register');
+  const pageOtp = document.getElementById('page-otp');
   const btnLogin = document.getElementById('tab-btn-login');
   const btnReg = document.getElementById('tab-btn-register');
   const authBadge = document.getElementById('auth-form-badge');
   const authTitle = document.getElementById('auth-form-title');
   const authSub = document.getElementById('auth-form-subtitle');
-  const demoBar = document.getElementById('auth-demo-bar');
   const lErr = document.getElementById('l-err');
   const rErr = document.getElementById('r-err');
   const rOk = document.getElementById('r-ok');
 
+  if (pageOtp) pageOtp.style.display = 'none';
   if (lErr) { lErr.innerText = ''; lErr.classList.add('hidden'); lErr.style.display = 'none'; }
   if (rErr) { rErr.innerText = ''; rErr.classList.add('hidden'); rErr.style.display = 'none'; }
   if (rOk) { rOk.style.display = 'none'; }
@@ -569,7 +570,6 @@ function switchAuthTab(tab) {
     if (authBadge) authBadge.innerText = 'Pendaftaran Petugas Baru';
     if (authTitle) authTitle.innerText = 'Registrasi Akun Petugas';
     if (authSub) authSub.innerText = 'Lengkapi identitas resmi & penugasan untuk pengajuan akses.';
-    if (demoBar) demoBar.style.display = 'none';
 
     if (btnReg) {
       btnReg.className = 'flex-1 py-1.5 text-xs font-black rounded-lg transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer';
@@ -583,7 +583,6 @@ function switchAuthTab(tab) {
     if (authBadge) authBadge.innerText = 'Portal Otentikasi Resmi';
     if (authTitle) authTitle.innerText = 'Selamat Datang Kembali';
     if (authSub) authSub.innerText = 'Silakan masuk menggunakan kredensial akun perbankan Anda.';
-    if (demoBar) demoBar.style.display = 'block';
 
     if (btnLogin) {
       btnLogin.className = 'flex-1 py-1.5 text-xs font-black rounded-lg transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer';
@@ -680,6 +679,12 @@ async function handleLogin(force = false) {
     setupAppShell();
     switchPane('dashboard');
   } catch (err) {
+    if (err && (err.requiresOtp || err.message?.includes('OTP') || err.message?.includes('verifikasi'))) {
+      showOtpVerificationScreen(err.email || uInput?.value || '', uInput?.value || '');
+      showToast(err.message || 'Silakan masukkan kode OTP yang dikirim ke email Anda', 'warning');
+      return;
+    }
+
     if (errEl) {
       errEl.innerText = err.message || 'Login gagal';
       errEl.classList.remove('hidden');
@@ -723,6 +728,11 @@ async function toggleRegisterAoGroup(posisi) {
   }
 }
 
+// Global OTP state
+let _pendingOtpEmail = '';
+let _pendingOtpUsername = '';
+let _otpCooldownTimer = null;
+
 async function handleRegister() {
   const nama = document.getElementById('r-nama')?.value.trim();
   const username = document.getElementById('r-user')?.value.trim();
@@ -754,38 +764,280 @@ async function handleRegister() {
   }
 
   try {
+    showToast('Mendaftarkan akun & mengirim kode OTP ke email...', 'info');
     const res = await apiCall('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ nama, username, email, tgl_lahir, posisi, ao_name_ref: posisi === 'ao' ? ao_name_ref : undefined, password })
+      body: {
+        nama,
+        username,
+        email,
+        tgl_lahir,
+        posisi,
+        ao_name_ref: posisi === 'ao' ? ao_name_ref : undefined,
+        password
+      }
     });
 
-    if (okEl) {
-      okEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>${res.message}</span>`;
-      okEl.style.display = 'flex';
+    if (res && res.requiresOtp) {
+      showToast('Pendaftaran berhasil! Kode OTP telah dikirim ke email.', 'success');
+      showOtpVerificationScreen(res.email || email, res.username || username);
+    } else {
+      if (okEl) {
+        okEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>${res.message}</span>`;
+        okEl.style.display = 'flex';
+      }
     }
   } catch (err) {
     if (errEl) errEl.innerText = err.message || 'Pendaftaran gagal';
+    showToast(err.message || 'Pendaftaran gagal', 'danger');
   }
 }
 
-async function demoLogin(role) {
-  if (typeof switchAuthTab === 'function') switchAuthTab('login');
-  const uInput = document.getElementById('l-user');
-  const pInput = document.getElementById('l-pass');
+function showOtpVerificationScreen(email, username) {
+  _pendingOtpEmail = email;
+  _pendingOtpUsername = username;
 
-  if (role === 'admin') {
-    if (uInput) uInput.value = 'admin';
-    if (pInput) pInput.value = 'adminpassword';
+  const pageLogin = document.getElementById('page-login');
+  const pageRegister = document.getElementById('page-register');
+  const pageOtp = document.getElementById('page-otp');
+  const targetEmailEl = document.getElementById('otp-target-email');
+  const otpInput = document.getElementById('otp-input');
+  const otpErr = document.getElementById('otp-err');
+
+  if (pageLogin) pageLogin.style.display = 'none';
+  if (pageRegister) pageRegister.style.display = 'none';
+
+  if (targetEmailEl) targetEmailEl.innerText = email || '-';
+  if (otpInput) {
+    otpInput.value = '';
+    setTimeout(() => otpInput.focus(), 150);
+  }
+  if (otpErr) {
+    otpErr.innerText = '';
+    otpErr.classList.add('hidden');
+    otpErr.style.display = 'none';
+  }
+
+  if (pageOtp) pageOtp.style.display = 'block';
+
+  startOtpCooldown(60);
+}
+
+function backToRegisterFromOtp() {
+  const pageOtp = document.getElementById('page-otp');
+  const pageRegister = document.getElementById('page-register');
+
+  if (pageOtp) pageOtp.style.display = 'none';
+  if (pageRegister) pageRegister.style.display = 'block';
+}
+
+function startOtpCooldown(seconds) {
+  const btn = document.getElementById('otp-resend-btn');
+  if (!btn) return;
+
+  if (_otpCooldownTimer) clearInterval(_otpCooldownTimer);
+
+  let remaining = seconds;
+  btn.disabled = true;
+  btn.innerText = `Kirim Ulang (${remaining}s)`;
+
+  _otpCooldownTimer = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(_otpCooldownTimer);
+      _otpCooldownTimer = null;
+      btn.disabled = false;
+      btn.innerText = 'Kirim Ulang Kode OTP';
+    } else {
+      btn.innerText = `Kirim Ulang (${remaining}s)`;
+    }
+  }, 1000);
+}
+
+async function handleResendOtp() {
+  if (!_pendingOtpEmail) {
+    showToast('Email target tidak ditemukan', 'warning');
+    return;
+  }
+
+  try {
+    showToast('Mengirim ulang kode OTP ke email...', 'info');
+    const res = await apiCall('/auth/resend-otp', {
+      method: 'POST',
+      body: { email: _pendingOtpEmail }
+    });
+
+    showToast(res.message || 'Kode OTP baru berhasil dikirim', 'success');
+    startOtpCooldown(60);
+  } catch (err) {
+    showToast(err.message || 'Gagal mengirim ulang OTP', 'danger');
+  }
+}
+
+async function handleVerifyOtp() {
+  const otpInput = document.getElementById('otp-input');
+  const errEl = document.getElementById('otp-err');
+  const otpCode = otpInput?.value.trim();
+
+  if (errEl) {
+    errEl.innerText = '';
+    errEl.classList.add('hidden');
+    errEl.style.display = 'none';
+  }
+
+  if (!otpCode || otpCode.length !== 6) {
+    if (errEl) {
+      errEl.innerText = 'Kode OTP harus tepat 6 digit';
+      errEl.classList.remove('hidden');
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  try {
+    showToast('Memverifikasi kode OTP...', 'info');
+    const res = await apiCall('/auth/verify-otp', {
+      method: 'POST',
+      body: {
+        email: _pendingOtpEmail,
+        otpCode
+      }
+    });
+
+    state.user = res.user;
+    state.accessToken = res.accessToken;
+    state.refreshToken = res.refreshToken;
+
+    localStorage.setItem('user', JSON.stringify(res.user));
+    localStorage.setItem('accessToken', res.accessToken);
+    localStorage.setItem('refreshToken', res.refreshToken);
+
+    const authOverlay = document.getElementById('auth-overlay');
+    if (authOverlay) authOverlay.style.display = 'none';
+
+    if (!res.user.roleConfirmed) {
+      showToast('Email terverifikasi! Menunggu konfirmasi posisi resmi dari Administrator.', 'warning');
+    } else {
+      showToast(`Email terverifikasi! Selamat datang, ${res.user.nama}!`, 'success');
+    }
+
+    setupAppShell();
+    switchPane('dashboard');
+  } catch (err) {
+    if (errEl) {
+      errEl.innerText = err.message || 'Kode OTP tidak valid atau kedaluwarsa';
+      errEl.classList.remove('hidden');
+      errEl.style.display = 'block';
+    }
+    showToast(err.message || 'Verifikasi OTP gagal', 'danger');
+  }
+}
+
+// ADMIN ROLE CONFIRMATION MODAL & HANDLERS
+async function openConfirmRoleModal(userId, name, email, posisi, aoNameRef) {
+  const modal = document.getElementById('modal-confirm-role');
+  if (!modal) return;
+
+  document.getElementById('cr-user-id').value = userId;
+  document.getElementById('cr-user-name').innerText = name || '-';
+  document.getElementById('cr-user-email').innerText = email || '-';
+
+  const posSelect = document.getElementById('cr-posisi');
+  if (posSelect) posSelect.value = posisi || 'ao';
+
+  const aoSelect = document.getElementById('cr-ao-name');
+  if (aoSelect) {
+    aoSelect.innerHTML = '<option value="">— Memuat daftar master AO CBS... —</option>';
+    try {
+      const list = await apiCall('/auth/ao-list');
+      if (list && Array.isArray(list) && list.length > 0) {
+        aoSelect.innerHTML = '<option value="">— Pilih Master AO CBS —</option>' + list.map(a => `<option value="${a}" ${a === aoNameRef ? 'selected' : ''}>${a}</option>`).join('');
+      } else {
+        aoSelect.innerHTML = '<option value="">(Belum ada master AO di CBS)</option>';
+      }
+    } catch (e) {
+      aoSelect.innerHTML = '<option value="">(Gagal memuat master AO)</option>';
+    }
+  }
+
+  toggleConfirmRoleAoGroup(posisi || 'ao');
+  openModal('modal-confirm-role');
+}
+
+function toggleConfirmRoleAoGroup(posisi) {
+  const group = document.getElementById('cr-ao-group');
+  if (!group) return;
+  if (posisi === 'ao') {
+    group.style.display = 'block';
   } else {
-    if (uInput) uInput.value = role;
-    if (pInput) pInput.value = 'password123';
+    group.style.display = 'none';
   }
-  isLoggingIn = false;
-  await handleLogin(true);
 }
+
+function toggleUserFormAoGroup(posisi) {
+  const group = document.getElementById('uf-ao-group');
+  if (!group) return;
+  if (posisi === 'ao') {
+    group.style.display = 'block';
+  } else {
+    group.style.display = 'none';
+  }
+}
+
+async function submitConfirmRole() {
+  const userId = document.getElementById('cr-user-id')?.value;
+  const posisi = document.getElementById('cr-posisi')?.value;
+  const aoNameRef = document.getElementById('cr-ao-name')?.value;
+  const errEl = document.getElementById('cr-err');
+
+  if (errEl) {
+    errEl.innerText = '';
+    errEl.classList.add('hidden');
+    errEl.style.display = 'none';
+  }
+
+  if (posisi === 'ao' && !aoNameRef) {
+    if (errEl) {
+      errEl.innerText = 'Pilih nama Master AO dari CBS untuk posisi Account Officer';
+      errEl.classList.remove('hidden');
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  try {
+    showToast('Mengonfirmasi posisi & hak akses user...', 'info');
+    const res = await apiCall(`/users/${userId}/confirm-role`, {
+      method: 'PUT',
+      body: {
+        posisi,
+        aoNameRef: posisi === 'ao' ? aoNameRef : null
+      }
+    });
+
+    showToast('Posisi user berhasil dikonfirmasi!', 'success');
+    closeModal('modal-confirm-role');
+    if (typeof loadUsers === 'function') loadUsers();
+  } catch (err) {
+    if (errEl) {
+      errEl.innerText = err.message || 'Gagal mengonfirmasi role';
+      errEl.classList.remove('hidden');
+      errEl.style.display = 'block';
+    }
+    showToast(err.message || 'Gagal mengonfirmasi role', 'danger');
+  }
+}
+
+window.showOtpVerificationScreen = showOtpVerificationScreen;
+window.backToRegisterFromOtp = backToRegisterFromOtp;
+window.handleResendOtp = handleResendOtp;
+window.handleVerifyOtp = handleVerifyOtp;
+window.openConfirmRoleModal = openConfirmRoleModal;
+window.toggleConfirmRoleAoGroup = toggleConfirmRoleAoGroup;
+window.toggleUserFormAoGroup = toggleUserFormAoGroup;
+window.submitConfirmRole = submitConfirmRole;
 
 window.toggleRegisterAoGroup = toggleRegisterAoGroup;
-window.demoLogin = demoLogin;
 window.handleLogin = handleLogin;
 window.forceLogin = forceLogin;
 window.switchAuthTab = switchAuthTab;
@@ -1493,6 +1745,24 @@ async function loadDashboardView() {
           <span>Terakhir diperbarui (Upload CBS): <strong class="mono" style="color:var(--text);font-weight:800;">${cbsDateText}</strong></span>
         </div>
       </div>
+
+      <!-- UNCONFIRMED ROLE BANNER IF USER IS NOT YET CONFIRMED BY ADMIN -->
+      ${state.user && !state.user.roleConfirmed ? `
+        <div class="card mb-4" style="background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:16px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:12px;background:#FEF3C7;color:#D97706;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div>
+              <div style="font-size:13.5px;font-weight:800;color:#92400E;">Status Akun: Menunggu Konfirmasi Posisi &amp; Peran oleh Administrator</div>
+              <div style="font-size:12px;color:#78350F;margin-top:2px;">
+                Email Anda telah terverifikasi via OTP. Posisi terdaftar sementara: <strong>${state.user.posisi === 'ao' ? 'Account Officer (' + (state.user.aoNameRef || 'Belum dipetakan') + ')' : (state.user.posisi || 'Staff')}</strong>. Administrator akan memeriksa dan menyesuaikan wewenang resmi Anda.
+              </div>
+            </div>
+          </div>
+          <span class="badge badge-yellow" style="font-size:11px;font-weight:700;padding:5px 12px;">Mode Sementara</span>
+        </div>
+      ` : ''}
 
       <!-- 4 CAPSULE STAT CARDS -->
       <div class="stats-grid mb-4">
@@ -7678,6 +7948,14 @@ let _stressTestState = {
   dpkRoll: 0
 };
 
+let _aoPerformanceData = null;
+let _aoPerfFilterStatus = 'ALL';
+let _aoPerfSearchQuery = '';
+let _aoPerfSortBy = 'BAKI_DESC';
+let _aoDrilldownCurrentAo = '';
+let _aoDrilldownDebs = [];
+let _aoDrilldownActiveKol = 'ALL';
+
 function switchKpiSubtab(subId) {
   _activeKpiSubtab = subId;
   document.querySelectorAll('.kpi-subtab').forEach(btn => {
@@ -7702,12 +7980,501 @@ function switchKpiSubtab(subId) {
   }
 
   if (subId === 'scorecard') loadKpiView();
+  if (subId === 'performance') loadAoPerformanceView();
   if (subId === 'migration') loadKpiMigrationView();
   if (subId === 'stresstest') loadKpiStressTestView();
   if (subId === 'report') loadKpiReportView();
 }
 
 window.switchKpiSubtab = switchKpiSubtab;
+
+/**
+ * ============================================================================
+ * 7A. LAPORAN PERFORMANCE PEMBIAYAAN PER ACCOUNT OFFICER (AO) & STATISTIK KOL
+ * ============================================================================
+ */
+async function loadAoPerformanceView() {
+  const container = document.getElementById('kpi-performance-content');
+  if (!container) return;
+
+  container.innerHTML = `<div class="empty-st"><p>Memuat Laporan Evaluasi Performance Pembiayaan AO...</p></div>`;
+
+  try {
+    const res = await apiCall('/kpi/ao-performance');
+    _aoPerformanceData = res;
+    renderAoPerformanceContent();
+  } catch (err) {
+    container.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--danger);"><p>Gagal memuat laporan performance AO: ${escapeHtml(err.message)}</p></div>`;
+  }
+}
+
+function renderAoPerformanceContent() {
+  const container = document.getElementById('kpi-performance-content');
+  if (!container || !_aoPerformanceData) return;
+
+  const s = _aoPerformanceData.summary || {};
+  let list = _aoPerformanceData.aoList || [];
+
+  // 1. Search Filter
+  if (_aoPerfSearchQuery) {
+    const q = _aoPerfSearchQuery.toLowerCase();
+    list = list.filter(a => (a.ao || '').toLowerCase().includes(q));
+  }
+
+  // 2. Health Status Filter
+  if (_aoPerfFilterStatus !== 'ALL') {
+    list = list.filter(a => a.healthStatus === _aoPerfFilterStatus);
+  }
+
+  // 3. Sorting
+  if (_aoPerfSortBy === 'BAKI_DESC') {
+    list.sort((a, b) => b.totalBaki - a.totalBaki);
+  } else if (_aoPerfSortBy === 'NPF_ASC') {
+    list.sort((a, b) => a.npfRatio - b.npfRatio);
+  } else if (_aoPerfSortBy === 'NPF_DESC') {
+    list.sort((a, b) => b.npfRatio - a.npfRatio);
+  } else if (_aoPerfSortBy === 'NOA_DESC') {
+    list.sort((a, b) => b.noaTotal - a.noaTotal);
+  } else if (_aoPerfSortBy === 'SCORE_DESC') {
+    list.sort((a, b) => b.score - a.score);
+  }
+
+  container.innerHTML = `
+    <!-- HEADER -->
+    <div class="card mb-4" style="padding:18px 22px;border-radius:18px;background:linear-gradient(135deg, #0F766E 0%, #115E59 100%);color:#ffffff;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge" style="background:rgba(255,255,255,0.2);color:#ffffff;font-size:11px;font-weight:700;">Account Officer Analytics</span>
+            <span style="font-size:12px;opacity:0.85;">Data Real-time CBS</span>
+          </div>
+          <h3 style="font-size:17px;font-weight:800;margin:6px 0 2px 0;">Laporan Performance Pembiayaan per Account Officer (AO)</h3>
+          <p style="font-size:12.5px;opacity:0.9;margin:0;">Evaluasi kualitas portofolio, rincian statistik per Kolektibilitas (KOL 1 - 5), dan penilaian kesehatan pembiayaan sesuai standar OJK.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" onclick="printAoPerformanceReport()" style="background:#ffffff;color:#0F766E;border:none;font-weight:700;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Cetak / Export Laporan AO
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 SUMMARY CARDS -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;margin-bottom:20px;">
+      <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+        <div class="stat-card-top"><span class="stat-label">Total Portofolio Bank</span><span class="stat-pill stat-pill-teal">PORTOFOLIO</span></div>
+        <div class="stat-val" style="font-size:22px;font-weight:800;color:var(--text);">${formatRupiah(s.totalBankBaki || 0)}</div>
+        <div class="stat-sub" style="font-size:11px;color:var(--text-3);">${(s.totalBankNoa || 0).toLocaleString('id-ID')} NOA • Performing: ${(s.bankPerformingRatio || 0)}%</div>
+      </div>
+
+      <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+        <div class="stat-card-top">
+          <span class="stat-label">Kolektibilitas NPF Bank</span>
+          <span class="stat-pill ${(s.bankNpfRatio || 0) <= 5.0 ? 'stat-pill-green' : 'stat-pill-red'}">
+            ${(s.bankNpfRatio || 0) <= 5.0 ? 'Aman (<=5%)' : 'Waspada (>5%)'}
+          </span>
+        </div>
+        <div class="stat-val" style="font-size:22px;font-weight:800;color:${(s.bankNpfRatio || 0) <= 5.0 ? '#0D7A4E' : '#C0392C'};">${(s.bankNpfRatio || 0)}%</div>
+        <div class="stat-sub" style="font-size:11px;color:var(--text-3);">Baki NPF: ${formatRupiah(s.totalBankNpfBaki || 0)} (KOL 3-5)</div>
+      </div>
+
+      <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+        <div class="stat-card-top"><span class="stat-label">Kesehatan Portofolio AO</span><span class="stat-pill stat-pill-blue">KESEHATAN</span></div>
+        <div class="stat-val" style="font-size:22px;font-weight:800;color:#0F766E;">
+          ${s.healthyAoCount || 0} / ${s.totalAOCount || 0} AO
+        </div>
+        <div class="stat-sub" style="font-size:11px;color:var(--text-3);">
+          <strong style="color:#0D7A4E;">${s.primeCount || 0} Prime</strong>, <strong style="color:#0F766E;">${s.goodCount || 0} Baik</strong>, <strong style="color:#C0392C;">${(s.watchlistCount || 0) + (s.criticalCount || 0)} Watchlist</strong>
+        </div>
+      </div>
+
+      <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
+        <div class="stat-card-top"><span class="stat-label">AO Kinerja Terbaik &amp; Risiko</span><span class="stat-pill stat-pill-purple">TOP AO</span></div>
+        <div class="stat-val" style="font-size:17px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${s.topAo || '-'}">
+          ${escapeHtml(s.topAo || '-')}
+        </div>
+        <div class="stat-sub" style="font-size:11px;color:var(--text-3);">
+          NPF Rendah: <strong>${escapeHtml(s.lowestNpfAo || '-')}</strong> • Risiko: <strong style="color:#C0392C;">${escapeHtml(s.highestRiskAo || '-')}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTER & CONTROL BAR -->
+    <div class="card mb-4" style="padding:14px 18px;border-radius:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1;">
+          <!-- Search -->
+          <div style="position:relative;min-width:220px;flex:1;max-width:320px;">
+            <input
+              type="text"
+              id="ao-perf-search"
+              class="form-input"
+              placeholder="Cari nama Account Officer (AO)..."
+              value="${escapeHtml(_aoPerfSearchQuery)}"
+              oninput="handleAoPerfSearch(this.value)"
+              style="height:38px;padding-left:34px;font-size:12.5px;"
+            />
+            <div style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+          </div>
+
+          <!-- Status Filter -->
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:12px;font-weight:700;color:var(--text-2);">Status Kesehatan:</span>
+            <select id="ao-perf-filter-status" class="form-select" style="height:38px;font-size:12px;min-width:180px;" onchange="handleAoPerfFilterStatus(this.value)">
+              <option value="ALL" ${_aoPerfFilterStatus === 'ALL' ? 'selected' : ''}>Semua Status (${_aoPerformanceData.aoList?.length || 0})</option>
+              <option value="PRIME" ${_aoPerfFilterStatus === 'PRIME' ? 'selected' : ''}>Sangat Baik (Prime &le; 3%)</option>
+              <option value="GOOD" ${_aoPerfFilterStatus === 'GOOD' ? 'selected' : ''}>Baik (Good 3-5%)</option>
+              <option value="WATCHLIST" ${_aoPerfFilterStatus === 'WATCHLIST' ? 'selected' : ''}>Perhatian (Watchlist 5-7%)</option>
+              <option value="CRITICAL" ${_aoPerfFilterStatus === 'CRITICAL' ? 'selected' : ''}>Kritis (High Risk &gt; 7%)</option>
+            </select>
+          </div>
+
+          <!-- Sorting -->
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:12px;font-weight:700;color:var(--text-2);">Urutkan:</span>
+            <select id="ao-perf-sort" class="form-select" style="height:38px;font-size:12px;min-width:170px;" onchange="handleAoPerfSort(this.value)">
+              <option value="BAKI_DESC" ${_aoPerfSortBy === 'BAKI_DESC' ? 'selected' : ''}>Total Baki Terbesar</option>
+              <option value="NPF_ASC" ${_aoPerfSortBy === 'NPF_ASC' ? 'selected' : ''}>NPF Terendah (Terbaik)</option>
+              <option value="NPF_DESC" ${_aoPerfSortBy === 'NPF_DESC' ? 'selected' : ''}>NPF Tertinggi (Tertinggi)</option>
+              <option value="NOA_DESC" ${_aoPerfSortBy === 'NOA_DESC' ? 'selected' : ''}>NOA Terbanyak</option>
+              <option value="SCORE_DESC" ${_aoPerfSortBy === 'SCORE_DESC' ? 'selected' : ''}>Skor Kinerja Tertinggi</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="font-size:12px;color:var(--text-3);font-weight:600;">
+          Menampilkan <strong>${list.length}</strong> dari <strong>${_aoPerformanceData.aoList?.length || 0}</strong> AO
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN COMPREHENSIVE AO TABLE -->
+    <div class="card mb-4" style="border-radius:18px;overflow:hidden;padding:0;">
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="background:#f8fafc;border-bottom:2px solid var(--border);text-align:left;">
+                <th style="padding:12px 14px;width:40px;text-align:center;">No</th>
+                <th style="padding:12px 14px;min-width:170px;">Nama Account Officer (AO)</th>
+                <th style="padding:12px 14px;min-width:130px;text-align:right;">Total Portofolio</th>
+                <th style="padding:12px 14px;min-width:240px;text-align:center;">Distribusi Per KOL (1 s/d 5)</th>
+                <th style="padding:12px 14px;min-width:140px;text-align:right;">NPF Gross (KOL 3-5)</th>
+                <th style="padding:12px 14px;min-width:160px;text-align:center;">Proporsi Portofolio</th>
+                <th style="padding:12px 14px;min-width:180px;text-align:center;">Evaluasi &amp; Status Kesehatan</th>
+                <th style="padding:12px 14px;min-width:220px;">Rekomendasi Operasional</th>
+                <th style="padding:12px 14px;width:110px;text-align:center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${list.length === 0 ? `
+                <tr><td colspan="9" class="empty-st" style="padding:32px;">Tidak ada data Account Officer yang sesuai filter.</td></tr>
+              ` : list.map((a, idx) => {
+                const isPrime = a.healthStatus === 'PRIME';
+                const isGood = a.healthStatus === 'GOOD';
+                const isWatchlist = a.healthStatus === 'WATCHLIST';
+                const isCritical = a.healthStatus === 'CRITICAL';
+
+                const statusBg = isPrime ? '#ECFDF5' : isGood ? '#F0FDF4' : isWatchlist ? '#FFFBEB' : '#FEF2F2';
+                const statusBorder = isPrime ? '#A7F3D0' : isGood ? '#BBF7D0' : isWatchlist ? '#FDE68A' : '#FECACA';
+                const statusColor = isPrime ? '#065F46' : isGood ? '#166534' : isWatchlist ? '#92400E' : '#991B1B';
+
+                return `
+                  <tr style="border-bottom:1px solid var(--border);transition:background 0.1s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding:12px 14px;text-align:center;font-weight:700;color:var(--text-3);">${idx + 1}</td>
+                    
+                    <!-- AO NAME & NOA -->
+                    <td style="padding:12px 14px;">
+                      <div style="font-weight:800;font-size:13px;color:var(--text);">${escapeHtml(a.ao)}</div>
+                      <div style="font-size:11px;color:var(--text-3);margin-top:2px;">
+                        <span class="badge badge-gray" style="font-size:9.5px;padding:2px 6px;">${a.noaTotal} Debitur Aktif</span>
+                      </div>
+                    </td>
+
+                    <!-- TOTAL PORTFOLIO -->
+                    <td style="padding:12px 14px;text-align:right;">
+                      <div style="font-weight:800;font-size:13px;color:var(--brand);">${formatRupiah(a.totalBaki)}</div>
+                      <div style="font-size:10.5px;color:#0D7A4E;font-weight:600;margin-top:2px;">
+                        Lancar: ${formatRupiah(a.performingBaki)} (${a.performingRatio}%)
+                      </div>
+                    </td>
+
+                    <!-- KOL BREAKDOWN -->
+                    <td style="padding:12px 14px;">
+                      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:4px;text-align:center;font-size:10.5px;">
+                        <!-- KOL 1 -->
+                        <div style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:6px;padding:4px 2px;">
+                          <div style="color:#065F46;font-weight:800;">KOL 1</div>
+                          <div style="font-size:10px;font-weight:700;color:#047857;">${a.kol1.noa} deb</div>
+                          <div style="font-size:9px;color:#065F46;opacity:0.8;">${a.kol1.pct}%</div>
+                        </div>
+
+                        <!-- KOL 2 -->
+                        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:4px 2px;">
+                          <div style="color:#1E40AF;font-weight:800;">KOL 2</div>
+                          <div style="font-size:10px;font-weight:700;color:#1D4ED8;">${a.kol2.noa} deb</div>
+                          <div style="font-size:9px;color:#1E40AF;opacity:0.8;">${a.kol2.pct}%</div>
+                        </div>
+
+                        <!-- KOL 3 -->
+                        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:4px 2px;">
+                          <div style="color:#92400E;font-weight:800;">KOL 3</div>
+                          <div style="font-size:10px;font-weight:700;color:#B45309;">${a.kol3.noa} deb</div>
+                          <div style="font-size:9px;color:#92400E;opacity:0.8;">${a.kol3.pct}%</div>
+                        </div>
+
+                        <!-- KOL 4 -->
+                        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:6px;padding:4px 2px;">
+                          <div style="color:#9A3412;font-weight:800;">KOL 4</div>
+                          <div style="font-size:10px;font-weight:700;color:#C2410C;">${a.kol4.noa} deb</div>
+                          <div style="font-size:9px;color:#9A3412;opacity:0.8;">${a.kol4.pct}%</div>
+                        </div>
+
+                        <!-- KOL 5 -->
+                        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:4px 2px;">
+                          <div style="color:#991B1B;font-weight:800;">KOL 5</div>
+                          <div style="font-size:10px;font-weight:700;color:#B91C1C;">${a.kol5.noa} deb</div>
+                          <div style="font-size:9px;color:#991B1B;opacity:0.8;">${a.kol5.pct}%</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- NPF GROSS -->
+                    <td style="padding:12px 14px;text-align:right;">
+                      <div style="font-weight:800;font-size:14px;color:${a.npfRatio <= 5.0 ? '#0D7A4E' : '#C0392C'};">
+                        ${a.npfRatio.toFixed(2)}%
+                      </div>
+                      <div style="font-size:11px;font-weight:700;color:#C0392C;margin-top:2px;">
+                        ${formatRupiah(a.npfBaki)}
+                      </div>
+                      <div style="font-size:10px;color:var(--text-3);">
+                        ${a.npfNoa} NOA Bermasalah
+                      </div>
+                    </td>
+
+                    <!-- STACKED BAR -->
+                    <td style="padding:12px 14px;text-align:center;">
+                      <div style="height:12px;width:100%;border-radius:9999px;background:#e2e8f0;display:flex;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,0.1);" title="KOL 1: ${a.kol1.pct}% | KOL 2: ${a.kol2.pct}% | KOL 3: ${a.kol3.pct}% | KOL 4: ${a.kol4.pct}% | KOL 5: ${a.kol5.pct}%">
+                        <div style="height:100%;width:${a.kol1.pct}%;background:#10B981;"></div>
+                        <div style="height:100%;width:${a.kol2.pct}%;background:#3B82F6;"></div>
+                        <div style="height:100%;width:${a.kol3.pct}%;background:#F59E0B;"></div>
+                        <div style="height:100%;width:${a.kol4.pct}%;background:#F97316;"></div>
+                        <div style="height:100%;width:${a.kol5.pct}%;background:#EF4444;"></div>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-3);margin-top:4px;">
+                        <span style="color:#0D7A4E;font-weight:700;">${a.kol1.pct}% Lancar</span>
+                        <span style="color:#C0392C;font-weight:700;">${a.npfRatio}% NPF</span>
+                      </div>
+                    </td>
+
+                    <!-- HEALTH EVALUATION (SUDAH BAIK ATAU BELUM) -->
+                    <td style="padding:12px 14px;text-align:center;">
+                      <div style="display:inline-block;background:${statusBg};border:1px solid ${statusBorder};border-radius:10px;padding:6px 12px;text-align:center;width:100%;">
+                        <div style="font-size:12px;font-weight:800;color:${statusColor};">
+                          ${a.healthLabel}
+                        </div>
+                        <div style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:3px;">
+                          <span class="badge ${a.isHealthy ? 'badge-green' : 'badge-red'}" style="font-size:9.5px;font-weight:700;">
+                            ${a.isHealthy ? 'Sudah Baik' : 'Belum Baik'}
+                          </span>
+                          <span style="font-size:11px;font-weight:800;color:${statusColor};">
+                            Skor: ${a.score}/100
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- OPERATIONAL RECOMMENDATION -->
+                    <td style="padding:12px 14px;font-size:11.5px;line-height:1.45;color:var(--text-2);">
+                      ${a.recommendation}
+                    </td>
+
+                    <!-- ACTIONS -->
+                    <td style="padding:12px 14px;text-align:center;">
+                      <button class="btn btn-outline btn-sm" onclick="openAoDrilldownModal('${a.ao.replace(/'/g, "\\'")}')" style="padding:5px 10px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Debitur
+                      </button>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function handleAoPerfSearch(val) {
+  _aoPerfSearchQuery = val;
+  renderAoPerformanceContent();
+}
+
+function handleAoPerfFilterStatus(val) {
+  _aoPerfFilterStatus = val;
+  renderAoPerformanceContent();
+}
+
+function handleAoPerfSort(val) {
+  _aoPerfSortBy = val;
+  renderAoPerformanceContent();
+}
+
+/**
+ * AO DRILLDOWN MODAL
+ */
+async function openAoDrilldownModal(aoName) {
+  _aoDrilldownCurrentAo = aoName;
+  _aoDrilldownActiveKol = 'ALL';
+
+  const modal = document.getElementById('modal-ao-drilldown');
+  const title = document.getElementById('ao-drilldown-title');
+  const sub = document.getElementById('ao-drilldown-sub');
+  const statsBox = document.getElementById('ao-drilldown-stats');
+  const tableWrap = document.getElementById('ao-drilldown-table-wrap');
+
+  if (!modal) return;
+
+  if (title) title.innerText = `Portofolio Debitur: ${aoName}`;
+  if (sub) sub.innerText = `Memuat rincian nasabah pembiayaan binaan AO ${aoName}...`;
+  if (statsBox) statsBox.innerHTML = '';
+  if (tableWrap) tableWrap.innerHTML = `<div class="empty-st"><p>Mengambil data nasabah...</p></div>`;
+
+  openModal('modal-ao-drilldown');
+
+  try {
+    const res = await apiCall(`/kpi/ao-debiturs?ao=${encodeURIComponent(aoName)}`);
+    _aoDrilldownDebs = res.debiturs || [];
+
+    const aoPerf = _aoPerformanceData?.aoList?.find(a => a.ao === aoName) || {};
+
+    if (statsBox) {
+      statsBox.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:12px;">
+          <div>
+            <div style="font-size:10.5px;color:var(--text-3);font-weight:700;text-transform:uppercase;">Total Baki Debet</div>
+            <div style="font-size:16px;font-weight:800;color:var(--brand);">${formatRupiah(aoPerf.totalBaki || 0)}</div>
+          </div>
+          <div>
+            <div style="font-size:10.5px;color:var(--text-3);font-weight:700;text-transform:uppercase;">Rasio NPF Gross</div>
+            <div style="font-size:16px;font-weight:800;color:${(aoPerf.npfRatio || 0) <= 5.0 ? '#0D7A4E' : '#C0392C'};">${(aoPerf.npfRatio || 0).toFixed(2)}%</div>
+          </div>
+          <div>
+            <div style="font-size:10.5px;color:var(--text-3);font-weight:700;text-transform:uppercase;">Total Debitur (NOA)</div>
+            <div style="font-size:16px;font-weight:800;color:var(--text);">${_aoDrilldownDebs.length} Nasabah</div>
+          </div>
+          <div>
+            <div style="font-size:10.5px;color:var(--text-3);font-weight:700;text-transform:uppercase;">Status Evaluasi</div>
+            <div style="font-size:13px;font-weight:800;color:${aoPerf.isHealthy ? '#0D7A4E' : '#C0392C'};">${aoPerf.healthLabel || 'Evaluasi'}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    renderAoDrilldownTabsAndTable();
+  } catch (err) {
+    if (tableWrap) tableWrap.innerHTML = `<div class="empty-st"><p>Gagal memuat debitur: ${escapeHtml(err.message)}</p></div>`;
+  }
+}
+
+function renderAoDrilldownTabsAndTable() {
+  const tabsWrap = document.getElementById('ao-drilldown-kol-tabs');
+  const tableWrap = document.getElementById('ao-drilldown-table-wrap');
+
+  if (!tabsWrap || !tableWrap) return;
+
+  const kolCounts = {
+    ALL: _aoDrilldownDebs.length,
+    Lancar: _aoDrilldownDebs.filter(d => d.kol === 'Lancar').length,
+    DPK: _aoDrilldownDebs.filter(d => d.kol === 'DPK').length,
+    'Kurang Lancar': _aoDrilldownDebs.filter(d => d.kol === 'Kurang Lancar').length,
+    Diragukan: _aoDrilldownDebs.filter(d => d.kol === 'Diragukan').length,
+    Macet: _aoDrilldownDebs.filter(d => d.kol === 'Macet').length
+  };
+
+  const tabs = [
+    { key: 'ALL', label: `Semua (${kolCounts.ALL})` },
+    { key: 'Lancar', label: `KOL 1 Lancar (${kolCounts.Lancar})` },
+    { key: 'DPK', label: `KOL 2 DPK (${kolCounts.DPK})` },
+    { key: 'Kurang Lancar', label: `KOL 3 KL (${kolCounts['Kurang Lancar']})` },
+    { key: 'Diragukan', label: `KOL 4 Diragukan (${kolCounts.Diragukan})` },
+    { key: 'Macet', label: `KOL 5 Macet (${kolCounts.Macet})` }
+  ];
+
+  tabsWrap.innerHTML = tabs.map(t => `
+    <button
+      class="btn btn-sm"
+      onclick="switchDrilldownKolTab('${t.key}')"
+      style="font-size:11.5px;padding:5px 12px;border-radius:8px;font-weight:700;${_aoDrilldownActiveKol === t.key ? 'background:var(--brand);color:#ffffff;border:1px solid var(--brand);' : 'background:var(--bg);color:var(--text-2);border:1px solid var(--border);'}"
+    >
+      ${t.label}
+    </button>
+  `).join('');
+
+  let filtered = _aoDrilldownDebs;
+  if (_aoDrilldownActiveKol !== 'ALL') {
+    filtered = _aoDrilldownDebs.filter(d => d.kol === _aoDrilldownActiveKol);
+  }
+
+  tableWrap.innerHTML = `
+    <div style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:12px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead style="position:sticky;top:0;background:#f8fafc;z-index:2;border-bottom:1.5px solid var(--border);">
+          <tr>
+            <th style="padding:8px 10px;text-align:center;width:35px;">No</th>
+            <th style="padding:8px 10px;">No. Rekening</th>
+            <th style="padding:8px 10px;">Nama Debitur</th>
+            <th style="padding:8px 10px;text-align:center;">KOL</th>
+            <th style="padding:8px 10px;text-align:right;">Baki Debet</th>
+            <th style="padding:8px 10px;text-align:right;">Tunggakan</th>
+            <th style="padding:8px 10px;text-align:center;">DPD</th>
+            <th style="padding:8px 10px;text-align:center;">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.length === 0 ? '<tr><td colspan="8" class="empty-st" style="padding:24px;">Tidak ada debitur pada kategori KOL ini.</td></tr>' : filtered.map((d, i) => `
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:8px 10px;text-align:center;color:var(--text-3);">${i + 1}</td>
+              <td style="padding:8px 10px;font-family:monospace;font-weight:700;">${escapeHtml(d.id)}</td>
+              <td style="padding:8px 10px;font-weight:700;color:var(--text);">${escapeHtml(d.nama)}</td>
+              <td style="padding:8px 10px;text-align:center;"><span class="badge ${getKolBadgeClass(d.kol)}">${escapeHtml(d.kol)}</span></td>
+              <td style="padding:8px 10px;text-align:right;font-weight:700;color:var(--brand);">${formatRupiah(d.bakiDebet)}</td>
+              <td style="padding:8px 10px;text-align:right;font-weight:700;color:#C0392C;">${formatRupiah(d.totalTunggakan)}</td>
+              <td style="padding:8px 10px;text-align:center;font-weight:700;color:${d.dpd > 0 ? '#C0392C' : '#0D7A4E'};">${d.dpd || 0} hr</td>
+              <td style="padding:8px 10px;text-align:center;">
+                <button class="btn btn-outline btn-sm" style="padding:3px 8px;font-size:10.5px;" onclick="closeModal('modal-ao-drilldown');viewDebiturDetail('${d.id}')">
+                  Profil
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function switchDrilldownKolTab(kol) {
+  _aoDrilldownActiveKol = kol;
+  renderAoDrilldownTabsAndTable();
+}
+
+function printAoPerformanceReport() {
+  window.print();
+}
+
+window.loadAoPerformanceView = loadAoPerformanceView;
+window.handleAoPerfSearch = handleAoPerfSearch;
+window.handleAoPerfFilterStatus = handleAoPerfFilterStatus;
+window.handleAoPerfSort = handleAoPerfSort;
+window.openAoDrilldownModal = openAoDrilldownModal;
+window.switchDrilldownKolTab = switchDrilldownKolTab;
+window.printAoPerformanceReport = printAoPerformanceReport;
 
 /**
  * 1. MIGRATION MATRIX VIEW
@@ -8335,17 +9102,70 @@ async function loadUsersView() {
   container.innerHTML = `<div class="empty-st"><p>Memuat daftar pengguna...</p></div>`;
 
   try {
-    const activeUsers = await apiCall('/users/active');
-    const pendingUsers = await apiCall('/users/pending');
+    const [activeUsers, pendingRoles] = await Promise.all([
+      apiCall('/users/active').catch(() => []),
+      apiCall('/users/pending-roles').catch(() => [])
+    ]);
 
     const activeList = Array.isArray(activeUsers) ? activeUsers : (activeUsers?.users || []);
-    const pendingList = Array.isArray(pendingUsers) ? pendingUsers : (pendingUsers?.users || []);
+    const pendingList = Array.isArray(pendingRoles) ? pendingRoles : (pendingRoles?.users || []);
 
-    _allUsersCache = [...pendingList, ...activeList];
+    _allUsersCache = activeList;
 
     container.innerHTML = `
+      <!-- PENDING ROLE CONFIRMATION SECTION -->
+      ${pendingList.length > 0 ? `
+        <div class="card mb-4" style="background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:16px;padding:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+              <h3 style="font-size:14px;font-weight:800;color:#92400E;margin:0;">
+                Petugas Menunggu Verifikasi &amp; Konfirmasi Posisi (${pendingList.length} Akun)
+              </h3>
+            </div>
+            <span class="badge badge-yellow" style="font-size:11px;font-weight:700;">Menunggu Admin</span>
+          </div>
+          <p style="font-size:12px;color:#78350F;margin-bottom:14px;line-height:1.5;">
+            Petugas di bawah ini telah berhasil memverifikasi email via OTP. Anda dapat mengoreksi role/divisi jika user salah mendaftar dan memetakan master akun AO resmi dari CBS sebelum mengonfirmasi hak akses penuh.
+          </p>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">
+            ${pendingList.map(u => `
+              <div style="background:#FFFFFF;border:1px solid #FDE68A;border-radius:12px;padding:14px;box-shadow:0 2px 4px rgba(0,0,0,0.03);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                  <div>
+                    <div style="font-size:13.5px;font-weight:800;color:var(--text);">${escapeHtml(u.nama)}</div>
+                    <div style="font-size:11px;color:var(--text-3);font-family:monospace;">${escapeHtml(u.username)} • ${escapeHtml(u.email)}</div>
+                  </div>
+                  <span class="badge badge-green" style="font-size:9.5px;">OTP Valid</span>
+                </div>
+
+                <div style="margin:10px 0;padding:8px;background:#F8FAFC;border-radius:8px;font-size:11.5px;">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                    <span style="color:var(--text-3);">Posisi Diajukan:</span>
+                    <strong style="color:var(--brand);">${u.posisi === 'ao' ? 'Account Officer (AO)' : u.posisi}</strong>
+                  </div>
+                  ${u.aoNameRef ? `
+                    <div style="display:flex;justify-content:space-between;">
+                      <span style="color:var(--text-3);">Mapping AO:</span>
+                      <strong style="color:#0F172A;">${escapeHtml(u.aoNameRef)}</strong>
+                    </div>
+                  ` : ''}
+                </div>
+
+                <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:10px;">
+                  <button class="btn btn-primary btn-sm" style="font-size:11px;padding:5px 12px;font-weight:700;" onclick="openConfirmRoleModal('${u.id}', '${u.nama.replace(/'/g, "\\'")}', '${u.email.replace(/'/g, "\\'")}', '${u.posisi}', '${(u.aoNameRef || '').replace(/'/g, "\\'")}')">
+                    Koreksi &amp; Konfirmasi Posisi
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-        <div style="font-size:13.5px;font-weight:700;color:var(--text);">Total Pengguna: ${_allUsersCache.length} Akun</div>
+        <div style="font-size:13.5px;font-weight:700;color:var(--text);">Semua Pengguna Terdaftar: ${_allUsersCache.length} Akun</div>
         <button class="btn btn-primary btn-sm" onclick="openAddUserModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Tambah User Baru
@@ -8360,9 +9180,9 @@ async function loadUsersView() {
                 <th>Username</th>
                 <th>Nama Lengkap</th>
                 <th>Email</th>
-                <th>Posisi / Divisi</th>
-                <th>Status</th>
-                <th style="width:230px;">Aksi / Pindah Divisi</th>
+                <th>Posisi &amp; Mapping AO</th>
+                <th>Status Verifikasi</th>
+                <th style="width:230px;">Aksi / Kelola</th>
               </tr>
             </thead>
             <tbody>
@@ -8372,24 +9192,23 @@ async function loadUsersView() {
                   <td class="font-bold">${u.nama}</td>
                   <td>${u.email}</td>
                   <td>
-                    <select class="form-select" style="font-size:12px;padding:4px 12px;border-radius:9999px;width:auto;" onchange="quickChangeUserDivisi('${u.id}', this.value)">
-                      <option value="admin" ${u.posisi==='admin'?'selected':''}>Administrator Utama</option>
-                      <option value="kabid_p3" ${u.posisi==='kabid_p3'?'selected':''}>Kabid P3</option>
-                      <option value="staff_p3" ${u.posisi==='staff_p3'?'selected':''}>Staff P3 (Penagihan)</option>
-                      <option value="desk_call" ${u.posisi==='desk_call'?'selected':''}>Staff Desk Call</option>
-                      <option value="legal" ${u.posisi==='legal'?'selected':''}>Staff Legal & Agunan</option>
-                    </select>
+                    <div style="font-weight:700;font-size:12px;color:var(--text);">
+                      ${u.posisi === 'admin' ? 'Administrator Utama' : (u.posisi === 'ao' ? 'Account Officer' : (u.posisi === 'kabid_ao' ? 'Kabid AO' : (u.posisi === 'staff_p3' ? 'Staff P3' : (u.posisi === 'kabid_p3' ? 'Kabid P3' : (u.posisi === 'desk_call' ? 'Desk Call' : 'Staff Legal')))))}
+                    </div>
+                    ${u.aoNameRef ? `<div style="font-size:10.5px;color:var(--brand);font-weight:600;">Ref CBS: ${escapeHtml(u.aoNameRef)}</div>` : ''}
                   </td>
                   <td>
-                    <span class="badge ${u.status==='active'?'badge-green':u.status==='pending'?'badge-yellow':u.status==='inactive'?'badge-gray':'badge-red'}">
-                      ${u.status}
-                    </span>
+                    <div style="display:flex;gap:4px;flex-direction:column;align-items:flex-start;">
+                      <span class="badge ${u.status==='active'?'badge-green':u.status==='pending'?'badge-yellow':u.status==='inactive'?'badge-gray':'badge-red'}">
+                        ${u.status}
+                      </span>
+                      ${u.roleConfirmed ? '<span class="badge badge-teal" style="font-size:9.5px;">Role Disetujui</span>' : '<span class="badge badge-yellow" style="font-size:9.5px;">Belum Dikonfirmasi</span>'}
+                    </div>
                   </td>
                   <td>
                     <div style="display:flex;gap:6px;align-items:center;">
-                      ${u.status === 'pending' ? `
-                        <button class="btn btn-primary btn-sm" style="padding:4px 8px;font-size:11px;" onclick="approveUser('${u.id}')">Setujui</button>
-                        <button class="btn btn-danger-out btn-sm" style="padding:4px 8px;font-size:11px;" onclick="rejectUser('${u.id}')">Tolak</button>
+                      ${!u.roleConfirmed ? `
+                        <button class="btn btn-primary btn-sm" style="padding:4px 8px;font-size:11px;font-weight:700;" onclick="openConfirmRoleModal('${u.id}', '${u.nama.replace(/'/g, "\\'")}', '${u.email.replace(/'/g, "\\'")}', '${u.posisi}', '${(u.aoNameRef || '').replace(/'/g, "\\'")}')">Konfirmasi</button>
                       ` : ''}
                       <button class="btn btn-outline btn-sm" style="padding:4px 8px;font-size:11px;" onclick="openEditUserModal('${u.id}')">Edit</button>
                       ${state.user?.id !== u.id ? `

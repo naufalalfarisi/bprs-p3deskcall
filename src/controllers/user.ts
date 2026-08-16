@@ -3,17 +3,21 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../db.js';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
 import { logAudit } from '../utils/audit.js';
+import { ConfirmRoleSchema, EditUserSchema, CreateUserSchema } from '../schemas/index.js';
 
 export const userRouter = new Hono();
 
 // Enforce admin-only access for all user management routes
 userRouter.use('*', authMiddleware, roleMiddleware(['admin']));
 
-// GET /pending - List all pending users
-userRouter.get('/pending', async (c) => {
+// GET /pending-roles - List users waiting for role confirmation / mapping by admin
+userRouter.get('/pending-roles', async (c) => {
   try {
     const users = await prisma.user.findMany({
-      where: { status: 'pending' },
+      where: {
+        roleConfirmed: false,
+        status: { not: 'rejected' }
+      },
       orderBy: { createdAt: 'desc' }
     });
     return c.json(users);
@@ -22,16 +26,77 @@ userRouter.get('/pending', async (c) => {
   }
 });
 
-// GET /active - List all active, inactive, and rejected users (excluding pending)
-userRouter.get('/active', async (c) => {
+// GET /pending - List all pending users (legacy or unverified)
+userRouter.get('/pending', async (c) => {
   try {
     const users = await prisma.user.findMany({
       where: {
-        status: { in: ['active', 'inactive', 'rejected'] }
+        OR: [{ status: 'pending' }, { roleConfirmed: false }]
       },
-      orderBy: { nama: 'asc' }
+      orderBy: { createdAt: 'desc' }
     });
     return c.json(users);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// GET /active - List all active, inactive, and rejected users
+userRouter.get('/active', async (c) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: [{ roleConfirmed: 'asc' }, { nama: 'asc' }]
+    });
+    return c.json(users);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// PUT /:id/confirm-role - Admin confirms / modifies user role and AO mapping
+userRouter.put('/:id/confirm-role', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const adminUser = (c as any).get('user');
+    const body = await c.req.json();
+
+    const parsed = ConfirmRoleSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || 'Data role tidak valid';
+      return c.json({ error: firstError }, 400);
+    }
+    const { posisi, aoNameRef } = parsed.data;
+
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return c.json({ error: 'User tidak ditemukan' }, 404);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: {
+        posisi,
+        aoNameRef: posisi === 'ao' ? (aoNameRef || null) : null,
+        roleConfirmed: true,
+        status: 'active',
+        confirmedBy: adminUser?.nama || 'Administrator',
+        confirmedAt: new Date()
+      }
+    });
+
+    await logAudit(
+      c,
+      'confirm_user_role',
+      'users',
+      id,
+      { posisi: user.posisi, aoNameRef: user.aoNameRef, roleConfirmed: user.roleConfirmed },
+      { posisi: updated.posisi, aoNameRef: updated.aoNameRef, roleConfirmed: true }
+    );
+
+    return c.json({
+      message: 'Posisi & peran user berhasil dikonfirmasi dan disetujui',
+      user: updated
+    });
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }
@@ -148,7 +213,7 @@ userRouter.put('/:id/edit', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { nama, email, posisi, status, password } = body;
+    const { nama, email, posisi, aoNameRef, status, password } = body;
 
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -161,6 +226,10 @@ userRouter.put('/:id/edit', async (c) => {
       posisi: posisi || user.posisi,
       status: status || user.status
     };
+
+    if (aoNameRef !== undefined) {
+      dataToUpdate.aoNameRef = aoNameRef || null;
+    }
 
     if (password && password.trim().length >= 6) {
       dataToUpdate.passwordHash = await bcrypt.hash(password.trim(), 10);

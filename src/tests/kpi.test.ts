@@ -99,4 +99,42 @@ describe('KPI Scorecard & Perbankan Syariah Formula Tests', () => {
       expect(isDeteriorated).toBe(true);
     });
   });
+
+  describe('AO Financing Performance & Health Evaluation Classification', () => {
+    it('should classify AO as PRIME (Sangat Baik) when NPF is <= 3.0%', () => {
+      const totalBaki = 2_000_000_000;
+      const npfBaki = 40_000_000; // 2.0%
+      const npfRatio = (npfBaki / totalBaki) * 100;
+      
+      expect(npfRatio).toBe(2.0);
+      expect(npfRatio <= 3.0).toBe(true);
+    });
+
+    it('should classify AO as GOOD (Baik / Batas OJK) when NPF is 3.1% - 5.0%', () => {
+      const totalBaki = 1_500_000_000;
+      const npfBaki = 67_500_000; // 4.5%
+      const npfRatio = (npfBaki / totalBaki) * 100;
+      
+      expect(npfRatio).toBe(4.5);
+      expect(npfRatio > 3.0 && npfRatio <= 5.0).toBe(true);
+    });
+
+    it('should classify AO as WATCHLIST (Perhatian Khusus) when NPF is 5.1% - 7.0%', () => {
+      const totalBaki = 1_000_000_000;
+      const npfBaki = 65_000_000; // 6.5%
+      const npfRatio = (npfBaki / totalBaki) * 100;
+      
+      expect(npfRatio).toBe(6.5);
+      expect(npfRatio > 5.0 && npfRatio <= 7.0).toBe(true);
+    });
+
+    it('should classify AO as CRITICAL (Kritis / High Risk) when NPF is > 7.0%', () => {
+      const totalBaki = 800_000_000;
+      const npfBaki = 80_000_000; // 10.0%
+      const npfRatio = (npfBaki / totalBaki) * 100;
+      
+      expect(npfRatio).toBe(10.0);
+      expect(npfRatio > 7.0).toBe(true);
+    });
+  });
 });

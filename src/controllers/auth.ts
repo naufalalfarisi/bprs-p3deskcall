@@ -7,33 +7,15 @@ import { createAccessToken, authMiddleware } from '../middleware/auth.js';
 import { authLoginRateLimiter, authRegisterRateLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../utils/audit.js';
 
-// --- Zod Validation Schemas ---
-const loginSchema = z.object({
-  username: z.string().min(1, 'Username wajib diisi'),
-  password: z.string().min(1, 'Password wajib diisi'),
-  force: z.boolean().optional()
-});
-
-const registerSchema = z.object({
-  username: z.string().min(3, 'Username minimal 3 karakter'),
-  password: z.string().min(8, 'Password minimal 8 karakter'),
-  nama: z.string().min(1, 'Nama wajib diisi'),
-  email: z.string().email('Format email tidak valid'),
-  tgl_lahir: z.string().min(1, 'Tanggal lahir wajib diisi'),
-  posisi: z.enum(['desk_call', 'ao', 'p3', 'legal'], { message: 'Posisi tidak valid' }),
-  ao_name_ref: z.string().optional()
-});
-
-const forgotPasswordSchema = z.object({
-  username: z.string().min(1, 'Username wajib diisi'),
-  tgl_lahir: z.string().min(1, 'Tanggal lahir wajib diisi'),
-  newPassword: z.string().min(8, 'Password baru minimal 8 karakter')
-});
-
-const changePasswordSchema = z.object({
-  oldPassword: z.string().min(1, 'Password lama wajib diisi'),
-  newPassword: z.string().min(8, 'Password baru minimal 8 karakter')
-});
+import {
+  LoginSchema,
+  RegisterSchema,
+  VerifyOtpSchema,
+  ResendOtpSchema,
+  ForgotPasswordSchema,
+  ChangePasswordSchema
+} from '../schemas/index.js';
+import { sendOtpEmail } from '../services/emailService.js';
 
 // Helper: build Set-Cookie header value
 function buildTokenCookie(token: string, maxAgeSeconds: number): string {
@@ -80,11 +62,11 @@ authRouter.get('/ao-list', async (c) => {
   }
 });
 
-// POST /register
-authRouter.post('/register', authRegisterRateLimiter, async (c) => {
+// Handler for registration and sending OTP email
+async function handleRegisterRequest(c: any) {
   try {
     const body = await c.req.json();
-    const parsed = registerSchema.safeParse(body);
+    const parsed = RegisterSchema.safeParse(body);
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message || 'Data tidak valid';
       return c.json({ error: firstError }, 400);
@@ -101,58 +83,57 @@ authRouter.post('/register', authRegisterRateLimiter, async (c) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const existingUser = await prisma.user.findUnique({ where: { username } });
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Check existing user
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ username }, { email }]
+      }
+    });
 
     if (existingUser) {
-      // If user is rejected, check daily attempts (max 3/day)
-      if (existingUser.status === 'rejected') {
-        const attemptDate = existingUser.lastRegisterAttemptAt;
-        let attemptCount = existingUser.registerAttemptCount;
-
-        if (attemptDate && isToday(attemptDate)) {
-          if (attemptCount >= 3) {
-            return c.json({ error: 'Batas pendaftaran ulang hari ini tercapai (maksimal 3 kali)' }, 429);
-          }
-          attemptCount += 1;
-        } else {
-          attemptCount = 1;
-        }
-
-        // Allow retry with same username
-        const updated = await prisma.user.update({
-          where: { username },
+      if (!existingUser.emailVerified) {
+        // User registered but hasn't verified email yet -> update and resend fresh OTP
+        await prisma.user.update({
+          where: { id: existingUser.id },
           data: {
-            nama,
-            email,
-            tglLahir: tglLahirDate,
+            username,
             passwordHash,
+            nama,
+            tglLahir: tglLahirDate,
             posisi,
             aoNameRef: posisi === 'ao' ? (ao_name_ref || null) : null,
-            status: 'pending',
-            registerAttemptCount: attemptCount,
-            lastRegisterAttemptAt: new Date()
+            status: 'active'
           }
         });
 
-        // Trigger manual audit log for register attempt (no auth context)
-        await prisma.auditLog.create({
-          data: {
-            userId: updated.id,
-            action: 'register_retry',
-            tableName: 'users',
-            recordId: updated.id,
-            newValue: JSON.stringify({ username, posisi, aoNameRef: updated.aoNameRef }),
-            ipAddress: c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1'
-          }
+        await prisma.emailOtp.updateMany({
+          where: { email, consumed: false },
+          data: { consumed: true }
         });
 
-        return c.json({ message: 'Pendaftaran ulang berhasil dikirim, menunggu persetujuan admin', status: 'pending' });
+        await prisma.emailOtp.create({
+          data: { email, otpCode, purpose: 'register', expiresAt: otpExpiry }
+        });
+        await sendOtpEmail(email, otpCode, nama);
+
+        return c.json({
+          success: true,
+          message: 'Pendaftaran diperbarui. Kode OTP verifikasi telah dikirim ke email Anda.',
+          email,
+          username,
+          requiresOtp: true
+        });
       }
 
-      return c.json({ error: 'Username sudah digunakan' }, 400);
+      if (existingUser.username === username) {
+        return c.json({ error: 'Username sudah digunakan oleh akun lain' }, 400);
+      }
+      return c.json({ error: 'Email sudah terdaftar pada sistem' }, 400);
     }
 
-    // Register new user
     const newUser = await prisma.user.create({
       data: {
         username,
@@ -162,25 +143,214 @@ authRouter.post('/register', authRegisterRateLimiter, async (c) => {
         tglLahir: tglLahirDate,
         posisi,
         aoNameRef: posisi === 'ao' ? (ao_name_ref || null) : null,
-        status: 'pending',
+        status: 'active',
+        emailVerified: false,
+        roleConfirmed: false,
         registerAttemptCount: 1,
         lastRegisterAttemptAt: new Date()
       }
     });
 
-    // Write audit log without user context (it's register)
+    await prisma.emailOtp.updateMany({
+      where: { email, consumed: false },
+      data: { consumed: true }
+    });
+
+    await prisma.emailOtp.create({
+      data: { email, otpCode, purpose: 'register', expiresAt: otpExpiry }
+    });
+
+    await sendOtpEmail(email, otpCode, nama);
+
     await prisma.auditLog.create({
       data: {
         userId: newUser.id,
-        action: 'register',
+        action: 'register_request',
         tableName: 'users',
         recordId: newUser.id,
-        newValue: JSON.stringify({ username, posisi, aoNameRef: newUser.aoNameRef }),
+        newValue: JSON.stringify({ username, email, posisi, aoNameRef: newUser.aoNameRef }),
         ipAddress: c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1'
       }
     });
 
-    return c.json({ message: 'Pendaftaran berhasil dikirim, menunggu persetujuan admin', status: 'pending' }, 201);
+    return c.json(
+      {
+        success: true,
+        message: 'Pendaftaran akun berhasil. Silakan masukkan 6 digit kode OTP yang dikirim ke email Anda.',
+        email,
+        username,
+        requiresOtp: true
+      },
+      201
+    );
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+}
+
+// POST /register and POST /register-request (alias)
+authRouter.post('/register', authRegisterRateLimiter, handleRegisterRequest);
+authRouter.post('/register-request', authRegisterRateLimiter, handleRegisterRequest);
+
+// POST /verify-otp - Verify 6-digit OTP, activate email, and auto-login
+authRouter.post('/verify-otp', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = VerifyOtpSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || 'Data OTP tidak valid';
+      return c.json({ error: firstError }, 400);
+    }
+    const { email, otpCode } = parsed.data;
+    const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+
+    const otpRecord = await prisma.emailOtp.findFirst({
+      where: {
+        email,
+        consumed: false,
+        expiresAt: { gt: new Date() }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!otpRecord || otpRecord.otpCode !== otpCode) {
+      if (otpRecord) {
+        await prisma.emailOtp.update({
+          where: { id: otpRecord.id },
+          data: { attempts: otpRecord.attempts + 1 }
+        });
+      }
+      return c.json({ error: 'Kode OTP salah atau sudah kedaluwarsa' }, 400);
+    }
+
+    // Mark OTP as consumed
+    await prisma.emailOtp.update({
+      where: { id: otpRecord.id },
+      data: { consumed: true }
+    });
+
+    // Find and update user
+    const user = await prisma.user.findFirst({ where: { email } });
+    if (!user) {
+      return c.json({ error: 'User tidak ditemukan' }, 404);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        status: 'active',
+        registerAttemptCount: 0,
+        lastRegisterAttemptAt: null
+      }
+    });
+
+    // Auto-login: generate access token & refresh token
+    const accessToken = await createAccessToken({
+      userId: updatedUser.id,
+      username: updatedUser.username,
+      posisi: updatedUser.posisi
+    });
+
+    const userAgent = c.req.header('user-agent') || 'unknown';
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
+
+    const refreshToken = await prisma.refreshToken.create({
+      data: {
+        userId: updatedUser.id,
+        tokenHash: await bcrypt.hash(accessToken.substring(10, 30), 10),
+        deviceInfo: userAgent,
+        expiresAt
+      }
+    });
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: updatedUser.id,
+        action: 'verify_otp_login',
+        tableName: 'users',
+        recordId: updatedUser.id,
+        ipAddress: ip
+      }
+    });
+
+    // Set auth cookie
+    c.header('Set-Cookie', buildTokenCookie(accessToken, 8 * 60 * 60));
+
+    return c.json({
+      success: true,
+      message: 'Email berhasil diverifikasi! Selamat datang di BPRS Mitra Harmoni.',
+      accessToken,
+      refreshToken: refreshToken.id,
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        nama: updatedUser.nama,
+        posisi: updatedUser.posisi,
+        aoNameRef: updatedUser.aoNameRef,
+        email: updatedUser.email,
+        avatarUrl: updatedUser.avatarUrl,
+        emailVerified: true,
+        roleConfirmed: updatedUser.roleConfirmed
+      }
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// POST /resend-otp - Resend new OTP with 60-second cooldown
+authRouter.post('/resend-otp', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = ResendOtpSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || 'Email tidak valid';
+      return c.json({ error: firstError }, 400);
+    }
+    const { email } = parsed.data;
+
+    const user = await prisma.user.findFirst({ where: { email } });
+    if (!user) {
+      return c.json({ error: 'Email tidak terdaftar' }, 404);
+    }
+
+    // Cooldown check: 60 seconds
+    const lastOtp = await prisma.emailOtp.findFirst({
+      where: { email },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (lastOtp && Date.now() - lastOtp.createdAt.getTime() < 60 * 1000) {
+      const remainingSec = Math.ceil((60 * 1000 - (Date.now() - lastOtp.createdAt.getTime())) / 1000);
+      return c.json({ error: `Harap tunggu ${remainingSec} detik sebelum meminta kode OTP baru` }, 429);
+    }
+
+    // Invalidate previous OTPs
+    await prisma.emailOtp.updateMany({
+      where: { email, consumed: false },
+      data: { consumed: true }
+    });
+
+    // Create fresh OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await prisma.emailOtp.create({
+      data: {
+        email,
+        otpCode,
+        purpose: 'register',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+      }
+    });
+
+    // Send email
+    await sendOtpEmail(email, otpCode, user.nama);
+
+    return c.json({
+      success: true,
+      message: 'Kode OTP baru berhasil dikirim ke email Anda'
+    });
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }
@@ -190,7 +360,7 @@ authRouter.post('/register', authRegisterRateLimiter, async (c) => {
 authRouter.post('/login', authLoginRateLimiter, async (c) => {
   try {
     const body = await c.req.json();
-    const parsed = loginSchema.safeParse(body);
+    const parsed = LoginSchema.safeParse(body);
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message || 'Data tidak valid';
       return c.json({ error: firstError }, 400);
@@ -226,6 +396,34 @@ authRouter.post('/login', authLoginRateLimiter, async (c) => {
         return c.json({ error: 'Akun Anda belum disetujui oleh admin' }, 403);
       }
       return c.json({ error: 'Akun Anda dinonaktifkan atau ditolak' }, 403);
+    }
+
+    // Check if email has been verified via OTP
+    if (!user.emailVerified) {
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      await prisma.emailOtp.updateMany({
+        where: { email: user.email, consumed: false },
+        data: { consumed: true }
+      });
+      await prisma.emailOtp.create({
+        data: {
+          email: user.email,
+          otpCode,
+          purpose: 'register',
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+        }
+      });
+      await sendOtpEmail(user.email, otpCode, user.nama);
+
+      return c.json(
+        {
+          error: 'Email Anda belum diverifikasi. Kode OTP baru telah dikirimkan ke email Anda.',
+          requiresOtp: true,
+          email: user.email,
+          username: user.username
+        },
+        403
+      );
     }
 
     const passwordMatch = await bcrypt.compare(password, user.passwordHash);
@@ -321,9 +519,42 @@ authRouter.post('/login', authLoginRateLimiter, async (c) => {
         username: user.username,
         nama: user.nama,
         posisi: user.posisi,
+        aoNameRef: user.aoNameRef,
         email: user.email,
-        avatarUrl: user.avatarUrl
+        avatarUrl: user.avatarUrl,
+        emailVerified: user.emailVerified,
+        roleConfirmed: user.roleConfirmed
       }
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// GET /me - Get current logged-in user profile with role status
+authRouter.get('/me', authMiddleware, async (c) => {
+  try {
+    const userSession = (c as any).get('user');
+    const user = await prisma.user.findUnique({
+      where: { id: userSession.id }
+    });
+
+    if (!user) {
+      return c.json({ error: 'User tidak ditemukan' }, 404);
+    }
+
+    return c.json({
+      id: user.id,
+      username: user.username,
+      nama: user.nama,
+      posisi: user.posisi,
+      aoNameRef: user.aoNameRef,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      emailVerified: user.emailVerified,
+      roleConfirmed: user.roleConfirmed,
+      confirmedBy: user.confirmedBy,
+      confirmedAt: user.confirmedAt
     });
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
@@ -334,7 +565,7 @@ authRouter.post('/login', authLoginRateLimiter, async (c) => {
 authRouter.post('/forgot-password', async (c) => {
   try {
     const body = await c.req.json();
-    const parsed = forgotPasswordSchema.safeParse(body);
+    const parsed = ForgotPasswordSchema.safeParse(body);
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message || 'Data tidak valid';
       return c.json({ error: firstError }, 400);
@@ -548,7 +779,7 @@ authRouter.put('/change-password', authMiddleware, async (c) => {
   try {
     const userSession = (c as any).get('user');
     const body = await c.req.json();
-    const parsed = changePasswordSchema.safeParse(body);
+    const parsed = ChangePasswordSchema.safeParse(body);
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message || 'Data tidak valid';
       return c.json({ error: firstError }, 400);

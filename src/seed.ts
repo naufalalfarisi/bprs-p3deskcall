@@ -8,7 +8,7 @@ async function seed() {
   const adminPasswordHash = await bcrypt.hash('adminpassword', 10);
 
   const demoUsers = [
-    { username: 'admin', nama: 'Administrator Utama', passwordHash: adminPasswordHash, email: 'admin@bprs.co.id', posisi: 'admin', aoNameRef: null },
+    { username: 'admin', nama: 'Administrator Utama', passwordHash: adminPasswordHash, email: 'naufal.farisi41@gmail.com', posisi: 'admin', aoNameRef: null },
     { username: 'ao', nama: 'Muhammad Rizky (AO)', passwordHash: demoPasswordHash, email: 'ao@bprs.co.id', posisi: 'ao', aoNameRef: 'RIZKY' },
     { username: 'kabid_ao', nama: 'Hendra Wijaya (Kabid AO)', passwordHash: demoPasswordHash, email: 'kabid_ao@bprs.co.id', posisi: 'kabid_ao', aoNameRef: null },
     { username: 'kabid_p3', nama: 'Budi Santoso (Kabid P3)', passwordHash: demoPasswordHash, email: 'kabid@bprs.co.id', posisi: 'kabid_p3', aoNameRef: null },

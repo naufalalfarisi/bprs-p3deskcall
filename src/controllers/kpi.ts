@@ -14,7 +14,9 @@ import {
   getKpiRollrate,
   getKpiMigrationMatrix,
   runNpfStressTest,
-  getExecutiveReportData
+  getExecutiveReportData,
+  getAoPerformanceReport,
+  getAoDebiturDrilldown
 } from '../services/kpiService.js';
 
 export const kpiRouter = new Hono();
@@ -129,6 +131,30 @@ kpiRouter.get('/executive-report', async (c) => {
   try {
     const periode = c.req.query('periode') || new Date().toISOString().substring(0, 7);
     const data = await getExecutiveReportData(periode);
+    return c.json(data);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// GET /ao-performance - Comprehensive AO Financing Performance & KOL Breakdown
+kpiRouter.get('/ao-performance', async (c) => {
+  try {
+    const data = await getAoPerformanceReport();
+    return c.json(data);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// GET /ao-debiturs - Detailed Debtor Drilldown for a specific AO
+kpiRouter.get('/ao-debiturs', async (c) => {
+  try {
+    const ao = c.req.query('ao') || '';
+    if (!ao) {
+      return c.json({ error: 'Parameter nama AO wajib diisi' }, 400);
+    }
+    const data = await getAoDebiturDrilldown(ao);
     return c.json(data);
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
