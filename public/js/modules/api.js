@@ -50,7 +50,9 @@ export async function apiCall(endpoint, options = {}) {
     }
 
     if (!res.ok && res.status !== 409) {
-      throw new Error(data.error || data.message || 'Terjadi kesalahan pada server');
+      const err = new Error(data.error || data.message || 'Terjadi kesalahan pada server');
+      Object.assign(err, data);
+      throw err;
     }
     return data;
   } catch (err) {

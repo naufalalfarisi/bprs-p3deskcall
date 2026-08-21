@@ -24,7 +24,7 @@ export const prisma = rawPrisma.$extends({
         if (model && AUTO_AUDIT_MODELS.has(model) && WRITE_OPERATIONS.has(operation)) {
           try {
             const ctx = getRequestContext();
-            const userId = ctx.userId || 'system';
+            const userId = ctx.userId || '3d3d7eac-41e1-49db-bb1c-5ca164188f11';
             const ipAddress = ctx.ipAddress || '127.0.0.1';
 
             let recordId = 'unknown';

@@ -133,6 +133,20 @@
         radial-gradient(at 100% 100%, rgba(15, 118, 110, 0.05) 0px, transparent 50%);
     }
 
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-7px); }
+    }
+    @keyframes floatReverse {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(7px); }
+    }
+    .animate-float-slow {
+      animation: floatSlow 5s ease-in-out infinite;
+    }
+    .animate-float-reverse {
+      animation: floatReverse 6s ease-in-out infinite;
+    }
   </style>
   <script>(function () { document.documentElement.setAttribute('data-theme', localStorage.getItem('bprs_theme') || 'light'); })();</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -179,17 +193,44 @@
     #auth-overlay input[type='text'],
     #auth-overlay input[type='password'],
     #auth-overlay input[type='email'],
-    #auth-overlay input[type='date'],
-    #auth-overlay select {
-      border-radius: 12px !important;
+    #auth-overlay input[type='date'] {
+      border-radius: 16px !important;
       border: 1.5px solid #CBD5E1 !important;
       background-color: #FFFFFF !important;
-      font-size: 14.5px !important;
+      font-size: 14px !important;
       font-weight: 500 !important;
       color: #0F172A !important;
-      height: 46px !important;
+      height: 48px !important;
+      padding: 10px 16px !important;
       transition: all 0.18s ease !important;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+    }
+
+    /* THEMED CUSTOM DROPDOWN / SELECT STYLING */
+    #auth-overlay select {
+      border-radius: 16px !important;
+      border: 1.5px solid #CBD5E1 !important;
+      background-color: #FFFFFF !important;
+      font-size: 13.5px !important;
+      font-weight: 600 !important;
+      color: #0F172A !important;
+      height: 48px !important;
+      padding: 10px 44px 10px 16px !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      -moz-appearance: none !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230F766E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 16px center !important;
+      background-size: 16px 16px !important;
+      cursor: pointer !important;
+    }
+
+    #auth-overlay select:hover {
+      border-color: #0F766E !important;
+      box-shadow: 0 2px 6px rgba(15, 118, 110, 0.08) !important;
     }
 
     #auth-overlay input[type='text']:focus,
@@ -198,8 +239,9 @@
     #auth-overlay input[type='date']:focus,
     #auth-overlay select:focus {
       border-color: #0F766E !important;
-      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14) !important;
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.15) !important;
       background-color: #ffffff !important;
+      outline: none !important;
     }
 
     #auth-overlay input.pl-10 {
@@ -214,21 +256,35 @@
       padding-right: 1.25rem !important;
     }
 
+    /* THEMED GLOBAL SELECT STYLING */
     select,
     .form-select,
     .modal-box select,
     .rbb-field select {
       border-radius: 9999px !important;
-      padding-right: 38px !important;
+      padding-right: 42px !important;
       padding-left: 18px !important;
       appearance: none !important;
       -webkit-appearance: none !important;
       -moz-appearance: none !important;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230F766E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
       background-repeat: no-repeat !important;
       background-position: right 14px center !important;
-      background-size: 14px 14px !important;
+      background-size: 16px 16px !important;
       cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+
+    /* THEMED OPTION STYLING */
+    select option,
+    #auth-overlay select option,
+    .form-select option,
+    .modal-box select option {
+      background-color: #FFFFFF !important;
+      color: #0F172A !important;
+      font-size: 13.5px !important;
+      font-weight: 500 !important;
+      padding: 10px 14px !important;
     }
 
     textarea,
@@ -285,114 +341,364 @@
 </head>
 
 <body class="mesh-bg min-h-screen flex flex-col">
-  <div id="toast-zone"></div>
-  <!-- AUTH OVERLAY -->
-  <div id="auth-overlay" class="h-screen w-screen flex flex-col justify-between font-sans relative overflow-hidden" style="position: fixed; inset: 0; z-index: 99999; overflow: hidden !important; background: linear-gradient(135deg, #f0fdf4 0%, #ccfbf1 35%, #e0f2fe 75%, #f8fafc 100%);">
+  <div id="toast-zone"></div>  <!-- AUTH OVERLAY (MONIUS FINTECH SPLIT DESIGN) -->
+  <div id="auth-overlay" class="min-h-screen w-screen flex flex-col justify-between font-sans relative overflow-x-hidden" style="position: fixed; inset: 0; z-index: 99999; overflow-y: auto !important; background: linear-gradient(135deg, #F0FDF4 0%, #E6FFFA 40%, #EFF6FF 80%, #F8FAFC 100%);">
 
-    <!-- Ambient Soft Light Orbs Background -->
-    <div class="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-teal-300/30 blur-3xl pointer-events-none animate-pulse"></div>
-    <div class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-emerald-200/30 blur-3xl pointer-events-none"></div>
+    <!-- Ambient Subtle Glowing Backdrop Orbs -->
+    <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-teal-200/40 blur-3xl pointer-events-none animate-pulse"></div>
+    <div class="absolute -bottom-32 -right-32 w-[30rem] h-[30rem] rounded-full bg-emerald-200/35 blur-3xl pointer-events-none"></div>
 
-    <!-- Institutional Top Header -->
-    <header class="w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-xl px-6 py-2.5 flex justify-between items-center max-w-[1440px] mx-auto flex-shrink-0 relative z-20 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0f766e] to-[#042f2e] text-white flex items-center justify-center font-black text-xs shadow-md shadow-teal-800/20 border border-teal-400/30 tracking-wider auth-logo">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        </div>
-        <div>
-          <div class="font-black text-xs md:text-sm text-slate-900 tracking-tight leading-none" id="auth-header-pt-name">PT BPRS MITRA HARMONI YOGYAKARTA</div>
-          <div class="text-[10px] font-bold text-[#0f766e] tracking-wider uppercase mt-0.5 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Sistem Informasi Penagihan Terpadu (AO, P3, Desk Call, &amp; Legal)
-          </div>
-        </div>
-      </div>
-      <div class="hidden md:flex items-center gap-4 text-xs font-semibold text-slate-700">
-        <div class="flex items-center gap-2 text-teal-900 bg-teal-50/90 px-3.5 py-1.5 rounded-full border border-teal-200/90 shadow-sm">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span class="text-[10.5px] font-extrabold tracking-wide text-[#0f766e]">Portal Bank Terenkripsi 256-Bit SSL</span>
-        </div>
-      </div>
-    </header>
+    <!-- Main Auth Canvas (Dual-Pane Split Screen Card) -->
+    <main class="flex-1 flex items-center justify-center p-3 sm:p-5 lg:p-7 my-auto relative z-10 w-full">
+      <div class="w-full max-w-[1140px] bg-white rounded-[28px] lg:rounded-[36px] shadow-[0_20px_60px_-15px_rgba(15,118,110,0.16),0_4px_25px_rgba(0,0,0,0.05)] border border-slate-200/90 overflow-hidden flex flex-col lg:flex-row my-auto transition-all">
 
-    <!-- Main Auth Canvas (Proportional Enterprise Banking Card) -->
-    <main class="flex-1 flex items-center justify-center p-3 md:p-5 my-auto overflow-hidden relative z-10">
-      <div class="w-full max-w-[880px] bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(15,118,110,0.18),0_4px_20px_rgba(0,0,0,0.04)] border border-slate-200/90 overflow-hidden flex flex-col md:flex-row my-auto transition-all">
+        <!-- LEFT HERO & VISUAL SHOWCASE PANEL (Monius Mint Style) -->
+        <div class="lg:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden" style="background: linear-gradient(145deg, #ECFDF5 0%, #D1FAE5 45%, #A7F3D0 100%);">
+          <!-- Subtle Glow Accent -->
+          <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-teal-300/30 blur-2xl pointer-events-none"></div>
 
-        <!-- LEFT HERO BRAND PANEL -->
-        <div class="md:w-5/12 bg-gradient-to-br from-[#0f766e] via-[#0d9488] to-[#042f2e] p-6 md:p-8 text-white flex flex-col justify-between relative overflow-hidden">
-          <!-- Background Pattern Overlay -->
-          <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:18px_18px] pointer-events-none"></div>
-
-          <!-- Top Hero Content -->
-          <div class="relative z-10">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-[10.5px] font-bold mb-4 text-white shadow-sm">
-              <span class="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
-              <span>Enterprise Banking Portal v3.2</span>
+          <!-- Top Brand Icon & Hero Text -->
+          <div class="relative z-10 text-center lg:text-left">
+            <!-- Brand Icon Circle -->
+            <div class="w-11 h-11 rounded-2xl bg-[#0F766E] text-white flex items-center justify-center shadow-lg shadow-teal-900/20 mb-4 mx-auto lg:mx-0 border border-teal-400/30">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
 
-            <h2 class="text-xl md:text-2xl font-black tracking-tight leading-tight mb-2.5 text-white">
-              Sistem Informasi Penagihan Terpadu
+            <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight mb-2">
+              Kelola Penagihan Lebih Cepat,<br class="hidden sm:inline"> Terpadu di Desktop &amp; Mobile
             </h2>
-            <p class="text-[12px] text-teal-50/95 leading-relaxed font-medium mb-5">
-              Platform penagihan lapangan (AO &amp; P3), monitoring Desk Call, serta pengelolaan legal <span id="auth-pt-name" class="font-bold text-white underline decoration-emerald-300 decoration-2 underline-offset-2">PT BPRS Mitra Harmoni Yogyakarta</span>.
+            <p class="text-xs sm:text-[13px] text-slate-600 font-medium leading-relaxed mb-6 max-w-[460px] mx-auto lg:mx-0">
+              Sistem Informasi Penagihan Terpadu BPRS Mitra Harmoni memadukan dashboard eksekutif desktop dan aplikasi mobile petugas lapangan untuk monitoring NPF, rute P3, desk call, dan reminder real-time.
             </p>
-
-            <!-- Key Highlights Cards -->
-            <div class="space-y-2.5 pt-1">
-              <div class="flex items-center gap-3 text-[12px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20 shadow-sm">
-                <div class="w-7 h-7 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                </div>
-                <span class="font-bold">Otentikasi Berlapis &amp; PDP</span>
-              </div>
-              <div class="flex items-center gap-3 text-[12px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20 shadow-sm">
-                <div class="w-7 h-7 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                </div>
-                <span class="font-bold">Monitoring KPI &amp; Roll Rate NPF</span>
-              </div>
-              <div class="flex items-center gap-3 text-[12px] text-white bg-white/15 backdrop-blur-md p-2.5 rounded-xl border border-white/20 shadow-sm">
-                <div class="w-7 h-7 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-emerald-200 flex-shrink-0">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                </div>
-                <span class="font-bold">Bukti Kunjungan &amp; Audit Trail</span>
-              </div>
-            </div>
           </div>
 
-          <!-- Bottom Security Badges -->
-          <div class="relative z-10 pt-4 mt-5 border-t border-white/20 flex items-center justify-between text-[10.5px] text-teal-50 font-semibold">
-            <div class="flex items-center gap-1.5">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Regulasi OJK &amp; DSN-MUI</span>
+          <!-- Central Interactive / Floating Mockups (Dual Device: Desktop + Mobile) -->
+          <div class="relative py-4 my-auto flex items-center justify-center select-none w-full min-h-[460px] sm:min-h-[500px]">
+            
+            <!-- 1. DESKTOP / LAPTOP DASHBOARD APPLICATION (Large & Prominent) -->
+            <div class="w-full max-w-[400px] sm:max-w-[450px] bg-slate-900 rounded-[22px] p-[3px] shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35),0_0_0_1px_rgba(255,255,255,0.1)] relative z-10 transform -translate-x-6 sm:-translate-x-10 hover:scale-[1.01] transition-transform duration-300">
+              
+              <!-- Inner Desktop Screen -->
+              <div class="bg-slate-50 rounded-[19px] overflow-hidden flex flex-col border border-slate-700/30 shadow-inner h-full text-[9px]">
+                
+                <!-- Desktop Window Chrome Bar (macOS style) -->
+                <div class="bg-slate-800 px-3 py-2 flex items-center justify-between border-b border-slate-700/60">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500/90 inline-block"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500/90 inline-block"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/90 inline-block"></span>
+                  </div>
+                  <!-- Browser URL pill -->
+                  <div class="bg-slate-900/80 text-slate-300 text-[8px] font-mono px-3 py-0.5 rounded-full flex items-center gap-1.5 border border-slate-700/50">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-emerald-400"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>sipetra.bprsmhy.co.id/dashboard</span>
+                  </div>
+                  <div class="flex items-center gap-1 text-slate-400">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-[7.5px] font-bold text-emerald-400">Live Sync</span>
+                  </div>
+                </div>
+
+                <!-- Desktop Top Header -->
+                <div class="bg-gradient-to-r from-[#004D47] via-[#0F766E] to-[#115E59] px-3.5 py-2 text-white flex items-center justify-between shadow-xs">
+                  <div class="flex items-center gap-2">
+                    <div class="w-5 h-5 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-[8.5px] font-black">
+                      MH
+                    </div>
+                    <div>
+                      <div class="text-[9.5px] font-extrabold tracking-tight leading-tight">PT BPRS MITRA HARMONI</div>
+                      <div class="text-[7px] text-teal-200 leading-none">Dashboard Penagihan Terpadu</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 text-[7px] font-extrabold px-1.5 py-0.5 rounded">NPF 3.78% (Sehat)</span>
+                    <div class="w-5 h-5 rounded-full bg-white/20 text-white font-bold text-[8px] flex items-center justify-center">
+                      AD
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Desktop Main Layout (Mini Sidebar + Content Grid) -->
+                <div class="flex flex-1 min-h-[280px]">
+                  <!-- Mini Sidebar -->
+                  <div class="w-14 bg-slate-900 text-slate-400 p-1.5 flex flex-col items-center gap-2 border-r border-slate-800">
+                    <div class="w-7 h-7 rounded-lg bg-[#0F766E] text-white flex items-center justify-center shadow-xs">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    </div>
+                    <div class="w-7 h-7 rounded-lg hover:bg-slate-800 flex items-center justify-center">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    </div>
+                    <div class="w-7 h-7 rounded-lg hover:bg-slate-800 flex items-center justify-center">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    </div>
+                    <div class="w-7 h-7 rounded-lg hover:bg-slate-800 flex items-center justify-center">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    </div>
+                    <div class="w-7 h-7 rounded-lg hover:bg-slate-800 flex items-center justify-center">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    </div>
+                  </div>
+
+                  <!-- Content Body -->
+                  <div class="flex-1 p-2.5 space-y-2 overflow-hidden bg-slate-50">
+                    <!-- 3 Stat Metrics -->
+                    <div class="grid grid-cols-3 gap-1.5">
+                      <div class="bg-white p-1.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <div class="text-[7px] text-slate-400 font-bold uppercase">Total Portofolio</div>
+                        <div class="text-[10px] font-black text-slate-900 mt-0.5">Rp 42.85 M</div>
+                        <div class="text-[6.5px] text-emerald-600 font-bold mt-0.5">↑ 96.2% Lancar</div>
+                      </div>
+                      <div class="bg-white p-1.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <div class="text-[7px] text-slate-400 font-bold uppercase">NPF Posisi</div>
+                        <div class="text-[10px] font-black text-emerald-700 mt-0.5">3.78%</div>
+                        <div class="text-[6.5px] text-slate-500 font-medium mt-0.5">Target &lt; 5.0%</div>
+                      </div>
+                      <div class="bg-white p-1.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <div class="text-[7px] text-slate-400 font-bold uppercase">Recovery Tagihan</div>
+                        <div class="text-[10px] font-black text-[#0F766E] mt-0.5">Rp 578 Jt</div>
+                        <div class="text-[6.5px] text-teal-600 font-bold mt-0.5">PTP 85% Selesai</div>
+                      </div>
+                    </div>
+
+                    <!-- NPF Kolektibilitas Distribution Bar -->
+                    <div class="bg-white p-2 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <div class="flex items-center justify-between text-[7px] font-bold text-slate-700 mb-1">
+                        <span>Distribusi Kolektibilitas (KOL 1 - 5)</span>
+                        <span class="text-slate-400">Total 1.482 Debitur</span>
+                      </div>
+                      <div class="w-full bg-slate-100 rounded-full h-2 flex overflow-hidden gap-0.5">
+                        <div class="bg-emerald-500 h-full" style="width: 82%;" title="KOL 1: 82%"></div>
+                        <div class="bg-teal-500 h-full" style="width: 14%;" title="KOL 2: 14%"></div>
+                        <div class="bg-rose-500 h-full" style="width: 4%;" title="KOL 3-5: 4%"></div>
+                      </div>
+                      <div class="flex items-center justify-between text-[6.5px] text-slate-500 mt-1 font-semibold">
+                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> KOL 1: 82%</span>
+                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span> KOL 2: 14%</span>
+                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> NPF: 4%</span>
+                      </div>
+                    </div>
+
+                    <!-- Mini Live Activity Table snippet -->
+                    <div class="bg-white p-2 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <div class="text-[7.5px] font-bold text-slate-800 mb-1 flex items-center justify-between">
+                        <span>Aktivitas Penagihan Terakhir</span>
+                        <span class="text-teal-700 font-extrabold">Lihat Semua →</span>
+                      </div>
+                      <div class="space-y-1">
+                        <div class="flex items-center justify-between text-[7px] p-1 bg-slate-50 rounded-lg">
+                          <div>
+                            <span class="font-bold text-slate-900">RAHYU ISMANTO</span>
+                            <span class="text-[6.5px] text-slate-400 ml-1">KOL 1</span>
+                          </div>
+                          <span class="font-bold text-[#0F766E]">Rp 1.094.500 (Desk Call)</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[7px] p-1 bg-slate-50 rounded-lg">
+                          <div>
+                            <span class="font-bold text-slate-900">FITRI KURNIATI</span>
+                            <span class="text-[6.5px] text-rose-500 font-bold ml-1">KOL 2 DPK</span>
+                          </div>
+                          <span class="font-bold text-rose-600">Rp 1.705.000 (P3 Rute)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
             </div>
-            <div class="flex items-center gap-1.5">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <span>Enkripsi SSL 256-Bit</span>
+
+            <!-- 2. SMARTPHONE MOBILE DEVICE (Compact & Overlapping in Foreground) -->
+            <div class="w-[195px] sm:w-[215px] h-[395px] sm:h-[425px] bg-slate-900 rounded-[34px] p-[4px] shadow-[0_25px_60px_-10px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.2)] relative z-20 -ml-16 sm:-ml-20 mt-8 sm:mt-10 transform hover:scale-[1.03] transition-transform duration-300">
+
+              <!-- Inner Smartphone Screen -->
+              <div class="bg-slate-50 rounded-[30px] overflow-hidden flex flex-col justify-between border border-slate-700/20 shadow-inner h-full text-[8.5px]">
+
+                <!-- Dynamic Island Status Bar -->
+                <div class="bg-[#004D47] px-3 pt-1.5 pb-1 flex items-center justify-between text-[8px] text-white/90 font-medium">
+                  <span class="font-bold">09:41</span>
+                  <!-- Dynamic Island Pill -->
+                  <div class="w-12 h-2.5 bg-black rounded-full flex items-center justify-end px-1 gap-0.5">
+                    <span class="w-1 h-1 rounded-full bg-slate-900 border border-slate-700"></span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.17 19.64 10.53 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+                  </div>
+                </div>
+
+                <!-- BPRS Mobile App Top Header -->
+                <div class="bg-gradient-to-b from-[#004D47] to-[#0F766E] px-2.5 py-2 text-white shadow-xs">
+                  <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-5 h-5 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-[8px] font-black">
+                        MH
+                      </div>
+                      <div>
+                        <div class="text-[9px] font-black leading-tight">SIPETRA Mobile</div>
+                        <div class="text-[6.5px] text-teal-200 leading-none">Petugas Lapangan</div>
+                      </div>
+                    </div>
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
+                  </div>
+
+                  <!-- Officer Profile Pill -->
+                  <div class="flex items-center justify-between bg-white/15 backdrop-blur-md rounded-lg p-1 px-1.5 border border-white/20">
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-4.5 h-4.5 rounded-full bg-emerald-300 text-[#004D47] font-black text-[7px] flex items-center justify-center">
+                        AO
+                      </div>
+                      <div class="text-left leading-none">
+                        <div class="text-[7.5px] font-bold text-white">Ahmad Syafiq</div>
+                        <div class="text-[6px] text-teal-100">P3 Lapangan</div>
+                      </div>
+                    </div>
+                    <span class="text-[6.5px] font-black bg-emerald-400 text-slate-950 px-1.5 py-0.5 rounded">On-Duty</span>
+                  </div>
+                </div>
+
+                <!-- App Screen Body -->
+                <div class="p-2 space-y-1.5 flex-1 overflow-hidden">
+
+                  <!-- Metric Card: Target & Recovery -->
+                  <div class="bg-white rounded-xl p-2 shadow-2xs border border-slate-200/80">
+                    <div class="flex items-center justify-between text-[7px] text-slate-500 font-semibold mb-0.5">
+                      <span>Target Hari Ini</span>
+                      <span class="text-emerald-600 font-extrabold">85% Tertagih</span>
+                    </div>
+                    <div class="text-[11px] font-black text-slate-900 leading-tight">Rp 18.500.000</div>
+                    <div class="w-full bg-slate-100 rounded-full h-1 my-1 overflow-hidden">
+                      <div class="bg-emerald-500 h-full rounded-full" style="width: 85%;"></div>
+                    </div>
+                    <div class="flex items-center justify-between text-[6.5px] text-slate-500 font-medium">
+                      <span>Tertagih: <strong>Rp 15.725 Jt</strong></span>
+                    </div>
+                  </div>
+
+                  <!-- 4 Feature Quick Buttons -->
+                  <div class="grid grid-cols-4 gap-1 text-center select-none">
+                    <div class="bg-teal-50 border border-teal-200/60 rounded-lg p-1 flex flex-col items-center">
+                      <div class="w-4.5 h-4.5 rounded-md bg-[#0F766E] text-white flex items-center justify-center mb-0.5">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                      </div>
+                      <span class="text-[6.5px] font-bold text-slate-700 leading-none">DeskCall</span>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-200/60 rounded-lg p-1 flex flex-col items-center">
+                      <div class="w-4.5 h-4.5 rounded-md bg-emerald-600 text-white flex items-center justify-center mb-0.5">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                      </div>
+                      <span class="text-[6.5px] font-bold text-slate-700 leading-none">Rute P3</span>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200/60 rounded-lg p-1 flex flex-col items-center">
+                      <div class="w-4.5 h-4.5 rounded-md bg-amber-600 text-white flex items-center justify-center mb-0.5">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      </div>
+                      <span class="text-[6.5px] font-bold text-slate-700 leading-none">EWS</span>
+                    </div>
+                    <div class="bg-cyan-50 border border-cyan-200/60 rounded-lg p-1 flex flex-col items-center">
+                      <div class="w-4.5 h-4.5 rounded-md bg-cyan-700 text-white flex items-center justify-center mb-0.5">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      </div>
+                      <span class="text-[6.5px] font-bold text-slate-700 leading-none">Bukti SP</span>
+                    </div>
+                  </div>
+
+                  <!-- Priority Task Item -->
+                  <div class="bg-white rounded-xl p-1.5 shadow-2xs border border-slate-200/80">
+                    <div class="flex items-center justify-between text-[6.5px] mb-0.5">
+                      <span class="font-black text-slate-800 uppercase tracking-wider flex items-center gap-0.5">
+                        <span class="w-1 h-1 rounded-full bg-rose-500 animate-pulse"></span> Prioritas Hari Ini
+                      </span>
+                      <span class="bg-rose-50 text-rose-700 font-extrabold px-1 py-0.2 rounded">DPD 7</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="font-bold text-[8px] text-slate-900 leading-tight">Hendra Pratama</div>
+                        <div class="text-[6.5px] text-slate-500 mt-0.5">Jl. Malioboro (1.2 km)</div>
+                      </div>
+                      <div class="text-right">
+                        <div class="font-black text-[8px] text-[#0F766E]">Rp 3.488.200</div>
+                        <span class="text-[6px] font-bold bg-emerald-100 text-emerald-800 px-1 py-0.2 rounded inline-block">PTP 14:00</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Mobile App Bottom Navigation Bar -->
+                <div class="bg-white border-t border-slate-200/90 px-2.5 py-1.5 flex items-center justify-between text-[6.5px] font-bold text-slate-400 select-none">
+                  <div class="flex flex-col items-center text-[#0F766E]">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    <span class="scale-90 mt-0.5">Beranda</span>
+                  </div>
+                  <div class="flex flex-col items-center hover:text-slate-700">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <span class="scale-90 mt-0.5">Penagihan</span>
+                  </div>
+                  <div class="flex flex-col items-center hover:text-slate-700">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                    <span class="scale-90 mt-0.5">Rute P3</span>
+                  </div>
+                  <div class="flex flex-col items-center hover:text-slate-700">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span class="scale-90 mt-0.5">Profil</span>
+                  </div>
+                </div>
+
+                <!-- Bottom Gesture Bar -->
+                <div class="bg-white pb-1 pt-0.5">
+                  <div class="w-16 h-0.5 bg-slate-400/80 rounded-full mx-auto"></div>
+                </div>
+
+              </div>
             </div>
+
+            <!-- Floating Badge 1: Target Recovery NPF (Top Right) -->
+            <div class="absolute -right-2 sm:-right-4 top-2 bg-gradient-to-r from-[#0F766E] to-[#0D9488] text-white rounded-2xl p-2 px-3 shadow-xl border border-teal-300/30 z-30 flex items-center gap-2 animate-float-slow">
+              <div class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <div>
+                <div class="text-[8px] text-teal-100 font-medium leading-none mb-0.5">Target Recovery NPF</div>
+                <div class="text-[11px] font-black text-white leading-none">Rp 578.000.000</div>
+              </div>
+            </div>
+
+            <!-- Floating Badge 2: Total Tagihan Tertagih (Bottom Left) -->
+            <div class="absolute -left-2 sm:-left-4 bottom-3 bg-white/95 backdrop-blur-md rounded-2xl p-2.5 shadow-xl border border-slate-100 z-30 flex items-center gap-2 animate-float-reverse">
+              <div>
+                <div class="text-[8.5px] text-slate-500 font-semibold leading-none mb-1">Total Tagihan Tertagih</div>
+                <div class="text-xs font-black text-slate-900 leading-none">Rp 3.488.200</div>
+              </div>
+              <div class="w-7 h-7 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center text-[8.5px] font-black text-emerald-700 flex-shrink-0 shadow-inner">
+                85%
+              </div>
+            </div>
+
           </div>
         </div>
 
-        <!-- RIGHT FORM PANEL -->
-        <div class="md:w-7/12 p-6 md:p-8 flex flex-col justify-between bg-white overflow-hidden">
+        <!-- RIGHT FORM PANEL (Monius Clean Minimalist Form) -->
+        <div class="lg:w-1/2 p-6 sm:p-10 lg:p-11 xl:p-13 flex flex-col justify-between bg-white overflow-hidden">
           <div>
-            <!-- Header -->
-            <div class="mb-4">
-              <div class="inline-block text-[10px] font-extrabold text-[#0F766E] uppercase tracking-wider bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/70 mb-1.5" id="auth-form-badge">Portal Otentikasi Resmi</div>
-              <h3 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-snug" id="auth-form-title">Selamat Datang Kembali</h3>
-              <p class="text-xs text-slate-500 font-medium mt-0.5" id="auth-form-subtitle">Silakan masuk menggunakan kredensial akun perbankan Anda.</p>
+            <!-- Form Header -->
+            <div class="mb-6 text-center lg:text-left">
+              <h3 class="text-2xl sm:text-[27px] font-black text-slate-900 tracking-tight leading-tight" id="auth-form-title">
+                Mulai Kelola Penagihan Anda
+              </h3>
+              <p class="text-xs sm:text-[13.5px] text-slate-500 font-medium mt-1.5" id="auth-form-subtitle">
+                Belum memiliki akun? Mulai sekarang, dan akun Anda akan diverifikasi oleh Admin.
+              </p>
             </div>
 
-            <!-- Auth Tab Switcher (Segmented Pill Style) -->
-            <div class="flex p-1 bg-slate-100 rounded-xl mb-4 border border-slate-200/90 shadow-inner">
+            <!-- Segmented Tab Switcher (Masuk vs Daftar) -->
+            <div class="flex p-1.5 bg-slate-100 rounded-2xl mb-6 border border-slate-200/80 shadow-inner">
               <button id="tab-btn-login"
-                class="flex-1 py-1.5 text-xs font-black rounded-lg transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer"
+                class="flex-1 py-2.5 text-xs font-black rounded-xl transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer"
                 onclick="switchAuthTab('login')">
                 Masuk Akun
               </button>
               <button id="tab-btn-register"
-                class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-500 hover:text-slate-900 border border-transparent cursor-pointer"
+                class="flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all text-slate-500 hover:text-slate-900 border border-transparent cursor-pointer"
                 onclick="switchAuthTab('register')">
                 Daftar Akun Baru
               </button>
@@ -400,50 +706,55 @@
 
             <!-- LOGIN FORM -->
             <div id="page-login">
-              <form class="space-y-3.5" id="loginForm" onsubmit="event.preventDefault();handleLogin();">
-                <!-- Username -->
+              <form class="space-y-6" id="loginForm" onsubmit="event.preventDefault();handleLogin();">
+                <!-- Username / NIP Field with Prefix Pill -->
                 <div>
-                  <label class="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-1"
-                    for="l-user">Username / NIP</label>
-                  <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    </div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5" for="l-user">
+                    Username / NIP Petugas
+                  </label>
+                  <div class="flex items-center bg-white border border-slate-300 rounded-2xl focus-within:border-[#0F766E] focus-within:ring-4 focus-within:ring-[#0F766E]/10 transition-all p-1.5 px-4 shadow-xs" style="min-height: 50px;">
+                    <span class="text-xs font-bold text-[#0F766E] bg-teal-50 px-3 py-1.5 rounded-xl mr-3 border border-teal-100/90 flex items-center gap-1.5 select-none flex-shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      NIP
+                    </span>
                     <input
-                      class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/70 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-2 focus:ring-[#0F766E]/15 transition-all font-semibold"
-                      id="l-user" name="username" placeholder="Masukkan Username / NIP" required="" type="text"
-                      autocomplete="username" style="height:42px !important;" />
+                      class="w-full py-2 bg-transparent text-sm font-semibold text-slate-900 focus:outline-none placeholder:text-slate-400 placeholder:font-normal"
+                      id="l-user" name="username" placeholder="Masukkan Username / NIP Anda" required="" type="text"
+                      autocomplete="username" style="height:38px !important; border:none !important; box-shadow:none !important; padding:0 !important;" />
                   </div>
                 </div>
 
-                <!-- Password -->
+                <!-- Password Field with Prefix Pill -->
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider"
-                      for="l-pass">Kata Sandi</label>
-                    <a class="text-[11px] font-bold text-[#0F766E] hover:underline" href="#"
+                  <div class="flex justify-between items-center mb-2.5">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider" for="l-pass">
+                      Kata Sandi
+                    </label>
+                    <a class="text-xs font-bold text-[#0F766E] hover:underline" href="#"
                       onclick="event.preventDefault();openModal('modal-forgot-pw')">Lupa Kata Sandi?</a>
                   </div>
-                  <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    </div>
+                  <div class="flex items-center bg-white border border-slate-300 rounded-2xl focus-within:border-[#0F766E] focus-within:ring-4 focus-within:ring-[#0F766E]/10 transition-all p-1.5 px-4 shadow-xs" style="min-height: 50px;">
+                    <span class="text-xs font-bold text-[#0F766E] bg-teal-50 px-3 py-1.5 rounded-xl mr-3 border border-teal-100/90 flex items-center gap-1.5 select-none flex-shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      Sandi
+                    </span>
                     <input
-                      class="w-full pl-10 pr-10 py-2.5 bg-slate-50/70 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-2 focus:ring-[#0F766E]/15 transition-all font-semibold"
-                      id="l-pass" name="password" placeholder="••••••••" required="" type="password" style="height:42px !important;" />
+                      class="w-full py-2 bg-transparent text-sm font-semibold text-slate-900 focus:outline-none placeholder:text-slate-400 placeholder:font-normal"
+                      id="l-pass" name="password" placeholder="••••••••" required="" type="password"
+                      style="height:38px !important; border:none !important; box-shadow:none !important; padding:0 !important;" />
                     <button
-                      class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                      onclick="togglePw('l-pass')" type="button">
-                      <span class="material-symbols-outlined text-base" id="l-pass-icon">visibility</span>
+                      class="text-slate-400 hover:text-slate-600 p-1 flex-shrink-0 cursor-pointer"
+                      onclick="togglePw('l-pass')" type="button" title="Lihat Sandi">
+                      <span class="material-symbols-outlined text-lg" id="l-pass-icon">visibility</span>
                     </button>
                   </div>
                 </div>
 
                 <!-- Remember Me -->
-                <div class="flex items-center justify-between pt-0.5">
-                  <label class="flex items-center gap-2 text-xs text-slate-600 font-semibold cursor-pointer select-none">
+                <div class="flex items-center justify-between pt-1">
+                  <label class="flex items-center gap-2.5 text-xs text-slate-600 font-semibold cursor-pointer select-none">
                     <input
-                      class="w-4 h-4 rounded border-slate-300 text-[#0F766E] focus:ring-[#0F766E] accent-[#0F766E] cursor-pointer"
+                      class="w-4 h-4 rounded-md border-slate-300 text-[#0F766E] focus:ring-[#0F766E] accent-[#0F766E] cursor-pointer"
                       id="remember" type="checkbox" />
                     <span>Tetap masuk di perangkat ini</span>
                   </label>
@@ -451,44 +762,44 @@
 
                 <!-- Error Alert -->
                 <div id="l-err"
-                  class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2.5 font-semibold hidden">
+                  class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-2xl p-3 font-semibold hidden">
                 </div>
 
-                <!-- Submit Button -->
+                <!-- Submit Action Button (Monius Teal Button) -->
                 <button
-                  class="w-full bg-gradient-to-r from-[#0F766E] to-[#0D9488] hover:from-[#0D9488] hover:to-[#115E59] text-white font-extrabold text-xs py-2.5 rounded-xl shadow-md shadow-[#0F766E]/20 hover:shadow-lg hover:shadow-[#0F766E]/30 active:scale-[0.99] transition-all flex justify-center items-center gap-2 group cursor-pointer mt-1"
-                  type="submit" style="height:42px !important;">
-                  <span>Masuk ke Sistem</span>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="group-hover:translate-x-1 transition-transform"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  class="w-full bg-[#0F766E] hover:bg-[#0D6D65] text-white font-extrabold text-xs sm:text-sm py-3.5 rounded-2xl shadow-lg shadow-teal-700/20 hover:shadow-xl hover:shadow-teal-700/30 active:scale-[0.99] transition-all flex justify-center items-center gap-2.5 group cursor-pointer mt-4"
+                  type="submit" style="height:50px !important;">
+                  <span>Lanjutkan</span>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="group-hover:translate-x-1 transition-transform"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                 </button>
               </form>
             </div>
 
-            <!-- REGISTER FORM (Side-by-Side 2-Column Grid) -->
+            <!-- REGISTER FORM (Ultra-Spacious Grid Layout) -->
             <div id="page-register" style="display:none;">
-              <form class="space-y-2.5" onsubmit="event.preventDefault();handleRegister();">
-                <div class="grid grid-cols-2 gap-2.5">
+              <form class="space-y-5" onsubmit="event.preventDefault();handleRegister();">
+                <div class="grid grid-cols-2 gap-x-5 gap-y-4 sm:gap-y-5">
                   <div>
-                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-nama">Nama Lengkap</label>
-                    <input id="r-nama" class="form-input" type="text" placeholder="Sesuai KTP / SK" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 tracking-wider mb-2" for="r-nama">Nama Lengkap</label>
+                    <input id="r-nama" class="form-input w-full" type="text" placeholder="Sesuai KTP / SK" style="height:46px !important; padding:10px 16px !important; font-size:13.5px !important; border-radius:16px !important;" />
                   </div>
                   <div>
-                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-user">Username / NIP</label>
-                    <input id="r-user" class="form-input" type="text" placeholder="Username / NIP" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 tracking-wider mb-2" for="r-user">Username / NIP</label>
+                    <input id="r-user" class="form-input w-full" type="text" placeholder="Username / NIP" style="height:46px !important; padding:10px 16px !important; font-size:13.5px !important; border-radius:16px !important;" />
                   </div>
 
                   <div>
-                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-email">Email Official</label>
-                    <input id="r-email" class="form-input" type="email" placeholder="email@bprs.co.id" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 tracking-wider mb-2" for="r-email">Email Official</label>
+                    <input id="r-email" class="form-input w-full" type="email" placeholder="email@bprs.co.id" style="height:46px !important; padding:10px 16px !important; font-size:13.5px !important; border-radius:16px !important;" />
                   </div>
                   <div>
-                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-ttl">Tanggal Lahir</label>
-                    <input id="r-ttl" class="form-input" type="date" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 tracking-wider mb-2" for="r-ttl">Tanggal Lahir</label>
+                    <input id="r-ttl" class="form-input w-full" type="date" style="height:46px !important; padding:10px 16px !important; font-size:13.5px !important; border-radius:16px !important;" />
                   </div>
 
                   <div class="col-span-2">
-                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-posisi">Jabatan / Peran Pengguna</label>
-                    <select id="r-posisi" class="form-select w-full" onchange="toggleRegisterAoGroup(this.value)" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;">
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 tracking-wider mb-2" for="r-posisi">Jabatan / Peran Pengguna</label>
+                    <select id="r-posisi" class="form-select w-full" onchange="toggleRegisterAoGroup(this.value)" style="height:46px !important; padding:10px 16px !important; font-size:13.5px !important; border-radius:16px !important;">
                       <option value="">— Pilih Jabatan / Peran —</option>
                       <option value="ao">Account Officer (AO)</option>
                       <option value="kabid_ao">Kepala Bidang AO (Kabid AO)</option>
@@ -496,89 +807,90 @@
                       <option value="desk_call">Staff Desk Call</option>
                       <option value="kabid_p3">Kabid P3 &amp; Penagihan</option>
                       <option value="legal">Staff Legal &amp; Berkas Akad</option>
+                      <option value="skai">SKAI &amp; Kepatuhan</option>
                     </select>
                   </div>
                   <div id="r-ao-group" class="col-span-2 hidden" style="margin-top:2px;">
-                    <label class="form-label text-[10.5px]" for="r-ao-name" style="color:var(--brand);font-weight:700;">Pilih Anda AO Yang Mana? (Sesuai CBS) <span style="color:#EF4444;">*</span></label>
-                    <select id="r-ao-name" class="form-select w-full" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;">
+                    <label class="block text-[11px] font-bold mb-2" for="r-ao-name" style="color:#0F766E;">Pilih Anda AO Yang Mana? (Sesuai CBS) <span style="color:#EF4444;">*</span></label>
+                    <select id="r-ao-name" class="form-select w-full" style="height:46px !important; padding:10px 16px !important; font-size:13.5px !important; border-radius:16px !important;">
                       <option value="">— Memuat daftar nama AO dari CBS... —</option>
                     </select>
                   </div>
                   <div>
-                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-pass">Kata Sandi</label>
-                    <input id="r-pass" class="form-input" type="password" placeholder="Min 8 karakter" oninput="evalStrength(this.value)" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 tracking-wider mb-2" for="r-pass">Kata Sandi</label>
+                    <input id="r-pass" class="form-input w-full" type="password" placeholder="Min 8 karakter" oninput="evalStrength(this.value)" style="height:46px !important; padding:10px 16px !important; font-size:13.5px !important; border-radius:16px !important;" />
                   </div>
 
                   <div>
-                    <label class="form-label text-[10.5px] font-bold uppercase text-slate-700 mb-0.5" for="r-conf">Konfirmasi Sandi</label>
-                    <input id="r-conf" class="form-input" type="password" placeholder="Ulangi Kata Sandi" style="height:36px !important; padding:5px 11px !important; font-size:12px !important;" />
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 tracking-wider mb-2" for="r-conf">Konfirmasi Sandi</label>
+                    <input id="r-conf" class="form-input w-full" type="password" placeholder="Ulangi Kata Sandi" style="height:46px !important; padding:10px 16px !important; font-size:13.5px !important; border-radius:16px !important;" />
                   </div>
                 </div>
 
-                <div class="str-bar mt-1" style="height:4px;">
+                <div class="str-bar mt-2.5" style="height:5px;">
                   <div id="str-fill" class="str-fill"></div>
                 </div>
-                <div id="str-label" class="str-label text-[9.5px] text-slate-500 min-h-[10px]"></div>
+                <div id="str-label" class="str-label text-[10px] text-slate-500 min-h-[14px]"></div>
 
                 <div id="r-err"
-                  class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2 font-semibold hidden">
+                  class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-2xl p-3 font-semibold hidden">
                 </div>
                 <div id="r-ok"
-                  class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-2 font-semibold items-center gap-2 hidden">
+                  class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 font-semibold items-center gap-2 hidden">
                 </div>
 
                 <button
-                  class="w-full bg-gradient-to-r from-[#0F766E] to-[#0D9488] hover:from-[#0D9488] hover:to-[#115E59] text-white font-extrabold text-xs py-2.5 rounded-xl shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer mt-1"
-                  type="submit" style="height:40px !important;">
-                  <span>Daftar &amp; Kirim OTP ke Email</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  class="w-full bg-[#0F766E] hover:bg-[#0D6D65] text-white font-extrabold text-xs sm:text-sm py-3.5 rounded-2xl shadow-lg shadow-teal-700/20 hover:shadow-xl hover:shadow-teal-700/30 active:scale-[0.99] transition-all flex justify-center items-center gap-2.5 group cursor-pointer mt-4"
+                  type="submit" style="height:50px !important;">
+                  <span>Lanjutkan dan Kirim OTP ke Email</span>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="group-hover:translate-x-1 transition-transform"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                 </button>
               </form>
             </div>
 
             <!-- OTP VERIFICATION FORM (Email OTP) -->
             <div id="page-otp" style="display:none;">
-              <div class="p-3.5 bg-emerald-50/80 border border-emerald-200/90 rounded-2xl mb-3.5 text-center shadow-sm">
-                <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto mb-1.5 border border-emerald-300/50">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <div class="p-4.5 bg-emerald-50/90 border border-emerald-200/90 rounded-2xl mb-4.5 text-center shadow-xs">
+                <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto mb-2.5 border border-emerald-300/50 shadow-sm">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                 </div>
-                <div class="text-xs font-black text-emerald-950">Verifikasi Kode OTP Email</div>
-                <div class="text-[11px] text-emerald-800/90 mt-0.5">
+                <div class="text-sm font-black text-emerald-950">Verifikasi Kode OTP Email</div>
+                <div class="text-xs text-emerald-800/90 mt-1">
                   Kode 6-digit telah dikirimkan ke: <br>
                   <strong id="otp-target-email" class="font-extrabold text-slate-900 break-all">-</strong>
                 </div>
               </div>
 
-              <form class="space-y-3" onsubmit="event.preventDefault();handleVerifyOtp();">
+              <form class="space-y-4" onsubmit="event.preventDefault();handleVerifyOtp();">
                 <div>
-                  <label class="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-1 text-center" for="otp-input">
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 text-center" for="otp-input">
                     Masukkan 6 Digit Kode OTP
                   </label>
                   <input
                     id="otp-input"
-                    class="w-full text-center font-mono text-2xl font-black bg-slate-50/80 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-2 focus:ring-[#0F766E]/20 transition-all tracking-[6px]"
+                    class="w-full text-center font-mono text-2xl font-black bg-slate-50/80 border border-slate-300 rounded-2xl text-slate-900 focus:outline-none focus:border-[#0F766E] focus:bg-white focus:ring-4 focus:ring-[#0F766E]/15 transition-all tracking-[8px]"
                     type="text"
                     maxlength="6"
                     placeholder="••••••"
                     required
-                    style="height:46px !important;"
+                    style="height:50px !important;"
                   />
-                  <div class="text-[10.5px] text-slate-400 text-center mt-1">Masa berlaku kode: 10 Menit</div>
+                  <div class="text-[11px] text-slate-400 text-center mt-2">Masa berlaku kode: 10 Menit</div>
                 </div>
 
-                <div id="otp-err" class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2 font-semibold hidden"></div>
+                <div id="otp-err" class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-2xl p-3 font-semibold hidden"></div>
 
                 <button
                   id="btn-verify-otp"
-                  class="w-full bg-gradient-to-r from-[#0F766E] to-[#0D9488] hover:from-[#0D9488] hover:to-[#115E59] text-white font-extrabold text-xs py-2.5 rounded-xl shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer"
+                  class="w-full bg-[#0F766E] hover:bg-[#0D6D65] text-white font-extrabold text-xs sm:text-sm py-3.5 rounded-2xl shadow-lg shadow-teal-700/20 active:scale-[0.99] transition-all flex justify-center items-center gap-2 cursor-pointer"
                   type="submit"
-                  style="height:42px !important;"
+                  style="height:48px !important;"
                 >
                   <span>Verifikasi &amp; Masuk Dashboard</span>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 </button>
 
-                <div class="flex justify-between items-center pt-1 text-[11px]">
+                <div class="flex justify-between items-center pt-2.5 text-xs">
                   <button type="button" class="text-slate-500 hover:text-slate-800 font-bold cursor-pointer transition-colors" onclick="backToRegisterFromOtp()">
                     ← Ubah Data / Email
                   </button>
@@ -590,23 +902,115 @@
             </div>
           </div>
 
+          <!-- Bottom Clean Help Footer (Monius Style) -->
+          <div class="pt-6 mt-6 border-t border-slate-100 text-center text-xs text-slate-500">
+            <span>Butuh Bantuan? </span>
+            <a href="#" onclick="event.preventDefault();openModal('modal-contact')" class="font-extrabold text-slate-900 hover:text-[#0F766E] underline transition-colors">
+              Hubungi Kami
+            </a>
+          </div>
+
         </div>
 
       </div>
     </main>
 
-    <!-- Clean Enterprise Footer -->
-    <footer
-      class="w-full py-2.5 px-6 max-w-[1440px] mx-auto border-t border-slate-200/80 bg-white/90 backdrop-blur-xl flex flex-col md:flex-row justify-between items-center gap-1.5 flex-shrink-0 text-slate-600 relative z-20 shadow-sm">
-      <div class="text-[11px] font-semibold text-slate-700" id="footer-copy">
-        © 2026 PT BPRS Mitra Harmoni Yogyakarta. Hak Cipta Dilindungi.
-      </div>
-      <div class="flex flex-wrap justify-center gap-4 text-[11px] font-medium text-slate-600">
-        <a class="hover:text-[#0f766e] transition-colors cursor-pointer" onclick="event.preventDefault();openModal('modal-privacy');">Kebijakan Privasi</a>
-        <a class="hover:text-[#0f766e] transition-colors cursor-pointer" onclick="event.preventDefault();openModal('modal-terms');">Ketentuan Layanan</a>
-        <a class="hover:text-[#0f766e] transition-colors cursor-pointer" onclick="event.preventDefault();openModal('modal-security');">Keamanan Informasi</a>
+    <!-- Clean Minimalist Auth Footer (Policy Links Only) -->
+    <footer class="w-full py-4 px-6 max-w-[1140px] mx-auto flex justify-center items-center flex-shrink-0 text-slate-500 relative z-20 mb-2">
+      <div class="flex flex-wrap justify-center items-center gap-3 sm:gap-6 text-xs font-semibold text-slate-500">
+        <a class="hover:text-[#0F766E] transition-colors cursor-pointer" onclick="event.preventDefault();openModal('modal-privacy');">Kebijakan Privasi</a>
+        <span class="text-slate-300 select-none hidden sm:inline">•</span>
+        <a class="hover:text-[#0F766E] transition-colors cursor-pointer" onclick="event.preventDefault();openModal('modal-terms');">Ketentuan Layanan</a>
+        <span class="text-slate-300 select-none hidden sm:inline">•</span>
+        <a class="hover:text-[#0F766E] transition-colors cursor-pointer" onclick="event.preventDefault();openModal('modal-security');">Keamanan Informasi</a>
       </div>
     </footer>
+  </div>
+
+  <!-- MODAL HUBUNGI KAMI & INFO DEVELOPER -->
+  <div class="modal-overlay" id="modal-contact">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-hdr">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 text-[#0F766E] flex items-center justify-center shadow-xs">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div>
+            <h3 class="modal-title text-base font-extrabold text-slate-900">Hubungi Tim Pengembang &amp; Helpdesk</h3>
+            <p class="text-[11px] text-slate-500 font-medium">Bantuan Teknis &amp; Layanan Pengguna BPRS MHY</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-contact')">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+
+      <div class="modal-body space-y-4 p-5 text-xs text-slate-700 leading-relaxed max-h-[75vh] overflow-y-auto">
+        
+        <!-- Developer Profile Card -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-teal-50/90 via-emerald-50/70 to-slate-50 border border-teal-200/90 shadow-sm flex flex-col sm:flex-row items-center sm:items-start gap-4">
+          <div class="w-13 h-13 rounded-2xl bg-gradient-to-br from-[#0F766E] to-[#042F2E] text-white flex items-center justify-center font-black text-lg shadow-md border-2 border-teal-300/40 flex-shrink-0">
+            NA
+          </div>
+          <div class="text-center sm:text-left flex-1">
+            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
+              <span class="text-sm font-black text-slate-900">Muhammad Naufal AlFarisi</span>
+              <span class="text-[9px] font-extrabold bg-[#0F766E] text-white px-2.5 py-0.5 rounded-full">Lead Developer</span>
+            </div>
+            <div class="text-[11px] text-teal-800 font-semibold mb-1.5">
+              Sistem Informasi Penagihan Terpadu (SIPETRA • P3DeskCall)
+            </div>
+            <p class="text-[11px] text-slate-600 leading-snug">
+              Pengembang &amp; Arsitek Sistem penagihan terintegrasi (AO, P3, Desk Call &amp; Legal) PT BPRS Mitra Harmoni Yogyakarta.
+            </p>
+          </div>
+        </div>
+
+        <!-- Contact Options Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- WhatsApp Support -->
+          <a href="https://wa.me/628257610814?text=Halo%20Admin%20SIPETRA%20BPRS%20Mitra%20Harmoni,%20saya%20membutuhkan%20bantuan%20terkait%20akun/sistem" target="_blank" rel="noopener noreferrer" class="p-3.5 bg-white hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-2xl transition-all shadow-xs flex items-center gap-3 group">
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="overflow-hidden">
+              <div class="text-[11px] font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">WhatsApp Helpdesk</div>
+              <div class="text-[10px] text-slate-500 font-medium truncate">08257610814</div>
+            </div>
+          </a>
+
+          <!-- Email Support -->
+          <a href="mailto:naufal.farisi41@gmail.com?subject=Bantuan%20Sistem%20SIPETRA%20BPRS%20Mitra%20Harmoni" class="p-3.5 bg-white hover:bg-teal-50/50 border border-slate-200 hover:border-teal-300 rounded-2xl transition-all shadow-xs flex items-center gap-3 group">
+            <div class="w-10 h-10 rounded-xl bg-teal-100 text-[#0F766E] flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </div>
+            <div class="overflow-hidden">
+              <div class="text-[11px] font-bold text-slate-900 group-hover:text-teal-800 transition-colors">Email Developer / IT</div>
+              <div class="text-[10px] text-slate-500 font-medium truncate">naufal.farisi41@gmail.com</div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Office & Operational Info Card -->
+        <div class="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+          <div class="flex items-center gap-2 text-slate-800 font-bold text-xs">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2.3"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Kantor Operasional Bank</span>
+          </div>
+          <div class="text-[11px] text-slate-600 leading-relaxed pl-5">
+            <strong>PT BPRS Mitra Harmoni Yogyakarta</strong><br>
+            Jl. Doktor Sutomo No.07, Bausasran, Kec. Danurejan, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55211<br>
+            <span class="text-[10.5px] text-slate-500 mt-0.5 inline-block">Layanan Bantuan IT: Senin – Jumat (08:00 – 17:00 WIB)</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer p-4 border-t border-slate-200/80 bg-slate-50/50 flex justify-between items-center rounded-b-2xl">
+        <span class="text-[10.5px] text-slate-500 font-medium">SIPETRA v2.5 Enterprise Edition</span>
+        <button class="btn btn-primary btn-sm px-5" onclick="closeModal('modal-contact')">Tutup</button>
+      </div>
+    </div>
   </div>
 
   <!-- MODAL KEBIJAKAN PRIVASI -->
@@ -1679,6 +2083,7 @@
               <option value="kabid_p3">Kabid P3</option>
               <option value="desk_call">Staff Desk Call</option>
               <option value="legal">Staff Legal &amp; Agunan</option>
+              <option value="skai">SKAI &amp; Kepatuhan</option>
             </select>
           </div>
           <div class="form-group">
@@ -1753,6 +2158,7 @@
             <option value="kabid_p3">Kabid P3 &amp; Penagihan</option>
             <option value="desk_call">Staff Desk Call</option>
             <option value="legal">Staff Remedial &amp; Legal</option>
+            <option value="skai">SKAI &amp; Kepatuhan</option>
             <option value="admin">Administrator Utama</option>
           </select>
           <div style="font-size:11px;color:var(--text-3);margin-top:4px;">Pilih posisi yang benar jika petugas salah memilih saat mendaftar.</div>
@@ -1884,13 +2290,24 @@
           <!-- DROPDOWN MENU HANYA PENGATURAN & KELUAR -->
           <div id="user-dropdown-menu"
             style="display:none; position:absolute; top:calc(100% + 8px); right:0; width:180px; background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; box-shadow:0 10px 25px rgba(0,0,0,0.12); z-index:9999; padding:6px;">
+            <button id="btn-install-app-dropdown" onclick="triggerPwaInstallPrompt()"
+              style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:transparent; font-size:13px; font-weight:700; color:#0F766E; border-radius:10px; cursor:pointer; transition:all 0.15s;"
+              onmouseover="this.style.background='#f0fdfa'" onmouseout="this.style.background='transparent'">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Install Aplikasi
+            </button>
+            <div style="height:1px; background:#f1f5f9; margin:4px 0;"></div>
             <button onclick="goToSettingsProfile()"
               style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:transparent; font-size:13px; font-weight:700; color:#1e293b; border-radius:10px; cursor:pointer; transition:all 0.15s;"
               onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2">
                 <circle cx="12" cy="12" r="3" />
                 <path
-                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
               Pengaturan
             </button>
@@ -2175,15 +2592,6 @@
           </div>
 
           <div class="tab-pane" id="pane-historis">
-            <div class="page-hd">
-              <div class="page-hd-row">
-                <div>
-                  <div class="page-title">Historis Tunggakan (1-6 Bulan Kebelakang)</div>
-                  <div class="page-sub">Analisis multi-bulan nasabah yang tidak dapat melakukan pembayaran,
-                    diklasifikasikan per AO/P3, kolektibilitas, dan baki debet.</div>
-                </div>
-              </div>
-            </div>
             <div id="historis-content"></div>
           </div>
 
@@ -2233,7 +2641,7 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="3" />
                   <path
-                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                 </svg>
                 Manajemen Aplikasi &amp; Branding
               </button>
@@ -2388,7 +2796,7 @@
                         style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                           <div
-                            style="width: 34px; height: 34px; border-radius: 10px; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            style="width: 34px; height: 34px; border-radius: 10px; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -2489,8 +2897,108 @@
 
   </div>
 
-  <script src="/public/js/app.js?v=1784736000"></script>
+  <!-- FLOATING PWA INSTALL BANNER -->
+  <div id="pwa-install-banner">
+    <div class="pwa-banner-icon">
+      <img src="/icons/pwa-192x192.png" alt="BPRS App" />
+    </div>
+    <div class="pwa-banner-info">
+      <div class="pwa-banner-title">
+        Install Aplikasi BPRS
+        <span style="background:#ccfbf1;color:#0f766e;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;">Mobile App</span>
+      </div>
+      <div class="pwa-banner-desc">Pasang di layar utama HP untuk akses cepat tanpa repot buka browser.</div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button class="btn-pwa-install" onclick="triggerPwaInstallPrompt()">Install</button>
+      <button class="btn-pwa-close" onclick="dismissPwaBanner()" title="Tutup">✕</button>
+    </div>
+  </div>
+
+  <!-- MODAL PWA IOS GUIDE -->
+  <div class="modal-overlay" id="modal-pwa-ios">
+    <div class="modal-box" style="max-width:440px;border-radius:24px;overflow:hidden;">
+      <div class="modal-hdr" style="background:#f0fdfa;border-bottom:1px solid #ccfbf1;padding:16px 20px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:#0f766e;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            <img src="/icons/pwa-192x192.png" style="width:100%;height:100%;object-fit:cover;" />
+          </div>
+          <div>
+            <div class="modal-title" style="font-size:15px;font-weight:800;color:#0f766e;">Pasang di iPhone / iPad</div>
+            <div style="font-size:11.5px;color:#64748b;">Akses mudah langsung dari Layar Utama iOS</div>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-pwa-ios')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px 22px;">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#0f766e;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+            <div style="font-size:13px;color:#334155;line-height:1.4;">
+              Tekan tombol <strong>Bagikan / Share</strong> di bilah bawah browser Safari:
+              <div style="display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;padding:3px 8px;border-radius:8px;margin-top:4px;font-weight:700;color:#0284c7;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                Ikon Share (Bilah Bawah)
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#0f766e;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+            <div style="font-size:13px;color:#334155;line-height:1.4;">
+              Gulir menu ke bawah lalu pilih:
+              <div style="display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;padding:3px 8px;border-radius:8px;margin-top:4px;font-weight:700;color:#0f172a;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                Tambah ke Layar Utama (Add to Home Screen)
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#0f766e;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+            <div style="font-size:13px;color:#334155;line-height:1.4;">
+              Ketuk <strong>"Tambah"</strong> di sudut kanan atas. Aplikasi akan otomatis terpasang di iPhone Anda!
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:12px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary btn-block" onclick="closeModal('modal-pwa-ios')" style="border-radius:12px;padding:10px;font-weight:700;">Mengerti, Tutup Panduan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PWA MANUAL GUIDE -->
+  <div class="modal-overlay" id="modal-pwa-manual">
+    <div class="modal-box" style="max-width:440px;border-radius:24px;overflow:hidden;">
+      <div class="modal-hdr" style="background:#f0fdfa;border-bottom:1px solid #ccfbf1;padding:16px 20px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:#0f766e;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            <img src="/icons/pwa-192x192.png" style="width:100%;height:100%;object-fit:cover;" />
+          </div>
+          <div>
+            <div class="modal-title" style="font-size:15px;font-weight:800;color:#0f766e;">Cara Pasang Aplikasi</div>
+            <div style="font-size:11.5px;color:#64748b;">Panduan instalasi di browser HP</div>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-pwa-manual')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px 22px;">
+        <div style="font-size:13px;color:#334155;line-height:1.5;">
+          <p style="margin-bottom:12px;">Untuk memasang aplikasi ini di layar utama HP:</p>
+          <ol style="margin-left:18px;display:flex;flex-direction:column;gap:8px;">
+            <li>Buka halaman ini menggunakan <strong>Google Chrome</strong> atau <strong>Microsoft Edge</strong>.</li>
+            <li>Ketuk menu <strong>titik tiga (⋮)</strong> di sudut kanan atas browser.</li>
+            <li>Pilih menu <strong>"Install Aplikasi"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:12px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary btn-block" onclick="closeModal('modal-pwa-manual')" style="border-radius:12px;padding:10px;font-weight:700;">Tutup</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then((reg) => {
@@ -2500,6 +3008,110 @@
         });
       });
     }
+
+    // PWA Install State & Handlers
+    let deferredPwaPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPwaPrompt = e;
+      window.deferredPwaPrompt = e;
+      console.log('[PWA] beforeinstallprompt event captured');
+
+      if (!isAppStandalone() && !sessionStorage.getItem('pwa_banner_dismissed')) {
+        setTimeout(() => {
+          showPwaBanner();
+        }, 1200);
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] App successfully installed');
+      deferredPwaPrompt = null;
+      window.deferredPwaPrompt = null;
+      hidePwaBanner();
+      if (typeof showToast === 'function') {
+        showToast('Aplikasi BPRS berhasil dipasang di layar utama!', 'success');
+      }
+    });
+
+    function isAppStandalone() {
+      return (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true ||
+        document.referrer.includes('android-app://')
+      );
+    }
+
+    function isIosDevice() {
+      return /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase()) && !window.MSStream;
+    }
+
+    function showPwaBanner() {
+      if (isAppStandalone()) return;
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) {
+        banner.classList.add('show');
+      }
+    }
+
+    function hidePwaBanner() {
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) {
+        banner.classList.remove('show');
+      }
+    }
+
+    function dismissPwaBanner() {
+      hidePwaBanner();
+      sessionStorage.setItem('pwa_banner_dismissed', 'true');
+    }
+
+    function triggerPwaInstallPrompt() {
+      const userDropdown = document.getElementById('user-dropdown-menu');
+      if (userDropdown) userDropdown.style.display = 'none';
+
+      if (isAppStandalone()) {
+        if (typeof showToast === 'function') {
+          showToast('Aplikasi sudah terpasang dan berjalan dalam mode aplikasi.', 'info');
+        }
+        return;
+      }
+
+      if (deferredPwaPrompt) {
+        deferredPwaPrompt.prompt();
+        deferredPwaPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult && choiceResult.outcome === 'accepted') {
+            console.log('[PWA] User accepted installation');
+            hidePwaBanner();
+          }
+          deferredPwaPrompt = null;
+          window.deferredPwaPrompt = null;
+        });
+      } else if (isIosDevice()) {
+        if (typeof openModal === 'function') {
+          openModal('modal-pwa-ios');
+        } else {
+          const m = document.getElementById('modal-pwa-ios');
+          if (m) m.classList.add('open');
+        }
+      } else {
+        if (typeof openModal === 'function') {
+          openModal('modal-pwa-manual');
+        } else {
+          const m = document.getElementById('modal-pwa-manual');
+          if (m) m.classList.add('open');
+        }
+      }
+    }
+
+    window.addEventListener('load', () => {
+      if (!isAppStandalone() && !sessionStorage.getItem('pwa_banner_dismissed')) {
+        setTimeout(() => {
+          showPwaBanner();
+        }, 1800);
+      }
+    });
 
     // Disable multi-touch gesture zooming and double-tap zooming on mobile/PWA
     document.addEventListener('touchstart', (e) => {

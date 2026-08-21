@@ -12,11 +12,11 @@ import {
 
 export const importRouter = new Hono();
 
-// Enforce admin-only and rate limiter
-importRouter.use('*', authMiddleware, roleMiddleware(['admin']), importRateLimiter);
+// Enforce admin-only
+importRouter.use('*', authMiddleware, roleMiddleware(['admin']));
 
 // POST /cbs - Upload and process staging
-importRouter.post('/cbs', async (c) => {
+importRouter.post('/cbs', importRateLimiter, async (c) => {
   try {
     const body = await c.req.parseBody({ all: true });
     const file: any = body.file;

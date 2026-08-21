@@ -73,9 +73,10 @@ deskcallRouter.get('/redalert', roleMiddleware(['admin', 'desk_call', 'kabid_p3'
     const q = c.req.query('q') || '';
     const ao = c.req.query('ao') || '';
     const hariIni = c.req.query('hariIni') || '';
+    const periode = c.req.query('periode') || (hariIni === 'true' ? 'today' : 'all');
     const filterStatus = c.req.query('status') || 'all';
 
-    const result = await getDeskCallRedAlert({ q, ao, hariIni, filterStatus });
+    const result = await getDeskCallRedAlert({ q, ao, hariIni, periode, filterStatus });
     return c.json(result);
   } catch (err: any) {
     return c.json({ error: err.message }, 500);

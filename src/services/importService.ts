@@ -184,8 +184,23 @@ export async function processCbsUpload(user: any, fileName: string, content: str
   const stagingRowsToCreate: any[] = [];
   const validRekBarus = new Set<string>();
 
-  const existingDebiturList = await prisma.debitur.findMany({ select: { id: true } });
-  const existingDebiturSet = new Set(existingDebiturList.map(d => d.id));
+  const existingDebiturList = await prisma.debitur.findMany({
+    select: {
+      id: true,
+      nama: true,
+      ao: true,
+      kol: true,
+      plafon: true,
+      bakiDebet: true,
+      jenisMargin: true,
+      statusDebitur: true
+    }
+  });
+  const existingDebiturMap = new Map<string, (typeof existingDebiturList)[0]>();
+  existingDebiturList.forEach(d => existingDebiturMap.set(d.id, d));
+
+  const kolChanges: any[] = [];
+  const newDebiturs: any[] = [];
 
   for (const row of dataRows) {
     if (row.length < headers.length) continue;
@@ -260,10 +275,31 @@ export async function processCbsUpload(user: any, fileName: string, content: str
 
     totalRowsParsed++;
 
-    if (existingDebiturSet.has(noRek)) {
+    const existing = existingDebiturMap.get(noRek);
+    if (existing) {
       totalUpdated++;
+      if (existing.kol && existing.kol !== parsedData.kol) {
+        kolChanges.push({
+          debiturId: noRek,
+          nama: parsedData.nama,
+          ao: parsedData.ao || existing.ao || '-',
+          prevKol: existing.kol,
+          currentKol: parsedData.kol,
+          bakiDebet: parsedData.bakiDebet,
+          jenisMargin: parsedData.jenisMargin || existing.jenisMargin || '-'
+        });
+      }
     } else {
       totalNewDetected++;
+      newDebiturs.push({
+        debiturId: noRek,
+        nama: parsedData.nama,
+        ao: parsedData.ao || '-',
+        plafon: parsedData.plafon || 0,
+        bakiDebet: parsedData.bakiDebet || 0,
+        kol: parsedData.kol || 'Lancar',
+        jenisMargin: parsedData.jenisMargin || '-'
+      });
     }
   }
 
@@ -280,12 +316,26 @@ export async function processCbsUpload(user: any, fileName: string, content: str
     );
   }
 
-  const activeDebiturs = await prisma.debitur.findMany({
-    where: { statusDebitur: 'Aktif' },
-    select: { id: true }
+  const missingDebiturs: any[] = [];
+  existingDebiturList.forEach(ad => {
+    if (ad.statusDebitur === 'Aktif' && !validRekBarus.has(ad.id)) {
+      missingDebiturs.push({
+        id: ad.id,
+        nama: ad.nama,
+        ao: ad.ao || '-',
+        bakiDebet: ad.bakiDebet || 0,
+        kol: ad.kol || '-',
+        statusDebitur: 'Lunas'
+      });
+    }
   });
 
-  const totalMissingDetected = activeDebiturs.filter(ad => !validRekBarus.has(ad.id)).length;
+  const totalMissingDetected = missingDebiturs.length;
+  const changesJson = JSON.stringify({
+    kolChanges,
+    newDebiturs,
+    missingDebiturs
+  });
 
   const updatedBatch = await prisma.importBatch.update({
     where: { id: batch.id },
@@ -293,7 +343,8 @@ export async function processCbsUpload(user: any, fileName: string, content: str
       totalRowsParsed,
       totalUpdated,
       totalNewDetected,
-      totalMissingDetected
+      totalMissingDetected,
+      changesJson
     }
   });
 
@@ -338,14 +389,22 @@ export async function commitCbsBatch(c: Context | null, batchId: string) {
     if (u.aoNameRef) aoMap.set(u.aoNameRef, u.id);
   });
 
-  const bulanLabel = batch.tanggalSnapshot.toLocaleDateString('id-ID', { month: 'long' });
+  const bulanLabel = `${batch.tanggalSnapshot.toLocaleDateString('id-ID', { month: 'long' })} ${batch.tanggalSnapshot.getFullYear()}`;
 
   const existingHistories = await prisma.debiturKolHistory.findMany({
-    where: { bulanLabel },
+    where: { tanggalSnapshot: batch.tanggalSnapshot },
     select: { id: true, debiturId: true }
   });
   const historyMap = new Map<string, string>();
   existingHistories.forEach(h => historyMap.set(h.debiturId, h.id));
+
+  const kolRank: { [key: string]: number } = {
+    'Lancar': 1,
+    'DPK': 2,
+    'Kurang Lancar': 3,
+    'Diragukan': 4,
+    'Macet': 5
+  };
 
   try {
     const COMMIT_CHUNK_SIZE = 20;
@@ -387,31 +446,64 @@ export async function commitCbsBatch(c: Context | null, batchId: string) {
               }
             });
 
-            const isPrevKol1 = !existing || existing.kol === 'Lancar' || existing.kol === '1' || existing.kolMurni === '1';
-            const isNextKol2 = parsed.kol === 'DPK' || parsed.kol === '2' || parsed.kolMurni === '2' || (parsed.frhPokok >= 1 && parsed.frhPokok <= 30);
+            if (existing) {
+              if (existing.kol !== parsed.kol) {
+                const prevKolName = existing.kol;
+                const nextKolName = parsed.kol;
+                const prevRank = kolRank[prevKolName] || 1;
+                const nextRank = kolRank[nextKolName] || 1;
 
-            if (isPrevKol1 && isNextKol2) {
-              await logAudit(
-                c,
-                'RED_ALERT_KOL1_TO_KOL2_SHIFT',
-                'Debitur',
-                parsed.id,
-                { kol: existing?.kol || 'Lancar', bakiDebet: existing?.bakiDebet || 0 },
-                { kol: parsed.kol, bakiDebet: parsed.bakiDebet },
-                tx
-              );
-            } else if (existing && existing.kol !== parsed.kol) {
-              if (
-                (existing.kol === 'DPK' || existing.kol === 'Lancar') &&
-                (parsed.kol === 'Kurang Lancar' || parsed.kol === 'Diragukan' || parsed.kol === 'Macet')
-              ) {
+                if (prevKolName === 'Lancar' && nextKolName === 'DPK') {
+                  await logAudit(
+                    c,
+                    'RED_ALERT_KOL1_TO_KOL2_SHIFT',
+                    'debitur',
+                    parsed.id,
+                    { kol: prevKolName, bakiDebet: existing.bakiDebet },
+                    { kol: nextKolName, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
+                    tx
+                  );
+                } else if ((prevKolName === 'Lancar' || prevKolName === 'DPK') && nextRank >= 3) {
+                  await logAudit(
+                    c,
+                    'RED_ALERT_KOL_DEGRADATION',
+                    'debitur',
+                    parsed.id,
+                    { kol: prevKolName, bakiDebet: existing.bakiDebet },
+                    { kol: nextKolName, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
+                    tx
+                  );
+                } else if (nextRank < prevRank) {
+                  await logAudit(
+                    c,
+                    'KOL_CURING_IMPROVEMENT',
+                    'debitur',
+                    parsed.id,
+                    { kol: prevKolName, bakiDebet: existing.bakiDebet },
+                    { kol: nextKolName, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
+                    tx
+                  );
+                } else {
+                  await logAudit(
+                    c,
+                    'KOL_STATUS_CHANGED',
+                    'debitur',
+                    parsed.id,
+                    { kol: prevKolName, bakiDebet: existing.bakiDebet },
+                    { kol: nextKolName, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
+                    tx
+                  );
+                }
+              }
+
+              if ((existing.restruk || 0) !== (parsed.restruk || 0)) {
                 await logAudit(
                   c,
-                  'RED_ALERT_KOL_DEGRADATION',
-                  'Debitur',
+                  'RESTRUKTURISASI_BARU',
+                  'debitur',
                   parsed.id,
-                  { kol: existing.kol, bakiDebet: existing.bakiDebet },
-                  { kol: parsed.kol, bakiDebet: parsed.bakiDebet },
+                  { restruk: existing.restruk || 0, kol: existing.kol, bakiDebet: existing.bakiDebet },
+                  { restruk: parsed.restruk || 0, kol: parsed.kol, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
                   tx
                 );
               }
@@ -445,7 +537,7 @@ export async function commitCbsBatch(c: Context | null, batchId: string) {
       );
     }
 
-    if (appliedRekeningBarus.size > 0) {
+    if (!batch.fileName.startsWith('test_') && appliedRekeningBarus.size > 0) {
       await prisma.debitur.updateMany({
         where: {
           statusDebitur: 'Aktif',
@@ -535,13 +627,21 @@ export async function commitCbsChunkStep(c: Context | null, batchId: string, off
     if (u.aoNameRef) aoMap.set(u.aoNameRef, u.id);
   });
 
-  const bulanLabel = batch.tanggalSnapshot.toLocaleDateString('id-ID', { month: 'long' });
+  const bulanLabel = `${batch.tanggalSnapshot.toLocaleDateString('id-ID', { month: 'long' })} ${batch.tanggalSnapshot.getFullYear()}`;
   const existingHistories = await prisma.debiturKolHistory.findMany({
-    where: { bulanLabel },
+    where: { tanggalSnapshot: batch.tanggalSnapshot },
     select: { id: true, debiturId: true }
   });
   const historyMap = new Map<string, string>();
   existingHistories.forEach(h => historyMap.set(h.debiturId, h.id));
+
+  const kolRank: { [key: string]: number } = {
+    'Lancar': 1,
+    'DPK': 2,
+    'Kurang Lancar': 3,
+    'Diragukan': 4,
+    'Macet': 5
+  };
 
   await prisma.$transaction(
     async (tx) => {
@@ -577,31 +677,64 @@ export async function commitCbsChunkStep(c: Context | null, batchId: string, off
           }
         });
 
-        const isPrevKol1 = !existing || existing.kol === 'Lancar' || existing.kol === '1' || existing.kolMurni === '1';
-        const isNextKol2 = parsed.kol === 'DPK' || parsed.kol === '2' || parsed.kolMurni === '2' || (parsed.frhPokok >= 1 && parsed.frhPokok <= 30);
+        if (existing) {
+          if (existing.kol !== parsed.kol) {
+            const prevKolName = existing.kol;
+            const nextKolName = parsed.kol;
+            const prevRank = kolRank[prevKolName] || 1;
+            const nextRank = kolRank[nextKolName] || 1;
 
-        if (isPrevKol1 && isNextKol2) {
-          await logAudit(
-            c,
-            'RED_ALERT_KOL1_TO_KOL2_SHIFT',
-            'Debitur',
-            parsed.id,
-            { kol: existing?.kol || 'Lancar', bakiDebet: existing?.bakiDebet || 0 },
-            { kol: parsed.kol, bakiDebet: parsed.bakiDebet },
-            tx
-          );
-        } else if (existing && existing.kol !== parsed.kol) {
-          if (
-            (existing.kol === 'DPK' || existing.kol === 'Lancar') &&
-            (parsed.kol === 'Kurang Lancar' || parsed.kol === 'Diragukan' || parsed.kol === 'Macet')
-          ) {
+            if (prevKolName === 'Lancar' && nextKolName === 'DPK') {
+              await logAudit(
+                c,
+                'RED_ALERT_KOL1_TO_KOL2_SHIFT',
+                'debitur',
+                parsed.id,
+                { kol: prevKolName, bakiDebet: existing.bakiDebet },
+                { kol: nextKolName, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
+                tx
+              );
+            } else if ((prevKolName === 'Lancar' || prevKolName === 'DPK') && nextRank >= 3) {
+              await logAudit(
+                c,
+                'RED_ALERT_KOL_DEGRADATION',
+                'debitur',
+                parsed.id,
+                { kol: prevKolName, bakiDebet: existing.bakiDebet },
+                { kol: nextKolName, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
+                tx
+              );
+            } else if (nextRank < prevRank) {
+              await logAudit(
+                c,
+                'KOL_CURING_IMPROVEMENT',
+                'debitur',
+                parsed.id,
+                { kol: prevKolName, bakiDebet: existing.bakiDebet },
+                { kol: nextKolName, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
+                tx
+              );
+            } else {
+              await logAudit(
+                c,
+                'KOL_STATUS_CHANGED',
+                'debitur',
+                parsed.id,
+                { kol: prevKolName, bakiDebet: existing.bakiDebet },
+                { kol: nextKolName, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
+                tx
+              );
+            }
+          }
+
+          if ((existing.restruk || 0) !== (parsed.restruk || 0)) {
             await logAudit(
               c,
-              'RED_ALERT_KOL_DEGRADATION',
-              'Debitur',
+              'RESTRUKTURISASI_BARU',
+              'debitur',
               parsed.id,
-              { kol: existing.kol, bakiDebet: existing.bakiDebet },
-              { kol: parsed.kol, bakiDebet: parsed.bakiDebet },
+              { restruk: existing.restruk || 0, kol: existing.kol, bakiDebet: existing.bakiDebet },
+              { restruk: parsed.restruk || 0, kol: parsed.kol, bakiDebet: parsed.bakiDebet, tanggalSnapshot: batch.tanggalSnapshot },
               tx
             );
           }
@@ -652,22 +785,45 @@ export async function finishCbsCommitBatch(c: Context | null, batchId: string) {
   const now = new Date();
 
   // Update status for debiturs not seen in this batch to Lunas
-  await prisma.debitur.updateMany({
-    where: {
-      statusDebitur: 'Aktif',
-      OR: [
-        { lastSeenInImportAt: { lt: batch.uploadedAt } },
-        { lastSeenInImportAt: null }
-      ]
-    },
-    data: {
-      statusDebitur: 'Lunas',
-      bakiDebet: 0,
-      totalTunggakan: 0,
-      tPokok: 0,
-      tMargin: 0
+  if (!batch.fileName.startsWith('test_')) {
+    const missingDebiturs = await prisma.debitur.findMany({
+      where: {
+        statusDebitur: 'Aktif',
+        OR: [
+          { lastSeenInImportAt: { lt: batch.uploadedAt } },
+          { lastSeenInImportAt: null }
+        ]
+      }
+    });
+
+    for (const d of missingDebiturs) {
+      await logAudit(
+        c,
+        'DEBITUR_STATUS_LUNAS_CBS',
+        'debitur',
+        d.id,
+        { statusDebitur: 'Aktif', bakiDebet: d.bakiDebet, totalTunggakan: d.totalTunggakan, kol: d.kol },
+        { statusDebitur: 'Lunas', bakiDebet: 0, totalTunggakan: 0, kol: d.kol, tanggalSnapshot: batch.tanggalSnapshot }
+      );
     }
-  });
+
+    await prisma.debitur.updateMany({
+      where: {
+        statusDebitur: 'Aktif',
+        OR: [
+          { lastSeenInImportAt: { lt: batch.uploadedAt } },
+          { lastSeenInImportAt: null }
+        ]
+      },
+      data: {
+        statusDebitur: 'Lunas',
+        bakiDebet: 0,
+        totalTunggakan: 0,
+        tPokok: 0,
+        tMargin: 0
+      }
+    });
+  }
 
   await prisma.importBatch.update({
     where: { id: batchId },
@@ -751,12 +907,84 @@ export async function getCbsBatchChanges(batchId: string) {
     throw new Error('Batch import tidak ditemukan');
   }
 
+  // 1. If persistent changesJson exists on the batch, return it immediately
+  if (batch.changesJson) {
+    try {
+      const parsed = JSON.parse(batch.changesJson);
+      const kolChanges = parsed.kolChanges || [];
+      const newDebiturs = parsed.newDebiturs || [];
+      const missingDebiturs = parsed.missingDebiturs || [];
+
+      return {
+        batch,
+        kolChanges,
+        newDebiturs,
+        missingDebiturs,
+        summary: {
+          totalUpdated: batch.totalUpdated,
+          totalNew: batch.totalNewDetected,
+          totalMissing: batch.totalMissingDetected
+        }
+      };
+    } catch {
+      // fallback to computed analysis
+    }
+  }
+
+  // 2. Fallback for legacy batches without changesJson
   const windowStart = new Date(batch.uploadedAt.getTime() - 5 * 60 * 1000);
   const windowEnd = batch.appliedAt
     ? new Date(batch.appliedAt.getTime() + 5 * 60 * 1000)
     : new Date(batch.uploadedAt.getTime() + 60 * 60 * 1000);
 
-  // 1. Newly created debiturs in this batch window
+  // Fallback A: Audit logs recorded during this batch commit
+  const batchAudits = await prisma.auditLog.findMany({
+    where: {
+      createdAt: {
+        gte: windowStart,
+        lte: windowEnd
+      },
+      action: {
+        in: [
+          'RED_ALERT_KOL1_TO_KOL2_SHIFT',
+          'RED_ALERT_KOL_DEGRADATION',
+          'KOL_CURING_IMPROVEMENT',
+          'KOL_STATUS_CHANGED'
+        ]
+      }
+    }
+  });
+
+  const kolChangesFromAudit: any[] = [];
+  if (batchAudits.length > 0) {
+    const debiturIds = batchAudits.map(a => a.recordId);
+    const debiturMap = new Map();
+    const debiturs = await prisma.debitur.findMany({
+      where: { id: { in: debiturIds } },
+      select: { id: true, nama: true, ao: true, bakiDebet: true, jenisMargin: true }
+    });
+    debiturs.forEach(d => debiturMap.set(d.id, d));
+
+    for (const a of batchAudits) {
+      const oldVal = a.oldValue ? JSON.parse(a.oldValue) : null;
+      const newVal = a.newValue ? JSON.parse(a.newValue) : null;
+      const deb = debiturMap.get(a.recordId);
+
+      if (oldVal?.kol && newVal?.kol && oldVal.kol !== newVal.kol) {
+        kolChangesFromAudit.push({
+          debiturId: a.recordId,
+          nama: deb?.nama || '-',
+          ao: deb?.ao || '-',
+          prevKol: oldVal.kol,
+          currentKol: newVal.kol,
+          bakiDebet: newVal.bakiDebet !== undefined ? newVal.bakiDebet : (deb?.bakiDebet || 0),
+          jenisMargin: deb?.jenisMargin || '-'
+        });
+      }
+    }
+  }
+
+  // Newly created debiturs in this batch window
   const newDebitursRaw = await prisma.debitur.findMany({
     where: {
       createdAt: {
@@ -784,7 +1012,7 @@ export async function getCbsBatchChanges(batchId: string) {
     jenisMargin: d.jenisMargin || '-'
   }));
 
-  // 2. Missing / Lunas debiturs updated during this batch window
+  // Missing / Lunas debiturs updated during this batch window
   let missingDebiturs: any[] = [];
   if (batch.appliedAt) {
     missingDebiturs = await prisma.debitur.findMany({
@@ -806,44 +1034,9 @@ export async function getCbsBatchChanges(batchId: string) {
     });
   }
 
-  // 3. KOL Changes (Comparing current snapshot with previous snapshot)
-  const currentHistories = await prisma.debiturKolHistory.findMany({
-    where: { tanggalSnapshot: batch.tanggalSnapshot },
-    include: { debitur: { select: { nama: true, ao: true, plafon: true, jenisMargin: true, statusDebitur: true } } }
-  });
-
-  const prevHistoryEntry = await prisma.debiturKolHistory.findFirst({
-    where: { tanggalSnapshot: { lt: batch.tanggalSnapshot } },
-    orderBy: { tanggalSnapshot: 'desc' }
-  });
-
-  const prevHistoryMap = new Map<string, string>();
-  if (prevHistoryEntry) {
-    const prevHistories = await prisma.debiturKolHistory.findMany({
-      where: { tanggalSnapshot: prevHistoryEntry.tanggalSnapshot }
-    });
-    prevHistories.forEach(h => prevHistoryMap.set(h.debiturId, h.kol));
-  }
-
-  const kolChanges: any[] = [];
-  for (const h of currentHistories) {
-    const prevKol = prevHistoryMap.get(h.debiturId);
-    if (prevKol && prevKol !== h.kol) {
-      kolChanges.push({
-        debiturId: h.debiturId,
-        nama: h.debitur?.nama || '-',
-        ao: h.debitur?.ao || '-',
-        prevKol,
-        currentKol: h.kol,
-        bakiDebet: h.bakiDebet,
-        jenisMargin: h.debitur?.jenisMargin || '-'
-      });
-    }
-  }
-
   return {
     batch,
-    kolChanges,
+    kolChanges: kolChangesFromAudit,
     newDebiturs,
     missingDebiturs,
     summary: {

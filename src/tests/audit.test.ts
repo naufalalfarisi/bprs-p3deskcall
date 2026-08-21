@@ -118,6 +118,81 @@ describe('Visual Audit Trail & Diff Engine Tests', () => {
       expect(FIELD_LABELS.statusDebitur).toBe('Status Debitur');
       expect(FIELD_LABELS.nominal).toBe('Nominal Pembayaran');
       expect(FIELD_LABELS.nominalJanji).toBe('Nominal Janji Bayar');
+      expect(FIELD_LABELS.restruk).toBe('Frekuensi Restrukturisasi');
+      expect(FIELD_LABELS.tanggalSnapshot).toBe('Tanggal Snapshot CBS');
+    });
+  });
+
+  describe('Debitur KOL Shift & Restruk Diff Tracking', () => {
+    it('should properly track restrukturisasi change (0 to 1) and KOL shift in audit diff', () => {
+      const oldDebitur = {
+        kol: 'DPK',
+        bakiDebet: 50_000_000,
+        restruk: 0,
+        statusDebitur: 'Aktif'
+      };
+
+      const newDebitur = {
+        kol: 'Kurang Lancar',
+        bakiDebet: 48_000_000,
+        restruk: 1,
+        statusDebitur: 'Aktif',
+        tanggalSnapshot: '2026-08-31'
+      };
+
+      const diffs = computeAuditDiff(oldDebitur, newDebitur);
+      expect(diffs).toHaveLength(4);
+
+      const restrukDiff = diffs.find((d) => d.field === 'restruk');
+      expect(restrukDiff).toBeDefined();
+      expect(restrukDiff?.oldValue).toBe(0);
+      expect(restrukDiff?.newValue).toBe(1);
+      expect(restrukDiff?.label).toBe('Frekuensi Restrukturisasi');
+
+      const kolDiff = diffs.find((d) => d.field === 'kol');
+      expect(kolDiff?.oldValue).toBe('DPK');
+      expect(kolDiff?.newValue).toBe('Kurang Lancar');
+
+      const snapDiff = diffs.find((d) => d.field === 'tanggalSnapshot');
+      expect(snapDiff?.newValue).toBe('2026-08-31');
+    });
+
+    it('should ignore print SP metadata keys (printCount, lastPrintedAt)', () => {
+      const oldVal = {
+        kol: 'Lancar',
+        printCount: 0,
+        lastPrintedAt: null
+      };
+
+      const newVal = {
+        kol: 'Lancar',
+        printCount: 1,
+        lastPrintedAt: '2026-08-03T10:00:00Z'
+      };
+
+      const diffs = computeAuditDiff(oldVal, newVal);
+      expect(diffs).toHaveLength(0); // print metadata is ignored
+    });
+
+    it('should ignore unmask PDP metadata keys (masked, unmaskedByUserId, accessedFields)', () => {
+      const oldVal = {
+        kol: 'Macet',
+        masked: true,
+        unmaskedByUserId: null,
+        accessedFields: null
+      };
+
+      const newVal = {
+        kol: 'Macet',
+        masked: false,
+        unmaskedByUserId: 'user-123',
+        accessedFields: 'nik,telepon'
+      };
+
+      const diffs = computeAuditDiff(oldVal, newVal);
+      expect(diffs).toHaveLength(0); // unmask PDP metadata is ignored
     });
   });
 });
+
+

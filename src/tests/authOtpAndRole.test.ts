@@ -94,6 +94,15 @@ describe('Auth OTP & Role Confirmation Schemas & Services', () => {
       expect(result.success).toBe(true);
     });
 
+    it('should allow admin to confirm role as skai (SKAI & Kepatuhan)', () => {
+      const validConfirmation = {
+        posisi: 'skai',
+        aoNameRef: null
+      };
+      const result = ConfirmRoleSchema.safeParse(validConfirmation);
+      expect(result.success).toBe(true);
+    });
+
     it('should reject invalid role enum', () => {
       const invalidRole = {
         posisi: 'super_hacker_role',

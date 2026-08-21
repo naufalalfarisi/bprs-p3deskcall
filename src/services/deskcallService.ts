@@ -371,11 +371,12 @@ export interface GetDeskCallRedAlertParams {
   q?: string;
   ao?: string;
   hariIni?: string;
+  periode?: string;
   filterStatus?: string;
 }
 
 export async function getDeskCallRedAlert(params: GetDeskCallRedAlertParams) {
-  const { q, ao, hariIni, filterStatus = 'all' } = params;
+  const { q, ao, hariIni, periode = 'all', filterStatus = 'all' } = params;
 
   const whereClause: any = {
     statusDebitur: 'Aktif',
@@ -450,6 +451,8 @@ export async function getDeskCallRedAlert(params: GetDeskCallRedAlertParams) {
 
     let prevKol = 'Lancar (KOL 1)';
     let tanggalShiftStr = '-';
+    let daysSinceShift = d.frhPokok && d.frhPokok > 0 ? d.frhPokok : 1;
+
     if (d.kolHistory && d.kolHistory.length > 0) {
       const latestHist = d.kolHistory[0];
       const prevHist = d.kolHistory.length > 1 ? d.kolHistory[1] : null;
@@ -458,13 +461,21 @@ export async function getDeskCallRedAlert(params: GetDeskCallRedAlertParams) {
       }
       if (latestHist && latestHist.tanggalSnapshot) {
         tanggalShiftStr = new Date(latestHist.tanggalSnapshot).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        const diffDays = Math.floor((now.getTime() - new Date(latestHist.tanggalSnapshot).getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays >= 0) {
+          daysSinceShift = Math.min(daysSinceShift, diffDays);
+        }
       }
     }
     if (tanggalShiftStr === '-' && d.lastSyncedAt) {
       tanggalShiftStr = new Date(d.lastSyncedAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      const diffDays = Math.floor((now.getTime() - new Date(d.lastSyncedAt).getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0) {
+        daysSinceShift = Math.min(daysSinceShift, diffDays);
+      }
     }
 
-    const isBergeserHariIni = d.frhPokok <= 1 || (d.updatedAt && new Date(d.updatedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) === todayStr) || (d.lastSyncedAt && new Date(d.lastSyncedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) === todayStr);
+    const isBergeserHariIni = daysSinceShift <= 1 || (d.updatedAt && new Date(d.updatedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) === todayStr) || (d.lastSyncedAt && new Date(d.lastSyncedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) === todayStr);
     if (isBergeserHariIni) {
       bergeserHariIniCount++;
     }
@@ -479,6 +490,7 @@ export async function getDeskCallRedAlert(params: GetDeskCallRedAlertParams) {
       bakiDebet: d.bakiDebet,
       totalTunggakan: d.totalTunggakan,
       frhPokok: d.frhPokok,
+      daysSinceShift,
       kol: d.kol,
       kolMurni: d.kolMurni,
       prevKol: prevKol,
@@ -493,9 +505,15 @@ export async function getDeskCallRedAlert(params: GetDeskCallRedAlertParams) {
     };
   });
 
-  if (hariIni === 'true' || filterStatus === 'hari_ini') {
-    list = list.filter(item => item.isBergeserHariIni || item.frhPokok <= 1);
-  } else if (filterStatus === 'belum_call') {
+  if (hariIni === 'true' || periode === 'today' || periode === 'hari_ini') {
+    list = list.filter(item => item.isBergeserHariIni || item.daysSinceShift <= 1 || item.frhPokok <= 1);
+  } else if (periode === 'week' || periode === 'minggu_ini') {
+    list = list.filter(item => item.daysSinceShift <= 7 || item.frhPokok <= 7);
+  } else if (periode === '2weeks' || periode === '2_minggu') {
+    list = list.filter(item => item.daysSinceShift <= 14 || item.frhPokok <= 14);
+  }
+
+  if (filterStatus === 'belum_call') {
     list = list.filter(item => !item.isCalledToday);
   } else if (filterStatus === 'sudah_call') {
     list = list.filter(item => item.isCalledToday);

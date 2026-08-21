@@ -377,6 +377,7 @@ model ImportBatch {
   totalMissingDetected  Int
   status                String    // pending_review, applied, failed
   appliedAt             DateTime?
+  changesJson           String?   // JSON of { kolChanges, newDebiturs, missingDebiturs }
 }
 
 model ImportStagingRow {

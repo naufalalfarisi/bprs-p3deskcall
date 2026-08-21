@@ -62,7 +62,9 @@ async function apiCall(endpoint, options = {}) {
     }
 
     if (!res.ok && res.status !== 409) {
-      throw new Error(data.error || data.message || 'Terjadi kesalahan pada server');
+      const err = new Error(data.error || data.message || 'Terjadi kesalahan pada server');
+      Object.assign(err, data);
+      throw err;
     }
     return data;
   } catch (err) {
@@ -568,27 +570,27 @@ function switchAuthTab(tab) {
     if (pageLogin) pageLogin.style.display = 'none';
     if (pageReg) pageReg.style.display = 'block';
     if (authBadge) authBadge.innerText = 'Pendaftaran Petugas Baru';
-    if (authTitle) authTitle.innerText = 'Registrasi Akun Petugas';
-    if (authSub) authSub.innerText = 'Lengkapi identitas resmi & penugasan untuk pengajuan akses.';
+    if (authTitle) authTitle.innerText = 'Pendaftaran Petugas Baru';
+    if (authSub) authSub.innerText = 'Lengkapi identitas resmi & penugasan untuk pengajuan akses sistem.';
 
     if (btnReg) {
-      btnReg.className = 'flex-1 py-1.5 text-xs font-black rounded-lg transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer';
+      btnReg.className = 'flex-1 py-2 text-xs font-black rounded-xl transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer';
     }
     if (btnLogin) {
-      btnLogin.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-500 hover:text-slate-900 border border-transparent cursor-pointer';
+      btnLogin.className = 'flex-1 py-2 text-xs font-semibold rounded-xl transition-all text-slate-500 hover:text-slate-900 border border-transparent cursor-pointer';
     }
   } else {
     if (pageReg) pageReg.style.display = 'none';
     if (pageLogin) pageLogin.style.display = 'block';
     if (authBadge) authBadge.innerText = 'Portal Otentikasi Resmi';
-    if (authTitle) authTitle.innerText = 'Selamat Datang Kembali';
-    if (authSub) authSub.innerText = 'Silakan masuk menggunakan kredensial akun perbankan Anda.';
+    if (authTitle) authTitle.innerText = 'Mulai Kelola Penagihan Anda';
+    if (authSub) authSub.innerText = 'Belum memiliki akun? Mulai sekarang, dan akun Anda akan diverifikasi oleh Admin.';
 
     if (btnLogin) {
-      btnLogin.className = 'flex-1 py-1.5 text-xs font-black rounded-lg transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer';
+      btnLogin.className = 'flex-1 py-2 text-xs font-black rounded-xl transition-all shadow-sm bg-white text-[#0F766E] border border-slate-200/80 cursor-pointer';
     }
     if (btnReg) {
-      btnReg.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-500 hover:text-slate-900 border border-transparent cursor-pointer';
+      btnReg.className = 'flex-1 py-2 text-xs font-semibold rounded-xl transition-all text-slate-500 hover:text-slate-900 border border-transparent cursor-pointer';
     }
   }
 }
@@ -680,7 +682,9 @@ async function handleLogin(force = false) {
     switchPane('dashboard');
   } catch (err) {
     if (err && (err.requiresOtp || err.message?.includes('OTP') || err.message?.includes('verifikasi'))) {
-      showOtpVerificationScreen(err.email || uInput?.value || '', uInput?.value || '');
+      const targetEmail = err.email || '';
+      const targetUsername = err.username || uInput?.value || '';
+      showOtpVerificationScreen(targetEmail, targetUsername);
       showToast(err.message || 'Silakan masukkan kode OTP yang dikirim ke email Anda', 'warning');
       return;
     }
@@ -794,8 +798,8 @@ async function handleRegister() {
 }
 
 function showOtpVerificationScreen(email, username) {
-  _pendingOtpEmail = email;
-  _pendingOtpUsername = username;
+  _pendingOtpEmail = email || username || '';
+  _pendingOtpUsername = username || '';
 
   const pageLogin = document.getElementById('page-login');
   const pageRegister = document.getElementById('page-register');
@@ -807,7 +811,15 @@ function showOtpVerificationScreen(email, username) {
   if (pageLogin) pageLogin.style.display = 'none';
   if (pageRegister) pageRegister.style.display = 'none';
 
-  if (targetEmailEl) targetEmailEl.innerText = email || '-';
+  if (targetEmailEl) {
+    if (email && email.includes('@')) {
+      targetEmailEl.innerText = email;
+    } else if (username) {
+      targetEmailEl.innerText = username;
+    } else {
+      targetEmailEl.innerText = email || '-';
+    }
+  }
   if (otpInput) {
     otpInput.value = '';
     setTimeout(() => otpInput.focus(), 150);
@@ -1134,7 +1146,8 @@ async function loadProfileData() {
     kabid_p3: 'Kepala Bidang P3',
     staff_p3: 'Staff P3 Lapangan',
     desk_call: 'Staff Desk Call',
-    legal: 'Staff Legal'
+    legal: 'Staff Legal',
+    skai: 'SKAI & Kepatuhan'
   };
   if (badge) badge.innerText = roles[state.user.posisi] || 'Staff';
 
@@ -1321,7 +1334,8 @@ function setupAppShell() {
     desk_call: 'Desk Call',
     legal: 'Pembinaan Pengawasan & Pembiayaan · Legal',
     ao: 'Account Officer',
-    kabid_ao: 'Pembinaan Account Officer'
+    kabid_ao: 'Pembinaan Account Officer',
+    skai: 'SKAI & Kepatuhan'
   };
 
   const roleTitle = roles[user.posisi] || 'Pembinaan Pengawasan & Pembiayaan';
@@ -1341,16 +1355,16 @@ function renderNavMenu(role) {
   if (!container) return;
 
   const menu = [
-    { id: 'dashboard', label: 'Dashboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
-    { id: 'debitur', label: 'Data Debitur', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
-    { id: 'ews', label: 'EWS (Early Warning)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>', roles: ['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3'] },
-    { id: 'historis', label: 'Historis Tunggakan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
+    { id: 'dashboard', label: 'Dashboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao', 'skai'] },
+    { id: 'debitur', label: 'Data Debitur', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao', 'skai'] },
+    { id: 'ews', label: 'EWS (Early Warning)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>', roles: ['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3', 'skai'] },
+    { id: 'historis', label: 'Historis Tunggakan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao', 'skai'] },
     { id: 'deskcall', label: 'Desk Call', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>', roles: ['admin', 'desk_call'] },
-    { id: 'p3', label: 'P3 (Lapangan)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal'] },
-    { id: 'legal', label: 'Dokumen dan Arsip', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', roles: ['admin', 'kabid_p3', 'legal'] },
-    { id: 'bayar', label: 'Riwayat Bayar', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] },
-    { id: 'kpi', label: 'KPI & Scorecard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal', 'ao', 'kabid_ao'] },
-    { id: 'settings', label: 'Pengaturan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'] }
+    { id: 'p3', label: 'P3 (Lapangan)', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal', 'skai'] },
+    { id: 'legal', label: 'Dokumen dan Arsip', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', roles: ['admin', 'kabid_p3', 'legal', 'skai'] },
+    { id: 'bayar', label: 'Riwayat Bayar', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao', 'skai'] },
+    { id: 'kpi', label: 'KPI & Scorecard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'legal', 'ao', 'kabid_ao', 'skai'] },
+    { id: 'settings', label: 'Pengaturan', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>', roles: ['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao', 'skai'] }
   ];
 
   container.innerHTML = menu.filter(item => item.id === 'settings' || item.roles.includes(role)).map(item => `
@@ -3058,9 +3072,6 @@ function renderRedAlertTab(container, res) {
               <span class="red-alert-beacon-dot" style="width: 7px; height: 7px; border-radius: 50%; background: #dc2626; display: inline-block;"></span>
               Pergeseran (KOL 1 ➔ KOL 2)
             </span>
-            <span style="font-size: 11px; font-weight: 800; color: #b91c1c; background: #fff; padding: 3px 10px; border-radius: 12px; border: 1px solid #fca5a5; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-              DPK (Dalam Pengawasan Khusus)
-            </span>
           </div>
           <div style="font-size: 13px; color: #991b1b; margin-top: 6px; line-height: 1.5; font-weight: 500;">
             Memantau nasabah yang baru saja bergeser dari <strong style="color: #1e293b; background: #fff; padding: 2px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px;">KOL 1 (Lancar)</strong> menjadi <strong style="color: #991b1b; background: #fee2e2; padding: 2px 8px; border-radius: 6px; border: 1px solid #fca5a5; font-size: 12px;">KOL 2 (DPK)</strong>. Lakukan kontak penagihan dini melalui Desk Call untuk pencegahan tunggakan lebih lanjut.
@@ -3087,16 +3098,18 @@ function renderRedAlertTab(container, res) {
           <span style="white-space: nowrap;">Filter Data:</span>
         </div>
 
-        <!-- Periode Select -->
-        <div style="flex: 1 1 150px; min-width: 140px; max-width: 180px;">
+        <!-- Periode Pergeseran Select -->
+        <div style="flex: 1 1 170px; min-width: 150px; max-width: 220px;">
           <select class="redalert-filter-select" id="redalert-filter-date" style="width: 100%; cursor: pointer;" onchange="filterRedAlertData()">
             <option value="all" ${window._redAlertDateFilter === 'all' || !window._redAlertDateFilter ? 'selected' : ''}>Semua Periode</option>
-            <option value="today" ${window._redAlertDateFilter === 'today' ? 'selected' : ''}>Hari Ini</option>
+            <option value="today" ${window._redAlertDateFilter === 'today' ? 'selected' : ''}>Berubah Hari Ini</option>
+            <option value="week" ${window._redAlertDateFilter === 'week' ? 'selected' : ''}>Berubah Minggu Ini (&le; 7 Hari)</option>
+            <option value="2weeks" ${window._redAlertDateFilter === '2weeks' ? 'selected' : ''}>Berubah 2 Minggu Ini (&le; 14 Hari)</option>
           </select>
         </div>
 
         <!-- Status Select -->
-        <div style="flex: 1 1 190px; min-width: 170px; max-width: 220px;">
+        <div style="flex: 1 1 180px; min-width: 160px; max-width: 210px;">
           <select class="redalert-filter-select" id="redalert-filter-status" style="width: 100%; cursor: pointer;" onchange="filterRedAlertData()">
             <option value="all" ${window._redAlertStatusFilter === 'all' || !window._redAlertStatusFilter ? 'selected' : ''}>Semua Status Call</option>
             <option value="belum_call" ${window._redAlertStatusFilter === 'belum_call' ? 'selected' : ''}>Belum Di-Call Hari Ini</option>
@@ -3105,31 +3118,28 @@ function renderRedAlertTab(container, res) {
           </select>
         </div>
 
-        <!-- Quick Filter Button -->
-        <button onclick="setRedAlertFilterToday()" style="height: 38px; padding: 0 16px; border-radius: 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; ${window._redAlertDateFilter === 'today' ? 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; border: none; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);' : 'background: #fff; color: #475569; border: 1px solid #cbd5e1;'}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          Hari Ini
-        </button>
+        <!-- Quick Filter Pills -->
+        <div class="filter-bar" style="margin-bottom: 0;">
+          <button class="filter-pill ${window._redAlertDateFilter === 'all' || !window._redAlertDateFilter ? 'active' : ''}" onclick="setRedAlertPeriodFilter('all')">Semua</button>
+          <button class="filter-pill ${window._redAlertDateFilter === 'today' ? 'active' : ''}" onclick="setRedAlertPeriodFilter('today')">Hari Ini</button>
+          <button class="filter-pill ${window._redAlertDateFilter === 'week' ? 'active' : ''}" onclick="setRedAlertPeriodFilter('week')">Minggu Ini</button>
+          <button class="filter-pill ${window._redAlertDateFilter === '2weeks' ? 'active' : ''}" onclick="setRedAlertPeriodFilter('2weeks')">2 Minggu</button>
+        </div>
       </div>
 
       <!-- Vertical Divider -->
       <div style="width: 1px; height: 26px; background: #e2e8f0; margin: 0 2px;"></div>
 
       <!-- Right Search Group (Proportional Flex) -->
-      <div style="display: flex; align-items: center; gap: 8px; flex: 1 1 260px; max-width: 340px;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1 1 240px; max-width: 320px;">
         <div style="position: relative; display: flex; align-items: center; flex: 1;">
           <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="position: absolute; left: 12px; z-index: 2; pointer-events: none;">
             <circle cx="11" cy="11" r="8"/>
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input type="text" class="redalert-filter-input" id="redalert-search-input" placeholder="Cari nama, rekening, AO..." style="width: 100%;" value="${window._redAlertQuery || ''}" onkeypress="if(event.key==='Enter') filterRedAlertData()"/>
+          <input type="text" class="redalert-filter-input" id="redalert-search-input" placeholder="Cari nama, rekening, AO..." style="width: 100%;" value="${escapeHtml(window._redAlertQuery || '')}" onkeypress="if(event.key==='Enter') filterRedAlertData()"/>
         </div>
-        <button onclick="filterRedAlertData()" style="height: 38px; padding: 0 20px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; border: none; border-radius: 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); transition: all 0.2s ease;">
+        <button onclick="filterRedAlertData()" style="height: 38px; padding: 0 18px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; border: none; border-radius: 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); transition: all 0.2s ease;">
           Cari
         </button>
       </div>
@@ -3141,7 +3151,7 @@ function renderRedAlertTab(container, res) {
     <div style="background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
       <div style="margin-bottom:16px;">
         <div style="font-size:15px; font-weight:800; color:#0F172A;">Daftar Nasabah Red Alert (KOL 1 ➔ KOL 2)</div>
-        <div style="font-size:12px; color:#64748b;">Menampilkan ${pageList.length} dari ${totalItems} nasabah berpotensi bermasalah${window._redAlertDateFilter === 'today' ? ' (Filter: Hari Ini)' : ''}.</div>
+        <div style="font-size:12px; color:#64748b;">Menampilkan ${pageList.length} dari ${totalItems} nasabah berpotensi bermasalah${window._redAlertDateFilter === 'today' ? ' (Filter: Hari Ini)' : window._redAlertDateFilter === 'week' ? ' (Filter: Minggu Ini / ≤ 7 Hari)' : window._redAlertDateFilter === '2weeks' ? ' (Filter: 2 Minggu Ini / ≤ 14 Hari)' : ''}.</div>
       </div>
 
       <div style="overflow-x:auto;">
@@ -3233,7 +3243,7 @@ async function filterRedAlertData() {
   const statusEl = document.getElementById('redalert-filter-status');
   const searchEl = document.getElementById('redalert-search-input');
 
-  window._redAlertDateFilter = dateEl ? dateEl.value : 'all';
+  window._redAlertDateFilter = dateEl ? dateEl.value : (window._redAlertDateFilter || 'all');
   window._redAlertStatusFilter = statusEl ? statusEl.value : 'all';
   window._redAlertQuery = searchEl ? searchEl.value : '';
 
@@ -3242,7 +3252,7 @@ async function filterRedAlertData() {
   container.innerHTML = `<div class="empty-st"><p>Memuat data Red Alert...</p></div>`;
 
   try {
-    let url = `/deskcall/redalert?q=${encodeURIComponent(window._redAlertQuery)}`;
+    let url = `/deskcall/redalert?q=${encodeURIComponent(window._redAlertQuery)}&periode=${encodeURIComponent(window._redAlertDateFilter || 'all')}`;
     if (window._redAlertDateFilter === 'today') {
       url += '&hariIni=true';
     }
@@ -3257,12 +3267,19 @@ async function filterRedAlertData() {
   }
 }
 
-function setRedAlertFilterToday() {
-  window._redAlertDateFilter = window._redAlertDateFilter === 'today' ? 'all' : 'today';
+function setRedAlertPeriodFilter(period) {
+  window._redAlertDateFilter = period;
+  const dateEl = document.getElementById('redalert-filter-date');
+  if (dateEl) dateEl.value = period;
   filterRedAlertData();
 }
 
+function setRedAlertFilterToday() {
+  setRedAlertPeriodFilter(window._redAlertDateFilter === 'today' ? 'all' : 'today');
+}
+
 window.filterRedAlertData = filterRedAlertData;
+window.setRedAlertPeriodFilter = setRedAlertPeriodFilter;
 window.setRedAlertFilterToday = setRedAlertFilterToday;
 window.searchRedAlertTable = filterRedAlertData;
 
@@ -3438,7 +3455,7 @@ function renderDeskCallTab(res) {
         </div>
         <div class="stat-card dang">
           <div class="stat-label">Nominal Janji Bayar</div>
-          <div class="stat-value mono font-bold">${formatRupiah(totalNominal)}</div>
+          <div class="stat-value font-bold">${formatRupiah(totalNominal)}</div>
           <div class="stat-sub">Potensi Pemulihan</div>
         </div>
       </div>
@@ -3829,7 +3846,7 @@ function renderDeskCallTab(res) {
         </div>
         <div class="stat-card dang">
           <div class="stat-label">Total Nominal Janji</div>
-          <div class="stat-value mono font-bold">${formatRupiah(stats.totalNominalJanji || 0)}</div>
+          <div class="stat-value font-bold">${formatRupiah(stats.totalNominalJanji || 0)}</div>
           <div class="stat-sub">Janji Pembayaran</div>
         </div>
       </div>
@@ -4582,7 +4599,7 @@ function exportDeskCallPDF() {
           </div>
           <div class="stat-card">
             <div class="stat-label">Total Nominal Janji</div>
-            <div class="stat-value mono text-green">${formatRupiah(stats.totalNominalJanji || 0)}</div>
+            <div class="stat-value text-green">${formatRupiah(stats.totalNominalJanji || 0)}</div>
             <div class="stat-sub">Janji Pembayaran</div>
           </div>
         </div>
@@ -8687,7 +8704,7 @@ function renderStressTestContent(data) {
       <!-- LEFT: CONTROLS & SLIDERS -->
       <div class="sim-control-box">
         <h4 style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Parameter Skenario Simulasi
         </h4>
 
@@ -9193,7 +9210,7 @@ async function loadUsersView() {
                   <td>${u.email}</td>
                   <td>
                     <div style="font-weight:700;font-size:12px;color:var(--text);">
-                      ${u.posisi === 'admin' ? 'Administrator Utama' : (u.posisi === 'ao' ? 'Account Officer' : (u.posisi === 'kabid_ao' ? 'Kabid AO' : (u.posisi === 'staff_p3' ? 'Staff P3' : (u.posisi === 'kabid_p3' ? 'Kabid P3' : (u.posisi === 'desk_call' ? 'Desk Call' : 'Staff Legal')))))}
+                      ${u.posisi === 'admin' ? 'Administrator Utama' : (u.posisi === 'ao' ? 'Account Officer' : (u.posisi === 'kabid_ao' ? 'Kabid AO' : (u.posisi === 'staff_p3' ? 'Staff P3' : (u.posisi === 'kabid_p3' ? 'Kabid P3' : (u.posisi === 'desk_call' ? 'Desk Call' : (u.posisi === 'skai' ? 'SKAI & Kepatuhan' : 'Staff Legal'))))))}
                     </div>
                     ${u.aoNameRef ? `<div style="font-size:10.5px;color:var(--brand);font-weight:600;">Ref CBS: ${escapeHtml(u.aoNameRef)}</div>` : ''}
                   </td>
@@ -9811,16 +9828,38 @@ async function uploadCbsCsv(file) {
     if (preview) {
       preview.style.display = 'block';
       preview.innerHTML = `
-        <div style="background:var(--bg);padding:16px;border-radius:10px;border:1px solid var(--border);">
-          <h4>Hasil Parsing Staging</h4>
-          <p class="text-muted" style="font-size:11px;margin-top:2px;">Tanggal Snapshot: <strong>${formatDate(res.tanggalSnapshot)}</strong></p>
-          <div class="m-card-grid mt-3">
-            <div><div class="m-field-label">Total Baris</div><div class="m-field-value mono">${res.totalRowsParsed}</div></div>
-            <div><div class="m-field-label">Update Debitur</div><div class="m-field-value mono text-blue">${res.totalUpdated}</div></div>
-            <div><div class="m-field-label">Debitur Baru</div><div class="m-field-value mono text-green">${res.totalNewDetected}</div></div>
-            <div><div class="m-field-label">Missing</div><div class="m-field-value mono text-danger">${res.totalMissingDetected}</div></div>
+        <div style="background:var(--bg-card);padding:22px;border-radius:18px;border:1px solid var(--border);box-shadow:var(--sh-md);margin-top:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h4 style="margin:0;font-size:15px;font-weight:800;color:var(--text);">Hasil Parsing Staging CBS</h4>
+              <p style="font-size:12px;color:var(--text-3);margin:3px 0 0;">Tanggal Snapshot: <strong style="color:var(--brand);">${formatDate(res.tanggalSnapshot)}</strong></p>
+            </div>
+            <span class="badge badge-teal" style="font-size:11.5px;padding:5px 12px;font-weight:700;letter-spacing:0.3px;">Staging Siap Diterapkan</span>
           </div>
-          <button class="btn btn-primary btn-block mt-4" onclick="commitCbsImport('${res.batchId}')">Terapkan Import (Atomic Upsert)</button>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin-bottom:20px;">
+            <div style="background:var(--bg-hover);padding:14px;border-radius:14px;border:1px solid var(--border);text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Total Baris</div>
+              <div class="mono" style="font-size:19px;font-weight:800;color:var(--text);">${(res.totalRowsParsed || 0).toLocaleString('id-ID')}</div>
+            </div>
+            <div style="background:rgba(15,118,110,0.06);padding:14px;border-radius:14px;border:1px solid rgba(15,118,110,0.2);text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Lancar &amp; DPK</div>
+              <div class="mono" style="font-size:19px;font-weight:800;color:var(--brand);">${(res.totalUpdated || 0).toLocaleString('id-ID')}</div>
+            </div>
+            <div style="background:rgba(16,185,129,0.06);padding:14px;border-radius:14px;border:1px solid rgba(16,185,129,0.2);text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:#10B981;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Debitur Baru</div>
+              <div class="mono" style="font-size:19px;font-weight:800;color:#10B981;">${(res.totalNewDetected || 0).toLocaleString('id-ID')}</div>
+            </div>
+            <div style="background:rgba(239,68,68,0.06);padding:14px;border-radius:14px;border:1px solid rgba(239,68,68,0.2);text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">NPF / Missing</div>
+              <div class="mono" style="font-size:19px;font-weight:800;color:#EF4444;">${(res.totalMissingDetected || 0).toLocaleString('id-ID')}</div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block" onclick="commitCbsImport('${res.batchId}')" style="padding:13px;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;box-shadow:0 4px 14px rgba(15,118,110,0.3);letter-spacing:0.2px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Terapkan Import (Atomic Sync)
+          </button>
         </div>
       `;
     }
@@ -9836,31 +9875,49 @@ async function commitCbsImport(batchId) {
     modal = document.createElement('div');
     modal.id = 'modal-cbs-commit-progress';
     modal.className = 'modal-overlay';
-    modal.style.zIndex = '99999';
-    modal.innerHTML = `
-      <div class="modal" style="max-width:480px;padding:26px;border-radius:18px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
-        <div style="width:48px;height:48px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </div>
-        <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;">
-          Sinkronisasi Database CBS
-        </div>
-        <p id="cbs-progress-status" style="font-size:12.5px;color:var(--text-3);margin-bottom:18px;">
-          Mempersiapkan sinkronisasi data...
-        </p>
-
-        <div style="background:var(--border);border-radius:10px;height:16px;overflow:hidden;position:relative;margin-bottom:12px;">
-          <div id="cbs-progress-bar" style="background:linear-gradient(90deg, #0f766e, #10b981);height:100%;width:0%;transition:width 0.25s ease-out;border-radius:10px;"></div>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;">
-          <span id="cbs-progress-counts" style="color:var(--text-2);">0 / 0 Debitur</span>
-          <span id="cbs-progress-pct" style="color:var(--brand);font-size:15px;font-weight:800;">0%</span>
-        </div>
-      </div>
-    `;
     document.body.appendChild(modal);
   }
+  modal.style.zIndex = '99999';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:480px;padding:32px 28px;border-radius:24px;background:var(--bg-card);border:1px solid var(--border);box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);text-align:center;">
+      <div style="width:60px;height:60px;border-radius:20px;background:linear-gradient(135deg, rgba(15,118,110,0.15) 0%, rgba(16,185,129,0.12) 100%);color:var(--brand);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;border:1px solid rgba(15,118,110,0.25);box-shadow:0 6px 16px rgba(15,118,110,0.12);">
+        <svg class="cbs-spin-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+      </div>
+      
+      <div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:-0.3px;margin-bottom:6px;">
+        Sinkronisasi Database CBS
+      </div>
+      
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:22px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--brand);display:inline-block;animation:pulseDot 1.5s infinite;"></span>
+        <p id="cbs-progress-status" style="font-size:13px;font-weight:600;color:var(--text-2);margin:0;">
+          Mempersiapkan sinkronisasi data...
+        </p>
+      </div>
+
+      <div style="background:var(--bg-hover);border:1px solid var(--border);border-radius:9999px;height:16px;overflow:hidden;position:relative;margin-bottom:14px;padding:2px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.06);">
+        <div id="cbs-progress-bar" style="background:linear-gradient(90deg, #0F766E 0%, #10B981 100%);height:100%;width:0%;transition:width 0.3s cubic-bezier(0.4, 0, 0.2, 1);border-radius:9999px;box-shadow:0 1px 4px rgba(16,185,129,0.35);"></div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="background:var(--bg-hover);border:1px solid var(--border);border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--text);">
+          <span id="cbs-progress-counts" class="mono">0 / 0 Debitur</span>
+        </div>
+        <div style="font-size:18px;font-weight:800;color:var(--brand);letter-spacing:-0.5px;">
+          <span id="cbs-progress-pct" class="mono">0%</span>
+        </div>
+      </div>
+
+      <div style="background:rgba(15,118,110,0.05);border:1px solid rgba(15,118,110,0.16);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;text-align:left;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span style="font-size:12px;color:var(--text-2);line-height:1.45;">Proses update database sedang berlangsung. Mohon jangan menutup tab atau merefresh browser.</span>
+      </div>
+    </div>
+  `;
 
   const statusEl = document.getElementById('cbs-progress-status');
   const barEl = document.getElementById('cbs-progress-bar');
@@ -9992,7 +10049,7 @@ async function loadAboutView() {
       <!-- CARD 2: MATRIKS HAK AKSES DAN PERAN USER -->
       <div class="card" style="padding:28px;border-radius:22px;background:var(--card-bg);border:1px solid var(--border);box-shadow:0 6px 25px -4px rgba(15,23,42,0.04);">
         <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-          <div style="width:34px;height:34px;border-radius:10px;background:#e0e7ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="width:34px;height:34px;border-radius:10px;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           Klasifikasi Peran Pengguna (User Role Matrix) &amp; Cakupan Fokus
@@ -10003,8 +10060,8 @@ async function loadAboutView() {
           
           <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s ease;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span class="badge" style="background:#dbeafe;color:#1e40af;font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Account Officer (AO)</span>
-              <span style="font-size:11px;font-weight:700;color:#3b82f6;">KOL 1, 2, 3</span>
+              <span class="badge" style="background:var(--brand-light);color:var(--brand);font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Account Officer (AO)</span>
+              <span style="font-size:11px;font-weight:700;color:var(--brand);">KOL 1, 2, 3</span>
             </div>
             <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
               Berfokus pada pemantauan dini nasabah binaan sendiri pada <strong>KOL 1 (Lancar)</strong>, <strong>KOL 2 (DPK)</strong>, dan <strong>KOL 3 (Kurang Lancar)</strong>. Bertanggung jawab memberikan edukasi dan pendampingan kelancaran angsuran sebelum masuk kategori NPF berat.
@@ -10013,8 +10070,8 @@ async function loadAboutView() {
 
           <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s ease;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Penagihan Lapangan (P3)</span>
-              <span style="font-size:11px;font-weight:700;color:#ef4444;">KOL 3, 4, 5</span>
+              <span class="badge" style="background:var(--brand-light);color:var(--brand);font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Penagihan Lapangan (P3)</span>
+              <span style="font-size:11px;font-weight:700;color:var(--brand);">KOL 3, 4, 5</span>
             </div>
             <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
               Berfokus pada eksekusi penagihan pembiayaan bermasalah <strong>KOL 3 (Kurang Lancar)</strong>, <strong>KOL 4 (Diragukan)</strong>, dan <strong>KOL 5 (Macet)</strong>. Mengelola jadwal kunjungan fisik lapangan, validasi foto geotag lokasi, dan berita acara penagihan.
@@ -10023,8 +10080,8 @@ async function loadAboutView() {
 
           <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s ease;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span class="badge" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Petugas Desk Call</span>
-              <span style="font-size:11px;font-weight:700;color:#f59e0b;">Telepon &amp; WA</span>
+              <span class="badge" style="background:var(--brand-light);color:var(--brand);font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Petugas Desk Call</span>
+              <span style="font-size:11px;font-weight:700;color:var(--brand);">Telepon &amp; WA</span>
             </div>
             <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
               Melakukan komunikasi penagihan jarak jauh melalui Telepon dan WhatsApp resmi, mencatat komitmen janji bayar nasabah (PTP), mengelola pengingat otomatis berjenjang, serta mengevaluasi jam panggilan produktif (*Golden Hour*).
@@ -10033,8 +10090,8 @@ async function loadAboutView() {
 
           <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s ease;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span class="badge" style="background:#f3e8ff;color:#6b21a8;font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Legal, Kabid &amp; Admin</span>
-              <span style="font-size:11px;font-weight:700;color:#8b5cf6;">Tata Kelola &amp; Audit</span>
+              <span class="badge" style="background:var(--brand-light);color:var(--brand);font-weight:800;font-size:11.5px;padding:4px 12px;border-radius:20px;">Legal, Kabid &amp; Admin</span>
+              <span style="font-size:11px;font-weight:700;color:var(--brand);">Tata Kelola &amp; Audit</span>
             </div>
             <div style="font-size:13px;color:var(--text-2);line-height:1.6;">
               Mengaudit 14 checklist kelengkapan berkas akad dan agunan, mengelola aset jaminan lelang (AYDA), otorisasi manajemen akun pengguna, sinkronisasi import CBS, serta penerbitan surat peringatan (SP1, SP2, Somasi).
@@ -11877,107 +11934,99 @@ function renderHistorisUI(container, summary, nasabah) {
   const pageList = list.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   let html = `
-    <!-- TOP INFORMATIONAL BANNER CARD -->
-    <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px 24px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);">
-      <div style="display: flex; align-items: center; gap: 14px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-        </div>
+    <!-- HEADER -->
+    <div class="page-hd">
+      <div class="page-hd-row">
         <div>
-          <div style="font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            Analisis Historis Debitur Tidak Bayar 
-            <span style="font-size: 11.5px; font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 3px 10px; border-radius: 20px; border: 1px solid #99f6e4;">
-              Portofolio AO / P3
-            </span>
+          <div class="page-title" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Historis Tunggakan (1–6 Bulan)
+            <span class="badge badge-teal" style="font-size: 12px; padding: 3px 10px;">Portofolio AO / P3</span>
           </div>
-          <div style="font-size: 12.5px; color: #64748b; margin-top: 2px;">Monitoring nasabah menunggak secara agregat per AO/P3 dan pola historis 1-6 bulan ke belakang.</div>
+          <div class="page-sub">Analisis multi-bulan nasabah yang tidak melakukan pembayaran (unpaid), agregat per AO/P3, kolektibilitas, dan tren baki debet.</div>
         </div>
-      </div>
 
-      <!-- Time Range Selector Pills -->
-      <div style="display: flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 4px; border-radius: 14px; border: 1px solid #e2e8f0;">
-        <button class="btn btn-sm" style="border-radius: 10px; font-weight: 700; font-size: 12px; height: 32px; padding: 0 14px; border: none; transition: all 0.2s ease; ${months === 1 ? 'background:#0f766e; color:#fff; box-shadow:0 2px 6px rgba(15,118,110,0.3);' : 'background:transparent; color:#64748b;'}" onclick="setHistorisMonths(1)">1 Bulan</button>
-        <button class="btn btn-sm" style="border-radius: 10px; font-weight: 700; font-size: 12px; height: 32px; padding: 0 14px; border: none; transition: all 0.2s ease; ${months === 3 ? 'background:#0f766e; color:#fff; box-shadow:0 2px 6px rgba(15,118,110,0.3);' : 'background:transparent; color:#64748b;'}" onclick="setHistorisMonths(3)">3 Bulan</button>
-        <button class="btn btn-sm" style="border-radius: 10px; font-weight: 700; font-size: 12px; height: 32px; padding: 0 14px; border: none; transition: all 0.2s ease; ${months === 6 ? 'background:#0f766e; color:#fff; box-shadow:0 2px 6px rgba(15,118,110,0.3);' : 'background:transparent; color:#64748b;'}" onclick="setHistorisMonths(6)">6 Bulan Kebelakang</button>
+        <!-- Time Range Selector Filter Pills -->
+        <div class="filter-bar" style="margin-bottom: 0;">
+          <button class="filter-pill ${months === 1 ? 'active' : ''}" onclick="setHistorisMonths(1)">1 Bulan</button>
+          <button class="filter-pill ${months === 3 ? 'active' : ''}" onclick="setHistorisMonths(3)">3 Bulan</button>
+          <button class="filter-pill ${months === 6 ? 'active' : ''}" onclick="setHistorisMonths(6)">6 Bulan</button>
+        </div>
       </div>
     </div>
 
-    <!-- 4 METRIC CARDS -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <!-- 4 UNIFIED STAT CARDS -->
+    <div class="stats-grid">
       
-      <!-- Card 1 -->
-      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04); position: relative; overflow: hidden;">
-        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #ef4444;"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">BAKI DEBET UNPAID (${months} BLN)</span>
-          <div style="width: 28px; height: 28px; border-radius: 8px; background: #fef2f2; color: #dc2626; display: flex; align-items: center; justify-content: center;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
+      <!-- Card 1: Baki Debet Unpaid -->
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <span class="stat-label">Baki Debet Unpaid (${months} Bln)</span>
+          <span class="stat-pill stat-pill-red">${months} Bulan</span>
         </div>
-        <div style="font-size: 23px; font-weight: 800; color: #dc2626; margin: 4px 0;" class="mono">${formatRupiah(stats.totalBakiDebet || summary.totalBakiDebetUnpaid || 0)}</div>
-        <div style="font-size: 12px; font-weight: 600; color: #64748b;">${stats.totalNoa || summary.totalNoaUnpaid || 0} Nasabah Menunggak</div>
+        <div class="stat-value" style="color: var(--danger); font-size: 24px; font-weight: 800;">
+          ${formatRupiah(stats.totalBakiDebet || summary.totalBakiDebetUnpaid || 0)}
+        </div>
+        <div class="stat-sub">${(stats.totalNoa || summary.totalNoaUnpaid || 0).toLocaleString('id-ID')} Nasabah Menunggak</div>
       </div>
 
-      <!-- Card 2 -->
-      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04); position: relative; overflow: hidden;">
-        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #0f766e;"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL NOA UNPAID</span>
-          <div style="width: 28px; height: 28px; border-radius: 8px; background: #ccfbf1; color: #0f766e; display: flex; align-items: center; justify-content: center;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
+      <!-- Card 2: Total NOA Unpaid -->
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <span class="stat-label">Total NOA Unpaid</span>
+          <span class="stat-pill stat-pill-teal">Nasabah</span>
         </div>
-        <div style="font-size: 23px; font-weight: 800; color: #0f766e; margin: 4px 0;" class="mono">${stats.totalNoa || summary.totalNoaUnpaid || 0} <span style="font-size: 14px; font-weight: 600; color: #64748b;">Nasabah</span></div>
-        <div style="font-size: 12px; font-weight: 600; color: #64748b;">Aktif Dalam Portofolio</div>
+        <div class="stat-value" style="color: var(--brand); font-size: 26px; font-weight: 800;">
+          ${(stats.totalNoa || summary.totalNoaUnpaid || 0).toLocaleString('id-ID')} <span style="font-size: 14px; font-weight: 600; color: var(--text-3);">Nasabah</span>
+        </div>
+        <div class="stat-sub">Aktif Dalam Portofolio</div>
       </div>
 
-      <!-- Card 3 -->
-      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04); position: relative; overflow: hidden;">
-        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #f59e0b;"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">TUNGGAKAN BERULANG</span>
-          <div style="width: 28px; height: 28px; border-radius: 8px; background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-          </div>
+      <!-- Card 3: Tunggakan Berulang -->
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <span class="stat-label">Tunggakan Berulang</span>
+          <span class="stat-pill stat-pill-yellow">${stats.repeatUnpaidPct || summary.freqUnpaidPercent || 0}%</span>
         </div>
-        <div style="font-size: 23px; font-weight: 800; color: #d97706; margin: 4px 0;" class="mono">${stats.repeatUnpaidCount || summary.freqUnpaidCount || 0} <span style="font-size: 14px; font-weight: 600; color: #64748b;">(${stats.repeatUnpaidPct || summary.freqUnpaidPercent || 0}%)</span></div>
-        <div style="font-size: 12px; font-weight: 600; color: #64748b;">&gt;1 Bulan Tidak Bayar</div>
+        <div class="stat-value" style="color: var(--warning); font-size: 26px; font-weight: 800;">
+          ${(stats.repeatUnpaidCount || summary.freqUnpaidCount || 0).toLocaleString('id-ID')} <span style="font-size: 14px; font-weight: 600; color: var(--text-3);">(${stats.repeatUnpaidPct || summary.freqUnpaidPercent || 0}%)</span>
+        </div>
+        <div class="stat-sub">&gt;1 Bulan Tidak Bayar</div>
       </div>
 
-      <!-- Card 4 -->
-      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04); position: relative; overflow: hidden;">
-        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #6366f1;"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">AO / P3 TERBESAR</span>
-          <div style="width: 28px; height: 28px; border-radius: 8px; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
+      <!-- Card 4: AO / P3 Terbesar -->
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <span class="stat-label">AO / P3 Terbesar</span>
+          <span class="stat-pill stat-pill-teal">Puncak</span>
         </div>
-        <div style="font-size: 17px; font-weight: 800; color: #1e293b; margin: 6px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${officerMatrix.length === 1 ? officerMatrix[0].ao : (stats.topAoName || summary.topPetugasName || '-')}</div>
-        <div style="font-size: 12px; font-weight: 600; color: #64748b;">Puncak Tunggakan Terbanyak</div>
+        <div class="stat-value" style="font-size: 20px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(officerMatrix.length === 1 ? officerMatrix[0].ao : (stats.topAoName || summary.topPetugasName || '-'))}">
+          ${escapeHtml(officerMatrix.length === 1 ? officerMatrix[0].ao : (stats.topAoName || summary.topPetugasName || '-'))}
+        </div>
+        <div class="stat-sub">Puncak Tunggakan Terbanyak</div>
       </div>
 
     </div>
 
     <!-- MIDDLE 2-COLUMN GRID -->
-    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-bottom: 24px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; margin-bottom: 24px;">
       
       <!-- Tren Chart Column -->
-      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 32px; height: 32px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: var(--brand-light); color: var(--brand); display: flex; align-items: center; justify-content: center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             </div>
             <div>
-              <div style="font-size: 14.5px; font-weight: 800; color: #0f172a;">Tren Baki Debet Menunggak (${months} Bulan)</div>
-              <div style="font-size: 12px; color: #64748b;">Pergerakan agregat baki debet tidak bayar dari bulan ke bulan.</div>
+              <div style="font-size: 15px; font-weight: 800; color: var(--text);">Tren Baki Debet Menunggak (${months} Bulan)</div>
+              <div style="font-size: 12px; color: var(--text-3);">Pergerakan agregat baki debet tidak bayar dari bulan ke bulan.</div>
             </div>
           </div>
-          <span style="font-size: 11px; font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 4px 10px; border-radius: 20px; border: 1px solid #99f6e4;">Historis Multi-Bulan</span>
+          <span class="badge badge-teal">Historis Multi-Bulan</span>
         </div>
         <div style="height: 240px; position: relative;">
           <canvas id="historis-trend-chart"></canvas>
@@ -11985,36 +12034,36 @@ function renderHistorisUI(container, summary, nasabah) {
       </div>
 
       <!-- Petugas Matrix Column -->
-      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 32px; height: 32px; border-radius: 10px; background: #f3e8ff; color: #9333ea; display: flex; align-items: center; justify-content: center;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: var(--brand-light); color: var(--brand); display: flex; align-items: center; justify-content: center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
             <div>
-              <div style="font-size: 14.5px; font-weight: 800; color: #0f172a;">Matriks Klasifikasi Per Petugas</div>
-              <div style="font-size: 12px; color: #64748b;">Penyebaran total baki debet &amp; NOA menunggak per AO / P3.</div>
+              <div style="font-size: 15px; font-weight: 800; color: var(--text);">Matriks Klasifikasi Per Petugas</div>
+              <div style="font-size: 12px; color: var(--text-3);">Penyebaran total baki debet &amp; NOA menunggak per AO / P3.</div>
             </div>
           </div>
-          <span style="font-size: 11px; font-weight: 700; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 20px; border: 1px solid #e2e8f0;">${officerMatrix.length} Petugas</span>
+          <span class="badge badge-gray">${officerMatrix.length} Petugas</span>
         </div>
-        <div style="max-height: 240px; overflow-y: auto; border-radius: 12px; border: 1px solid #f1f5f9;">
+        <div style="max-height: 240px; overflow-y: auto; border-radius: 12px; border: 1px solid var(--border);">
           <table class="data-table" style="width: 100%;">
             <thead>
               <tr>
-                <th style="text-align: left; background: #f8fafc; font-size: 11.5px;">PETUGAS (AO/P3)</th>
-                <th style="text-align: right; background: #f8fafc; font-size: 11.5px;">TOTAL BAKI DEBET</th>
-                <th style="text-align: right; background: #f8fafc; font-size: 11.5px;">NOA</th>
+                <th style="text-align: left;">PETUGAS (AO/P3)</th>
+                <th style="text-align: right;">TOTAL BAKI DEBET</th>
+                <th style="text-align: right;">NOA</th>
               </tr>
             </thead>
             <tbody>
               ${officerMatrix.map(off => `
                 <tr>
-                  <td style="font-weight: 700; color: #0f172a; font-size: 12.5px;">${off.ao || off.name || '-'}</td>
-                  <td style="text-align: right; font-weight: 800; color: #dc2626; font-size: 12.5px;" class="mono">${formatRupiah(off.totalBaki || off.totalBakiDebet || 0)}</td>
-                  <td style="text-align: right; font-weight: 700; font-size: 12.5px;" class="mono">${off.totalNoa || off.noaCount || 0}</td>
+                  <td style="font-weight: 700; color: var(--text); font-size: 12.5px;">${escapeHtml(off.ao || off.name || '-')}</td>
+                  <td style="text-align: right; font-weight: 800; color: var(--danger); font-size: 12.5px;" class="mono">${formatRupiah(off.totalBaki || off.totalBakiDebet || 0)}</td>
+                  <td style="text-align: right; font-weight: 700; font-size: 12.5px;" class="mono">${(off.totalNoa || off.noaCount || 0).toLocaleString('id-ID')}</td>
                 </tr>
-              `).join('') || '<tr><td colspan="3" style="text-align:center; color:#94a3b8; padding:16px;">Tidak ada data petugas</td></tr>'}
+              `).join('') || '<tr><td colspan="3" style="text-align:center; color:var(--text-3); padding:16px;">Tidak ada data petugas</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -12023,16 +12072,22 @@ function renderHistorisUI(container, summary, nasabah) {
     </div>
 
     <!-- BOTTOM TABLE SECTION -->
-    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 18px;">
         <div>
-          <div style="font-size: 15px; font-weight: 800; color: #0f172a;">Daftar Nasabah Tidak Bayar (${months} Bulan)</div>
-          <div style="font-size: 12px; color: #64748b;">Menampilkan ${pageList.length} dari ${totalRows} data nasabah menunggak.</div>
+          <div style="font-size: 16px; font-weight: 800; color: var(--text);">Daftar Nasabah Tidak Bayar (${months} Bulan)</div>
+          <div style="font-size: 12.5px; color: var(--text-3);">Menampilkan ${pageList.length} dari ${totalRows.toLocaleString('id-ID')} data nasabah menunggak.</div>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <input type="text" class="redalert-filter-input" id="historis-search-input" value="${historisState.search}" placeholder="Cari nama nasabah, AO..." style="width: 240px;" onkeypress="if(event.key==='Enter') searchHistorisTable()"/>
-          <button class="btn btn-primary btn-sm" onclick="searchHistorisTable()" style="border-radius: 12px; font-weight: 700; padding: 0 16px; height: 38px;">Cari</button>
-          ${historisState.search ? `<button class="btn btn-outline btn-sm" onclick="historisState.search=''; historisState.page=1; loadHistorisView();" style="border-radius: 12px; font-weight: 700; height: 38px;">Reset</button>` : ''}
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; flex-shrink: 0;">
+          <div style="position: relative; width: 280px; max-width: 100%;">
+            <svg style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-3); pointer-events: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" class="form-input" id="historis-search-input" value="${escapeHtml(historisState.search)}" placeholder="Cari nama nasabah, AO..." style="width: 100%; height: 38px; padding: 6px 14px 6px 38px !important; font-size: 13.5px; border-radius: 9999px !important;" onkeypress="if(event.key==='Enter') searchHistorisTable()"/>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="searchHistorisTable()" style="height: 38px; padding: 0 16px; border-radius: 9999px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Cari
+          </button>
+          ${historisState.search ? `<button class="btn btn-ghost btn-sm" onclick="historisState.search=''; historisState.page=1; loadHistorisView();" style="height: 38px; padding: 0 14px; border-radius: 9999px; flex-shrink: 0; border: 1px solid var(--border);">Reset</button>` : ''}
         </div>
       </div>
 
@@ -12058,26 +12113,26 @@ function renderHistorisUI(container, summary, nasabah) {
               <tr onclick="viewDebiturDetail('${d.id}')" style="cursor:pointer;">
                 <td>${itemIndex}</td>
                 <td>
-                  <div style="font-weight: 800; color: #0f766e;" title="Klik detail nasabah">${d.nama}</div>
-                  <div class="mono" style="font-size: 11px; color: #64748b;">Rek: ${d.id}</div>
+                  <div style="font-weight: 800; color: var(--brand);" title="Klik detail nasabah">${escapeHtml(d.nama)}</div>
+                  <div class="mono" style="font-size: 11px; color: var(--text-3);">Rek: ${escapeHtml(d.id)}</div>
                 </td>
-                <td style="font-weight: 600; color: #334155;">${d.ao || '-'}</td>
+                <td style="font-weight: 600; color: var(--text-2);">${escapeHtml(d.ao || '-')}</td>
                 <td style="text-align: center;">
-                  <span class="badge ${d.kol === 'Lancar' ? 'badge-teal' : (d.kol === 'DPK' ? 'badge-yellow' : 'badge-red')}">${d.kol}</span>
+                  <span class="badge ${d.kol === 'Lancar' ? 'badge-teal' : (d.kol === 'DPK' ? 'badge-yellow' : 'badge-red')}">KOL ${escapeHtml(d.kol)}</span>
                 </td>
                 <td style="text-align: right; font-weight: 700;" class="mono">${formatRupiah(d.bakiDebet)}</td>
-                <td style="text-align: right; font-weight: 800; color: #dc2626;" class="mono">${formatRupiah(d.totalTunggakan)}</td>
+                <td style="text-align: right; font-weight: 800; color: var(--danger);" class="mono">${formatRupiah(d.totalTunggakan)}</td>
                 <td style="text-align: center;">
-                  <span class="badge badge-red" style="font-weight: 700; border-radius: 12px;">${d.unpaidMonthsFreq || d.monthsUnpaid || 1} Bulan</span>
+                  <span class="badge badge-red" style="font-weight: 700;">${d.unpaidMonthsFreq || d.monthsUnpaid || 1} Bulan</span>
                 </td>
                 <td style="text-align: center;">
-                  <span class="badge ${getEwsBadgeClass(d.kol)}">${d.kol}</span>
+                  <span class="badge ${getEwsBadgeClass(d.kol)}">${escapeHtml(d.kol)}</span>
                 </td>
                 <td style="text-align: center;" onclick="event.stopPropagation()">
-                  <button class="btn btn-outline btn-sm" style="font-size: 11px; padding: 4px 10px; border-radius: 10px; font-weight: 700;" onclick="event.stopPropagation(); viewDebiturDetail('${d.id}')">Detail</button>
+                  <button class="btn btn-outline btn-sm" style="font-size: 12px; padding: 4px 12px; font-weight: 700;" onclick="event.stopPropagation(); viewDebiturDetail('${d.id}')">Detail</button>
                 </td>
               </tr>
-            `;}).join('') || `<tr><td colspan="9" style="text-align:center; color:#64748b; padding:32px 16px;"><div style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:4px;">Tidak ada data nasabah ditemukan</div><div style="font-size:12.5px; color:#64748b; margin-bottom:14px;">${historisState.search ? `Hasil pencarian kata kunci "<strong style="color:#0f172a;">${historisState.search}</strong>" nihil.` : 'Belum ada data nasabah menunggak pada periode ini.'}</div>${historisState.search ? `<button onclick="historisState.search=''; historisState.page=1; loadHistorisView();" class="btn btn-primary btn-sm" style="border-radius:12px; font-weight:700; padding:6px 18px; background:linear-gradient(135deg, #0f766e 0%, #0d9488 100%); border:none;">Reset Pencarian</button>` : ''}</td></tr>`}
+            `;}).join('') || `<tr><td colspan="9" style="text-align:center; color:var(--text-3); padding:32px 16px;"><div style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px;">Tidak ada data nasabah ditemukan</div><div style="font-size:12.5px; color:var(--text-3); margin-bottom:14px;">${historisState.search ? `Hasil pencarian kata kunci "<strong>${escapeHtml(historisState.search)}</strong>" nihil.` : 'Belum ada data nasabah menunggak pada periode ini.'}</div>${historisState.search ? `<button onclick="historisState.search=''; historisState.page=1; loadHistorisView();" class="btn btn-primary btn-sm">Reset Pencarian</button>` : ''}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -12180,7 +12235,7 @@ async function loadAuditView() {
         <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
           <div class="stat-card-top">
             <span class="stat-label">Total Log Aktivitas</span>
-            <div class="stat-icon-wrap" style="width:36px;height:36px;border-radius:10px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;">
+            <div class="stat-icon-wrap" style="width:36px;height:36px;border-radius:10px;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <ellipse cx="12" cy="5" rx="9" ry="3"/>
                 <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
@@ -12194,26 +12249,26 @@ async function loadAuditView() {
         <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
           <div class="stat-card-top">
             <span class="stat-label">Aktivitas Hari Ini</span>
-            <div class="stat-icon-wrap" style="width:36px;height:36px;border-radius:10px;background:#dbeafe;color:#1e40af;display:flex;align-items:center;justify-content:center;">
+            <div class="stat-icon-wrap" style="width:36px;height:36px;border-radius:10px;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
               </svg>
             </div>
           </div>
-          <div class="stat-val" id="stat-audit-today" style="font-size:24px;font-weight:800;color:#0f766e;">-</div>
+          <div class="stat-val" id="stat-audit-today" style="font-size:24px;font-weight:800;color:var(--brand);">-</div>
           <div class="stat-sub" style="font-size:11px;color:var(--text-3);">Perubahan data per hari ini</div>
         </div>
         <div class="stat-card" style="padding:16px 18px;border-radius:16px;">
           <div class="stat-card-top">
             <span class="stat-label">Keamanan &amp; Integritas</span>
-            <div class="stat-icon-wrap" style="width:36px;height:36px;border-radius:10px;background:#fef3c7;color:#92400e;display:flex;align-items:center;justify-content:center;">
+            <div class="stat-icon-wrap" style="width:36px;height:36px;border-radius:10px;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <path d="m9 12 2 2 4-4"/>
               </svg>
             </div>
           </div>
-          <div class="stat-val" style="font-size:18px;font-weight:800;color:#0f172a;">Audit Diff Guard</div>
+          <div class="stat-val" style="font-size:18px;font-weight:800;color:var(--text);">Audit Diff Guard</div>
           <div class="stat-sub" style="font-size:11px;color:var(--text-3);">Dilengkapi IP &amp; Visual Before/After</div>
         </div>
       </div>
@@ -12625,79 +12680,237 @@ async function openAuditDiffModal(auditId) {
   }
 }
 
-// ── RECORD SPECIFIC AUDIT TIMELINE (e.g. For Debitur Detail) ──
+// ── RECORD SPECIFIC AUDIT TIMELINE (For Debitur & Record Diff) ──
+let currentRecordAuditData = null;
+let currentRecordAuditFilter = 'all';
+
 async function openRecordAuditModal(tableName, recordId) {
   const body = document.getElementById('auditdiff-body');
   const title = document.getElementById('auditdiff-title');
   const sub = document.getElementById('auditdiff-sub');
   if (!body) return;
 
-  if (title) title.innerHTML = `Riwayat Perubahan Record — ${escapeHtml(recordId)}`;
-  if (sub) sub.textContent = `Riwayat seluruh jejak audit untuk entitas ${tableName} (${recordId})`;
+  if (title) {
+    title.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="M9 12l2 2 4-4"/>
+      </svg>
+      Riwayat Perubahan & Pergeseran KOL — ${escapeHtml(recordId)}
+    `;
+  }
+  if (sub) sub.textContent = `Histori jejak mutasi kolektibilitas, restrukturisasi, pelunasan, dan perubahan record debitur`;
 
-  body.innerHTML = `<div style="padding:32px;text-align:center;color:var(--text-3);"><p>Mengambil riwayat perubahan record...</p></div>`;
+  body.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-3);"><p>Mengambil riwayat perubahan record...</p></div>`;
   openModal('modal-audit-diff');
 
   try {
     const res = await apiCall(`/audit/record/${tableName}/${recordId}`);
-    if (!res || !res.history || res.history.length === 0) {
-      body.innerHTML = `
-        <div style="padding:36px;text-align:center;">
-          <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px;">Belum Ada Riwayat Perubahan</div>
-          <div style="font-size:12px;color:var(--text-3);">Record ini belum pernah dimodifikasi atau dicatat dalam log audit.</div>
-        </div>
-      `;
-      return;
-    }
+    currentRecordAuditData = res;
+    currentRecordAuditFilter = 'all';
 
-    const timelineHtml = res.history.map(item => {
-      const dt = new Date(item.createdAt);
-      const dateStr = !isNaN(dt.getTime())
-        ? dt.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB'
-        : '-';
-
-      const actorName = item.user?.nama || item.user?.username || 'Sistem';
-
-      let diffRows = '';
-      if (item.diff && item.diff.length > 0) {
-        diffRows = item.diff.map(d => `
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:12.5px;gap:10px;flex-wrap:wrap;">
-            <div style="font-weight:700;color:var(--text);">${escapeHtml(d.label || d.field)}</div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <span style="color:#991b1b;text-decoration:line-through;background:#fee2e2;padding:1px 6px;border-radius:4px;">${formatAuditVal(d.field, d.oldValue)}</span>
-              <span style="font-weight:800;color:#065f46;background:#dcfce7;padding:1px 6px;border-radius:4px;">&rarr; ${formatAuditVal(d.field, d.newValue)}</span>
-            </div>
-          </div>
-        `).join('');
-      } else {
-        diffRows = `<div style="font-size:12px;color:var(--text-3);font-style:italic;">Aktivitas tercatat tanpa modifikasi field langsung</div>`;
-      }
-
-      return `
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:var(--sh-sm);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              ${getAuditActionBadge(item.action)}
-              <span style="font-size:12.5px;font-weight:800;color:var(--text);">${escapeHtml(actorName)}</span>
-              <span class="mono" style="font-size:11px;color:var(--text-3);">IP: ${escapeHtml(item.ipAddress || '127.0.0.1')}</span>
-            </div>
-            <div style="font-size:12px;font-weight:700;color:var(--text-2);">${dateStr}</div>
-          </div>
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-            ${diffRows}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    body.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        ${timelineHtml}
-      </div>
-    `;
+    renderRecordAuditTimeline();
   } catch (err) {
     body.innerHTML = `<div class="auth-error">Gagal memuat riwayat record: ${err.message}</div>`;
   }
+}
+
+function filterRecordAudit(category) {
+  currentRecordAuditFilter = category;
+  renderRecordAuditTimeline();
+}
+
+function renderRecordAuditTimeline() {
+  const body = document.getElementById('auditdiff-body');
+  if (!body || !currentRecordAuditData) return;
+
+  const { debitur, history = [], recordId, tableName } = currentRecordAuditData;
+
+  // Filter items based on active category
+  let filteredHistory = history;
+  if (currentRecordAuditFilter === 'kol') {
+    filteredHistory = history.filter(h => ['kol_shift', 'kol_degradation', 'kol_curing', 'kol_change'].includes(h.category));
+  } else if (currentRecordAuditFilter === 'restruk') {
+    filteredHistory = history.filter(h => h.category === 'restruk' || (h.diff && h.diff.some(d => d.field === 'restruk')));
+  } else if (currentRecordAuditFilter === 'lunas') {
+    filteredHistory = history.filter(h => h.category === 'lunas' || (h.diff && h.diff.some(d => d.field === 'statusDebitur' && d.newValue === 'Lunas')));
+  } else if (currentRecordAuditFilter === 'payment') {
+    filteredHistory = history.filter(h => h.category === 'payment' || (h.diff && h.diff.some(d => ['nominal', 'bakiDebet', 'tPokok', 'tMargin'].includes(d.field))));
+  } else if (currentRecordAuditFilter === 'collection') {
+    filteredHistory = history.filter(h => ['deskcall', 'p3', 'legal'].includes(h.category));
+  }
+
+  // Calculate counts for filters
+  const kolCount = history.filter(h => ['kol_shift', 'kol_degradation', 'kol_curing', 'kol_change'].includes(h.category)).length;
+  const restrukCount = history.filter(h => h.category === 'restruk' || (h.diff && h.diff.some(d => d.field === 'restruk'))).length;
+  const lunasCount = history.filter(h => h.category === 'lunas' || (h.diff && h.diff.some(d => d.field === 'statusDebitur' && d.newValue === 'Lunas'))).length;
+  const paymentCount = history.filter(h => h.category === 'payment' || (h.diff && h.diff.some(d => ['nominal', 'bakiDebet', 'tPokok', 'tMargin'].includes(d.field)))).length;
+  const collectionCount = history.filter(h => ['deskcall', 'p3', 'legal'].includes(h.category)).length;
+
+  // Debitur Header Info Card
+  let debiturHeaderHtml = '';
+  if (debitur) {
+    const isLunas = debitur.statusDebitur === 'Lunas';
+    debiturHeaderHtml = `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:16px 20px;margin-bottom:18px;box-shadow:var(--sh-sm);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
+            <span style="font-size:16px;font-weight:800;color:var(--text);">${escapeHtml(debitur.nama)}</span>
+            <span class="mono" style="font-size:12px;color:var(--text-3);background:var(--bg);padding:2px 8px;border-radius:6px;border:1px solid var(--border);">Rek: ${escapeHtml(debitur.id)}</span>
+            ${debitur.cif ? `<span class="mono" style="font-size:11.5px;color:var(--text-3);">CIF: ${escapeHtml(debitur.cif)}</span>` : ''}
+          </div>
+          <div style="font-size:12.5px;color:var(--text-2);display:flex;gap:12px;flex-wrap:wrap;">
+            <span>AO: <strong>${escapeHtml(debitur.ao || '-')}</strong></span>
+            <span>&bull;</span>
+            <span>Baki Debet: <strong class="mono" style="color:var(--brand);">${formatRupiah(debitur.bakiDebet)}</strong></span>
+            <span>&bull;</span>
+            <span>Plafon: <strong class="mono">${formatRupiah(debitur.plafon)}</strong></span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span class="badge ${getKolBadgeClass(debitur.kol)}" style="font-size:12px;padding:5px 12px;font-weight:800;">KOL ${escapeHtml(debitur.kol)}</span>
+          <span class="badge ${isLunas ? 'badge-teal' : 'badge-green'}" style="font-size:12px;padding:5px 12px;font-weight:800;">${escapeHtml(debitur.statusDebitur || 'Aktif')}</span>
+          ${debitur.restruk > 0 ? `<span class="badge badge-purple" style="font-size:12px;padding:5px 12px;font-weight:800;">Restruk ${debitur.restruk}x</span>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Filter Chips Toolbar
+  const filterToolbarHtml = `
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:14px;-webkit-overflow-scrolling:touch;flex-wrap:wrap;">
+      <button type="button" onclick="filterRecordAudit('all')" style="padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${currentRecordAuditFilter === 'all' ? 'var(--brand)' : 'var(--border)'};background:${currentRecordAuditFilter === 'all' ? 'var(--brand)' : 'var(--bg-card)'};color:${currentRecordAuditFilter === 'all' ? '#ffffff' : 'var(--text-2)'};transition:all 0.15s ease;">
+        Semua Perubahan (${history.length})
+      </button>
+      <button type="button" onclick="filterRecordAudit('kol')" style="padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${currentRecordAuditFilter === 'kol' ? '#d97706' : 'var(--border)'};background:${currentRecordAuditFilter === 'kol' ? '#d97706' : 'var(--bg-card)'};color:${currentRecordAuditFilter === 'kol' ? '#ffffff' : 'var(--text-2)'};transition:all 0.15s ease;">
+        Pergeseran KOL (${kolCount})
+      </button>
+      <button type="button" onclick="filterRecordAudit('restruk')" style="padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${currentRecordAuditFilter === 'restruk' ? '#7c3aed' : 'var(--border)'};background:${currentRecordAuditFilter === 'restruk' ? '#7c3aed' : 'var(--bg-card)'};color:${currentRecordAuditFilter === 'restruk' ? '#ffffff' : 'var(--text-2)'};transition:all 0.15s ease;">
+        Restrukturisasi (${restrukCount})
+      </button>
+      <button type="button" onclick="filterRecordAudit('lunas')" style="padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${currentRecordAuditFilter === 'lunas' ? '#059669' : 'var(--border)'};background:${currentRecordAuditFilter === 'lunas' ? '#059669' : 'var(--bg-card)'};color:${currentRecordAuditFilter === 'lunas' ? '#ffffff' : 'var(--text-2)'};transition:all 0.15s ease;">
+        Pelunasan (${lunasCount})
+      </button>
+      <button type="button" onclick="filterRecordAudit('payment')" style="padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${currentRecordAuditFilter === 'payment' ? '#0f766e' : 'var(--border)'};background:${currentRecordAuditFilter === 'payment' ? '#0f766e' : 'var(--bg-card)'};color:${currentRecordAuditFilter === 'payment' ? '#ffffff' : 'var(--text-2)'};transition:all 0.15s ease;">
+        Pembayaran (${paymentCount})
+      </button>
+      <button type="button" onclick="filterRecordAudit('collection')" style="padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${currentRecordAuditFilter === 'collection' ? '#2563eb' : 'var(--border)'};background:${currentRecordAuditFilter === 'collection' ? '#2563eb' : 'var(--bg-card)'};color:${currentRecordAuditFilter === 'collection' ? '#ffffff' : 'var(--text-2)'};transition:all 0.15s ease;">
+        Penagihan Lapangan / Call (${collectionCount})
+      </button>
+    </div>
+  `;
+
+  if (filteredHistory.length === 0) {
+    body.innerHTML = `
+      ${debiturHeaderHtml}
+      ${filterToolbarHtml}
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:36px;text-align:center;">
+        <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px;">Tidak Ada Catatan pada Kategori Ini</div>
+        <div style="font-size:12.5px;color:var(--text-3);">Tidak ditemukan riwayat mutasi sesuai filter yang dipilih. Silakan pilih tab "Semua Perubahan".</div>
+      </div>
+    `;
+    return;
+  }
+
+  const timelineCardsHtml = filteredHistory.map(item => {
+    const dt = new Date(item.createdAt);
+    const dateStr = !isNaN(dt.getTime())
+      ? dt.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB'
+      : '-';
+
+    let snapshotBadgeHtml = '';
+    if (item.snapshotDate) {
+      const snapDt = new Date(item.snapshotDate);
+      const snapStr = !isNaN(snapDt.getTime()) ? formatDate(item.snapshotDate) : '-';
+      snapshotBadgeHtml = `
+        <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(15,118,110,0.08);color:var(--brand);border:1px solid rgba(15,118,110,0.2);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Snapshot Cutoff CBS: ${snapStr}
+        </span>
+      `;
+    }
+
+    const actorName = item.user?.nama || item.user?.username || 'Sistem Otomatis CBS';
+
+    let diffRows = '';
+    if (item.diff && item.diff.length > 0) {
+      diffRows = item.diff.map(d => {
+        let isSpecialField = false;
+        let oldDisplay = formatAuditVal(d.field, d.oldValue);
+        let newDisplay = formatAuditVal(d.field, d.newValue);
+
+        if (d.field === 'kol') {
+          isSpecialField = true;
+          oldDisplay = `<span class="badge ${getKolBadgeClass(d.oldValue)}" style="font-size:11px;padding:2px 8px;">KOL ${escapeHtml(String(d.oldValue || '-'))}</span>`;
+          newDisplay = `<span class="badge ${getKolBadgeClass(d.newValue)}" style="font-size:11px;padding:2px 8px;">KOL ${escapeHtml(String(d.newValue || '-'))}</span>`;
+        } else if (d.field === 'statusDebitur') {
+          isSpecialField = true;
+          oldDisplay = `<span class="badge ${d.oldValue === 'Lunas' ? 'badge-teal' : 'badge-green'}" style="font-size:11px;padding:2px 8px;">${escapeHtml(String(d.oldValue || '-'))}</span>`;
+          newDisplay = `<span class="badge ${d.newValue === 'Lunas' ? 'badge-teal' : 'badge-green'}" style="font-size:11px;padding:2px 8px;">${escapeHtml(String(d.newValue || '-'))}</span>`;
+        } else if (d.field === 'restruk') {
+          isSpecialField = true;
+          oldDisplay = `<span class="badge badge-gray" style="font-size:11px;padding:2px 8px;">${escapeHtml(String(d.oldValue || 0))}x Restruk</span>`;
+          newDisplay = `<span class="badge badge-purple" style="font-size:11px;padding:2px 8px;">${escapeHtml(String(d.newValue || 0))}x Restruk</span>`;
+        }
+
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-radius:10px;margin-bottom:6px;gap:12px;flex-wrap:wrap;">
+            <div style="font-weight:700;font-size:12.5px;color:var(--text);display:flex;align-items:center;gap:6px;">
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--brand);display:inline-block;"></span>
+              ${escapeHtml(d.label || d.field)}
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;font-size:12.5px;">
+              ${isSpecialField ? oldDisplay : `<span style="color:#991b1b;text-decoration:line-through;background:#fee2e2;padding:2px 8px;border-radius:6px;font-weight:600;">${oldDisplay}</span>`}
+              <span style="color:var(--text-3);font-weight:800;">&rarr;</span>
+              ${isSpecialField ? newDisplay : `<span style="color:#065f46;background:#dcfce7;padding:2px 8px;border-radius:6px;font-weight:800;">${newDisplay}</span>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      diffRows = `
+        <div style="padding:10px 12px;background:var(--bg);border-radius:10px;font-size:12px;color:var(--text-3);font-style:italic;">
+          Sinkronisasi snapshot data CBS tercatat tanpa pergeseran nilai nominal/kolektibilitas langsung.
+        </div>
+      `;
+    }
+
+    return `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:var(--sh-sm);position:relative;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+              <span class="badge ${item.badgeClass || 'badge-gray'}" style="font-size:11.5px;padding:4px 10px;font-weight:800;letter-spacing:0.2px;">
+                ${escapeHtml(item.badgeLabel || item.action)}
+              </span>
+              ${snapshotBadgeHtml}
+            </div>
+            <div style="font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Dicatat oleh: <strong>${escapeHtml(actorName)}</strong>
+              <span class="mono" style="color:var(--text-3);font-size:11px;">(${escapeHtml(item.ipAddress || '127.0.0.1')})</span>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;">Waktu Entri</div>
+            <div style="font-size:12.5px;font-weight:800;color:var(--text);margin-top:2px;">${dateStr}</div>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding-top:12px;">
+          ${diffRows}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  body.innerHTML = `
+    ${debiturHeaderHtml}
+    ${filterToolbarHtml}
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      ${timelineCardsHtml}
+    </div>
+  `;
 }
 
 window.loadAuditView = loadAuditView;
@@ -12706,4 +12919,6 @@ window.triggerAuditSearch = triggerAuditSearch;
 window.resetAuditFilters = resetAuditFilters;
 window.openAuditDiffModal = openAuditDiffModal;
 window.openRecordAuditModal = openRecordAuditModal;
+window.filterRecordAudit = filterRecordAudit;
+window.renderRecordAuditTimeline = renderRecordAuditTimeline;
 

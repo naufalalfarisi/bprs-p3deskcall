@@ -12,19 +12,19 @@ export const RegisterSchema = z.object({
   nama: z.string().min(1, 'Nama lengkap wajib diisi'),
   email: z.string().email('Format email tidak valid'),
   tgl_lahir: z.string().min(1, 'Tanggal lahir wajib diisi'),
-  posisi: z.enum(['desk_call', 'ao', 'p3', 'legal', 'staff_ao', 'kabid_ao', 'staff_p3', 'kabid_p3', 'admin'], {
+  posisi: z.enum(['desk_call', 'ao', 'p3', 'legal', 'staff_ao', 'kabid_ao', 'staff_p3', 'kabid_p3', 'admin', 'skai'], {
     message: 'Posisi tidak valid'
   }),
   ao_name_ref: z.string().optional()
 });
 
 export const VerifyOtpSchema = z.object({
-  email: z.string().email('Format email tidak valid'),
+  email: z.string().min(1, 'Email atau username wajib diisi'),
   otpCode: z.string().length(6, 'Kode OTP harus 6 digit angka')
 });
 
 export const ResendOtpSchema = z.object({
-  email: z.string().email('Format email tidak valid')
+  email: z.string().min(1, 'Email atau username wajib diisi')
 });
 
 export const ForgotPasswordSchema = z.object({

@@ -127,15 +127,15 @@ export const authRegisterRateLimiter = rateLimiter({
 });
 
 /**
- * Rate Limiter for CBS & Payment Bulk Import Operations (15 requests per 1 minute)
+ * Rate Limiter for CBS & Payment Bulk Import Uploads (30 requests per 1 minute)
  */
 export const importRateLimiter = rateLimiter({
   windowMs: 60 * 1000,
-  max: 15,
-  message: 'Terlalu banyak permintaan impor data.',
+  max: 30,
+  message: 'Terlalu banyak permintaan unggah impor data. Silakan tunggu beberapa saat.',
   keyGenerator: (c) => {
     const user = c.get('user' as any) as any;
     const identifier = user ? user.id : getClientIp(c);
-    return `import_ops:${identifier}`;
+    return `import_upload:${identifier}`;
   }
 });

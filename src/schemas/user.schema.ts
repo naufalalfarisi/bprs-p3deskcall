@@ -11,7 +11,7 @@ export const CreateUserSchema = z.object({
 });
 
 export const ConfirmRoleSchema = z.object({
-  posisi: z.enum(['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao'], {
+  posisi: z.enum(['admin', 'kabid_p3', 'staff_p3', 'desk_call', 'legal', 'ao', 'kabid_ao', 'skai'], {
     message: 'Posisi / Role tidak valid'
   }),
   aoNameRef: z.string().optional().nullable()

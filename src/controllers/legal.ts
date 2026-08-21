@@ -18,7 +18,7 @@ import {
 export const legalRouter = new Hono();
 
 // Enforce auth & role restrictions
-legalRouter.use('*', authMiddleware, roleMiddleware(['admin', 'kabid_p3', 'legal', 'staff_p3', 'desk_call']));
+legalRouter.use('*', authMiddleware, roleMiddleware(['admin', 'kabid_p3', 'legal', 'staff_p3', 'desk_call', 'skai']));
 
 // GET /berkas - List legal berkas
 legalRouter.get('/berkas', async (c) => {

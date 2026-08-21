@@ -15,7 +15,7 @@ export { computeEwsStatus };
 export const ewsRouter = new Hono();
 
 // Enforce authentication & role restrictions
-ewsRouter.use('*', authMiddleware, roleMiddleware(['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3', 'desk_call']));
+ewsRouter.use('*', authMiddleware, roleMiddleware(['admin', 'ao', 'kabid_ao', 'staff_p3', 'kabid_p3', 'desk_call', 'skai']));
 
 // GET /summary - Portfolio EWS Stats Header
 ewsRouter.get('/summary', async (c) => {

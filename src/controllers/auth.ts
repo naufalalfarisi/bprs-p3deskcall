@@ -201,12 +201,24 @@ authRouter.post('/verify-otp', async (c) => {
       const firstError = parsed.error.issues[0]?.message || 'Data OTP tidak valid';
       return c.json({ error: firstError }, 400);
     }
-    const { email, otpCode } = parsed.data;
+    const { email: inputIdentifier, otpCode } = parsed.data;
     const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+
+    // Find user by email or username
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: inputIdentifier },
+          { username: inputIdentifier }
+        ]
+      }
+    });
+
+    const targetEmail = user ? user.email : inputIdentifier;
 
     const otpRecord = await prisma.emailOtp.findFirst({
       where: {
-        email,
+        email: targetEmail,
         consumed: false,
         expiresAt: { gt: new Date() }
       },
@@ -229,8 +241,6 @@ authRouter.post('/verify-otp', async (c) => {
       data: { consumed: true }
     });
 
-    // Find and update user
-    const user = await prisma.user.findFirst({ where: { email } });
     if (!user) {
       return c.json({ error: 'User tidak ditemukan' }, 404);
     }
@@ -309,12 +319,20 @@ authRouter.post('/resend-otp', async (c) => {
       const firstError = parsed.error.issues[0]?.message || 'Email tidak valid';
       return c.json({ error: firstError }, 400);
     }
-    const { email } = parsed.data;
+    const { email: inputIdentifier } = parsed.data;
 
-    const user = await prisma.user.findFirst({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: inputIdentifier },
+          { username: inputIdentifier }
+        ]
+      }
+    });
     if (!user) {
-      return c.json({ error: 'Email tidak terdaftar' }, 404);
+      return c.json({ error: 'Akun atau email tidak terdaftar' }, 404);
     }
+    const email = user.email;
 
     // Cooldown check: 60 seconds
     const lastOtp = await prisma.emailOtp.findFirst({

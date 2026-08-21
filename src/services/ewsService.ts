@@ -7,40 +7,62 @@ export function computeEwsStatus(tglJt: Date | null, frhPokok: number) {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth(); // 0-indexed
-  
-  let dueDay = 25;
+  const todayMidnight = new Date(currentYear, currentMonth, today.getDate()).getTime();
+
+  if (frhPokok && frhPokok > 0) {
+    const dpd = frhPokok;
+    if (dpd > 14) {
+      return { status: 'DPD 2+ / Kritis', label: `DPD ${dpd} Hari`, category: 'CRITICAL', code: 'RED', badgeClass: 'badge-red', diffDays: -dpd, dpd };
+    } else if (dpd >= 8) {
+      return { status: 'DPD 8-14 / Bermasalah', label: `DPD ${dpd} Hari`, category: 'VERY_HIGH', code: 'PURPLE', badgeClass: 'badge-purple', diffDays: -dpd, dpd };
+    } else {
+      return { status: 'DPD 1-7 / Perhatian', label: `DPD ${dpd} Hari`, category: 'HIGH', code: 'ORANGE', badgeClass: 'badge-orange', diffDays: -dpd, dpd };
+    }
+  }
+
+  // If no frhPokok (not in arrears), check distance to due date:
+  let targetDueDate: Date;
   if (tglJt) {
     const dt = new Date(tglJt);
     if (!isNaN(dt.getTime())) {
-      dueDay = dt.getDate();
-    }
-  }
-  
-  const lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const actualDueDay = Math.min(dueDay, lastDayOfCurrentMonth);
-  
-  const dueDateThisMonth = new Date(currentYear, currentMonth, actualDueDay);
-  const todayMidnight = new Date(currentYear, currentMonth, today.getDate()).getTime();
-  const dueMidnight = dueDateThisMonth.getTime();
-  
-  const diffDays = Math.round((dueMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
-  
-  if (diffDays > 0) {
-    if (diffDays === 1 || diffDays === 0) {
-      return { status: 'Reminder', label: 'H-1 s/d Hari H', category: 'MEDIUM', code: 'YELLOW', badgeClass: 'badge-yellow', diffDays };
+      const dtMidnight = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
+      if (dtMidnight >= todayMidnight) {
+        targetDueDate = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+      } else {
+        // If dt date is in the past, evaluate recurring monthly due day
+        const dueDay = dt.getDate();
+        const lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        const actualDueDay = Math.min(dueDay, lastDayOfCurrentMonth);
+        const thisMonthDue = new Date(currentYear, currentMonth, actualDueDay);
+        if (thisMonthDue.getTime() >= todayMidnight) {
+          targetDueDate = thisMonthDue;
+        } else {
+          const lastDayOfNextMonth = new Date(currentYear, currentMonth + 2, 0).getDate();
+          const actualNextDueDay = Math.min(dueDay, lastDayOfNextMonth);
+          targetDueDate = new Date(currentYear, currentMonth + 1, actualNextDueDay);
+        }
+      }
     } else {
-      return { status: 'Lancar / Normal', label: `H-${diffDays} Jatuh Tempo`, category: 'LOW', code: 'GREEN', badgeClass: 'badge-green', diffDays };
+      targetDueDate = new Date(currentYear, currentMonth, 25);
     }
   } else {
-    const dpd = Math.max(frhPokok || 0, Math.abs(diffDays));
+    targetDueDate = new Date(currentYear, currentMonth, 25);
+  }
+
+  const diffDays = Math.round((targetDueDate.getTime() - todayMidnight) / (1000 * 60 * 60 * 24));
+
+  if (diffDays > 1) {
+    return { status: 'Lancar / Normal', label: `H-${diffDays} Jatuh Tempo`, category: 'LOW', code: 'GREEN', badgeClass: 'badge-green', diffDays };
+  } else if (diffDays >= 0) {
+    return { status: 'Reminder', label: diffDays === 0 ? 'Hari H Jatuh Tempo' : 'H-1 Jatuh Tempo', category: 'MEDIUM', code: 'YELLOW', badgeClass: 'badge-yellow', diffDays };
+  } else {
+    const dpd = Math.abs(diffDays);
     if (dpd > 14) {
       return { status: 'DPD 2+ / Kritis', label: `DPD ${dpd} Hari`, category: 'CRITICAL', code: 'RED', badgeClass: 'badge-red', diffDays, dpd };
     } else if (dpd >= 8) {
       return { status: 'DPD 8-14 / Bermasalah', label: `DPD ${dpd} Hari`, category: 'VERY_HIGH', code: 'PURPLE', badgeClass: 'badge-purple', diffDays, dpd };
-    } else if (dpd >= 1) {
-      return { status: 'DPD 1-7 / Perhatian', label: `DPD ${dpd} Hari`, category: 'HIGH', code: 'ORANGE', badgeClass: 'badge-orange', diffDays, dpd };
     } else {
-      return { status: 'Jatuh Tempo Hari Ini', label: 'Hari H Jatuh Tempo', category: 'MEDIUM', code: 'YELLOW', badgeClass: 'badge-yellow', diffDays: 0, dpd: 0 };
+      return { status: 'DPD 1-7 / Perhatian', label: `DPD ${dpd} Hari`, category: 'HIGH', code: 'ORANGE', badgeClass: 'badge-orange', diffDays, dpd };
     }
   }
 }

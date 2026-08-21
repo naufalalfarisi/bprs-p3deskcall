@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "tsx --watch src/index.ts",
     "tunnel": "npx localtunnel --port 3001 --subdomain bprs-p3deskcall-demo",
+    "ngrok": "ngrok http 3001",
     "share": "npx localtunnel --port 3001 --subdomain bprs-p3deskcall-demo",
     "build": "tsc",
     "check": "tsc --noEmit && vitest run",

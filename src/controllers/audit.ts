@@ -8,8 +8,8 @@ export const auditRouter = new Hono<{
   };
 }>();
 
-// Enforce authentication & role guard: admin, kabid_p3, kabid_ao, legal
-auditRouter.use('*', authMiddleware, roleMiddleware(['admin', 'kabid_p3', 'kabid_ao', 'legal']));
+// Enforce authentication for all audit endpoints
+auditRouter.use('*', authMiddleware);
 
 // Field label mappings for human-readable audit diffs
 export const FIELD_LABELS: Record<string, string> = {
@@ -21,6 +21,8 @@ export const FIELD_LABELS: Record<string, string> = {
   totalTunggakan: 'Total Tunggakan',
   frhPokok: 'Hari Tunggakan Pokok (DPD)',
   frhMargin: 'Hari Tunggakan Margin',
+  frPokok: 'Frekuensi Tunggakan Pokok',
+  frMargin: 'Frekuensi Tunggakan Margin',
   angsPrincipal: 'Angsuran Pokok',
   angsMargin: 'Angsuran Margin',
   plafon: 'Plafon Pembiayaan',
@@ -44,7 +46,7 @@ export const FIELD_LABELS: Record<string, string> = {
   hasil: 'Hasil Kunjungan',
   posisi: 'Posisi / Role Akses',
   status: 'Status',
-  nama: 'Nama',
+  nama: 'Nama Debitur',
   email: 'Email',
   username: 'Username',
   checked: 'Status Kelengkapan Berkas',
@@ -52,7 +54,8 @@ export const FIELD_LABELS: Record<string, string> = {
   nomorSurat: 'Nomor Surat',
   hal: 'Perihal Surat',
   npfGross: 'Target NPF Gross (%)',
-  collectionRate: 'Target Collection Rate (%)'
+  collectionRate: 'Target Collection Rate (%)',
+  tanggalSnapshot: 'Tanggal Snapshot CBS'
 };
 
 export interface DiffItem {
@@ -71,7 +74,19 @@ export function computeAuditDiff(oldRaw: any, newRaw: any): DiffItem[] {
   let newObj = typeof newRaw === 'string' ? safeJsonParse(newRaw) : newRaw;
 
   const diffs: DiffItem[] = [];
-  const ignoredKeys = new Set(['updatedAt', 'createdAt', 'passwordHash', 'tokenHash', 'id']);
+  const ignoredKeys = new Set([
+    'updatedAt',
+    'createdAt',
+    'passwordHash',
+    'tokenHash',
+    'id',
+    'printCount',
+    'lastPrintedAt',
+    'masked',
+    'unmaskedByUserId',
+    'accessedFields',
+    'unmaskedAt'
+  ]);
 
   if (!oldObj && !newObj) return diffs;
 
@@ -153,7 +168,6 @@ function safeJsonParse(str: string): any {
 }
 
 function formatFieldKey(key: string): string {
-  // Convert camelCase or snake_case to Title Case
   return key
     .replace(/_/g, ' ')
     .replace(/([A-Z])/g, ' $1')
@@ -161,8 +175,8 @@ function formatFieldKey(key: string): string {
     .trim();
 }
 
-// GET /api/audit - List audit logs with pagination and filters
-auditRouter.get('/', async (c) => {
+// GET /api/audit - List audit logs with pagination and filters (Restricted to Management & SKAI)
+auditRouter.get('/', roleMiddleware(['admin', 'kabid_p3', 'kabid_ao', 'legal', 'skai']), async (c) => {
   try {
     const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
     const limit = Math.max(1, Math.min(100, parseInt(c.req.query('limit') || '25', 10)));
@@ -267,8 +281,8 @@ auditRouter.get('/', async (c) => {
   }
 });
 
-// GET /api/audit/summary - Summary statistics of audit trail
-auditRouter.get('/summary', async (c) => {
+// GET /api/audit/summary - Summary statistics of audit trail (Restricted)
+auditRouter.get('/summary', roleMiddleware(['admin', 'kabid_p3', 'kabid_ao', 'legal', 'skai']), async (c) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -301,7 +315,413 @@ auditRouter.get('/summary', async (c) => {
   }
 });
 
-// GET /api/audit/:id - Full details with calculated visual diff
+// Helper to determine event classification & badges for debitur audit timeline
+function classifyDebiturAuditEvent(action: string, diff: DiffItem[], rawNewVal: any) {
+  const act = action.toUpperCase();
+
+  if (act.includes('KOL1_TO_KOL2') || act.includes('KOL_SHIFT') || (act.includes('RED_ALERT') && act.includes('KOL2'))) {
+    return {
+      category: 'kol_shift',
+      badgeClass: 'badge-amber',
+      badgeLabel: 'Pergeseran KOL 1 → KOL 2 (DPK)',
+      icon: 'alert-triangle'
+    };
+  }
+
+  if (act.includes('KOL_DEGRADATION') || act.includes('DEGRADASI')) {
+    return {
+      category: 'kol_degradation',
+      badgeClass: 'badge-red',
+      badgeLabel: 'Degradasi ke NPF (Macet / Kurang Lancar)',
+      icon: 'alert-octagon'
+    };
+  }
+
+  if (act.includes('KOL_CURING') || act.includes('CURING') || act.includes('IMPROVEMENT')) {
+    return {
+      category: 'kol_curing',
+      badgeClass: 'badge-teal',
+      badgeLabel: 'Penyelesaian / Perbaikan Kolektibilitas (Curing)',
+      icon: 'check-circle'
+    };
+  }
+
+  if (act.includes('RESTRUK')) {
+    return {
+      category: 'restruk',
+      badgeClass: 'badge-purple',
+      badgeLabel: 'Restrukturisasi Pembiayaan Baru',
+      icon: 'file-text'
+    };
+  }
+
+  if (act.includes('LUNAS') || diff.some(d => d.field === 'statusDebitur' && d.newValue === 'Lunas')) {
+    return {
+      category: 'lunas',
+      badgeClass: 'badge-teal',
+      badgeLabel: 'Pelunasan Pembiayaan (Lunas CBS)',
+      icon: 'check-check'
+    };
+  }
+
+  if (act.includes('PAYMENT') || act.includes('PEMBAYARAN')) {
+    return {
+      category: 'payment',
+      badgeClass: 'badge-teal',
+      badgeLabel: 'Pembayaran Angsuran',
+      icon: 'banknote'
+    };
+  }
+
+  if (act.includes('DESK_CALL') || act.includes('DESKCALL')) {
+    return {
+      category: 'deskcall',
+      badgeClass: 'badge-blue',
+      badgeLabel: 'Aktivitas Desk Call',
+      icon: 'phone-call'
+    };
+  }
+
+  if (act.includes('P3') || act.includes('PENAGIHAN')) {
+    return {
+      category: 'p3',
+      badgeClass: 'badge-amber',
+      badgeLabel: 'Kunjungan Lapangan P3',
+      icon: 'map-pin'
+    };
+  }
+
+  if (act.includes('LEGAL') || act.includes('SURAT')) {
+    return {
+      category: 'legal',
+      badgeClass: 'badge-red',
+      badgeLabel: 'Dokumen / Tindakan Legal',
+      icon: 'file-warning'
+    };
+  }
+
+  if (diff.some(d => d.field === 'kol')) {
+    return {
+      category: 'kol_change',
+      badgeClass: 'badge-blue',
+      badgeLabel: 'Perubahan Kolektibilitas (KOL)',
+      icon: 'refresh-cw'
+    };
+  }
+
+  return {
+    category: 'general',
+    badgeClass: 'badge-gray',
+    badgeLabel: formatFieldKey(action),
+    icon: 'activity'
+  };
+}
+
+// GET /api/audit/record/:tableName/:recordId - History for a specific record (Accessible by all authenticated users: AO, P3, Legal, Kabid, Admin)
+auditRouter.get('/record/:tableName/:recordId', async (c) => {
+  try {
+    const rawTableName = c.req.param('tableName') || '';
+    const recordId = c.req.param('recordId');
+
+    const tableNames = [
+      rawTableName,
+      rawTableName.toLowerCase(),
+      rawTableName.toUpperCase(),
+      rawTableName.charAt(0).toUpperCase() + rawTableName.slice(1).toLowerCase()
+    ];
+
+    // Exclude print surat peringatan and unmask PDP logs as requested
+    const ignoredActions = [
+      'PRINT_SURAT_PERINGATAN',
+      'PRINT_SP',
+      'print_sp',
+      'PRINT_SURAT',
+      'print_surat_peringatan',
+      'cetak_sp',
+      'CETAK_SP',
+      'print_surat',
+      'UNMASK_DEBITUR_PDP',
+      'unmask_debitur_pdp',
+      'UNMASK_PDP',
+      'unmask_pdp',
+      'unmask_debitur',
+      'UNMASK_DEBITUR'
+    ];
+
+    const logs = await prisma.auditLog.findMany({
+      where: {
+        tableName: { in: tableNames },
+        recordId,
+        action: {
+          notIn: ignoredActions
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nama: true,
+            username: true,
+            posisi: true,
+            avatarUrl: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+
+    // Filter out any lingering print SP or unmask PDP logs
+    const filteredLogs = logs.filter(l => {
+      const act = l.action.toLowerCase();
+      return !act.includes('print_surat') && !act.includes('print_sp') && !act.includes('cetak_sp') && !act.includes('unmask') && !act.includes('pdp');
+    });
+
+    // Debitur-specific enrichment: Include snapshot history if querying debitur
+    let debiturInfo: any = null;
+    let snapshotHistory: any[] = [];
+
+    if (rawTableName.toLowerCase() === 'debitur') {
+      const [debitur, kolHistories] = await Promise.all([
+        prisma.debitur.findUnique({
+          where: { id: recordId },
+          select: {
+            id: true,
+            nama: true,
+            cif: true,
+            kol: true,
+            statusDebitur: true,
+            bakiDebet: true,
+            plafon: true,
+            restruk: true,
+            ao: true,
+            lastSyncedAt: true
+          }
+        }),
+        prisma.debiturKolHistory.findMany({
+          where: { debiturId: recordId },
+          orderBy: { tanggalSnapshot: 'desc' }
+        })
+      ]);
+
+      debiturInfo = debitur;
+      snapshotHistory = kolHistories;
+    }    // Combine audit logs and snapshot history into chronological candidates
+    const candidateEvents: any[] = [];
+
+    for (const log of filteredLogs) {
+      const parsedOld = safeJsonParse(log.oldValue || '{}');
+      const parsedNew = safeJsonParse(log.newValue || '{}');
+      let diff = computeAuditDiff(log.oldValue, log.newValue);
+      const classification = classifyDebiturAuditEvent(log.action, diff, parsedNew);
+
+      // If initial full auto-upsert with many fields, show only key financial & status fields
+      if ((log.action === 'auto_upsert' || log.action === 'DEBITUR_BARU_CBS') && diff.length > 8) {
+        const keyFields = new Set(['kol', 'bakiDebet', 'plafon', 'statusDebitur', 'restruk', 'totalTunggakan', 'tPokok', 'angsPrincipal', 'ao', 'tglJt', 'jenisMargin']);
+        diff = diff.filter(d => keyFields.has(d.field));
+      }
+
+      candidateEvents.push({
+        id: log.id,
+        action: log.action,
+        category: classification.category,
+        badgeClass: classification.badgeClass,
+        badgeLabel: classification.badgeLabel,
+        icon: classification.icon,
+        createdAt: log.createdAt,
+        snapshotDate: parsedNew?.tanggalSnapshot || parsedOld?.tanggalSnapshot || null,
+        ipAddress: log.ipAddress,
+        user: log.user || {
+          id: log.userId || 'system',
+          nama: log.userId === 'system' ? 'Sistem Otomatis (CBS)' : 'Petugas',
+          username: log.userId,
+          posisi: 'system',
+          avatarUrl: null
+        },
+        parsedOld,
+        parsedNew,
+        diff
+      });
+    }
+
+    // Add snapshot transition events from debiturKolHistory if any exist
+    if (snapshotHistory.length > 1) {
+      for (let i = 0; i < snapshotHistory.length - 1; i++) {
+        const currentSnap = snapshotHistory[i];
+        const prevSnap = snapshotHistory[i + 1];
+
+        if (currentSnap.kol !== prevSnap.kol || currentSnap.bakiDebet !== prevSnap.bakiDebet) {
+          const snapTime = new Date(currentSnap.tanggalSnapshot).getTime();
+          const alreadyLogged = candidateEvents.some(h => {
+            if (!h.snapshotDate) return false;
+            return Math.abs(new Date(h.snapshotDate).getTime() - snapTime) < 86400000;
+          });
+
+          if (!alreadyLogged) {
+            const isKolChanged = currentSnap.kol !== prevSnap.kol;
+            const diffs: DiffItem[] = [];
+
+            if (isKolChanged) {
+              diffs.push({
+                field: 'kol',
+                label: 'Kolektibilitas (KOL)',
+                oldValue: prevSnap.kol,
+                newValue: currentSnap.kol,
+                type: 'modified'
+              });
+            }
+
+            if (currentSnap.bakiDebet !== prevSnap.bakiDebet) {
+              diffs.push({
+                field: 'bakiDebet',
+                label: 'Baki Debet',
+                oldValue: prevSnap.bakiDebet,
+                newValue: currentSnap.bakiDebet,
+                type: 'modified'
+              });
+            }
+
+            let badgeLabel = 'Perubahan Snapshot Bulanan CBS';
+            let badgeClass = 'badge-blue';
+            let category = 'kol_change';
+
+            if (isKolChanged) {
+              if (prevSnap.kol === 'Lancar' && currentSnap.kol === 'DPK') {
+                badgeLabel = 'Pergeseran KOL 1 → KOL 2 (DPK)';
+                badgeClass = 'badge-amber';
+                category = 'kol_shift';
+              } else if (['Kurang Lancar', 'Diragukan', 'Macet'].includes(currentSnap.kol) && ['Lancar', 'DPK'].includes(prevSnap.kol)) {
+                badgeLabel = 'Degradasi ke NPF (Non-Performing)';
+                badgeClass = 'badge-red';
+                category = 'kol_degradation';
+              } else if (['Lancar', 'DPK'].includes(currentSnap.kol) && ['Kurang Lancar', 'Diragukan', 'Macet'].includes(prevSnap.kol)) {
+                badgeLabel = 'Perbaikan / Curing Kolektibilitas';
+                badgeClass = 'badge-teal';
+                category = 'kol_curing';
+              }
+            }
+
+            candidateEvents.push({
+              id: `snap-${currentSnap.id}`,
+              action: 'SNAPSHOT_CBS_MONTHLY_CHANGE',
+              category,
+              badgeClass,
+              badgeLabel,
+              icon: 'calendar-check',
+              createdAt: currentSnap.tanggalSnapshot,
+              snapshotDate: currentSnap.tanggalSnapshot,
+              ipAddress: '127.0.0.1',
+              user: {
+                id: 'system',
+                nama: 'Sistem Sinkronisasi CBS',
+                username: 'cbs_sync',
+                posisi: 'system',
+                avatarUrl: null
+              },
+              parsedOld: { kol: prevSnap.kol, bakiDebet: prevSnap.bakiDebet },
+              parsedNew: { kol: currentSnap.kol, bakiDebet: currentSnap.bakiDebet },
+              diff: diffs
+            });
+          }
+        }
+      }
+    }
+
+    // Sort candidate events chronologically (oldest to newest) for state tracking
+    candidateEvents.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    // Deduplicate: ONLY record an event if a genuine change happened (not on repetitive unchanged uploads)
+    const formattedHistory: any[] = [];
+    let lastKnown: any = null;
+
+    for (const ev of candidateEvents) {
+      const act = ev.action.toUpperCase();
+      const isDirectActivity = [
+        'CREATE_PAYMENT', 'UPDATE_PAYMENT', 'DELETE_PAYMENT',
+        'CREATE_DESK_CALL', 'UPDATE_DESK_CALL', 'RESOLVE_DESK_CALL',
+        'CREATE_P3_SCHEDULE', 'UPDATE_P3_SCHEDULE', 'SAVE_P3_SIGNATURE', 'SYNC_OFFLINE_P3', 'UPLOAD_P3_PHOTOS',
+        'CREATE_LEGAL_BERKAS', 'CREATE_SURAT_LEGAL', 'UPDATE_SURAT_LEGAL', 'RESOLVE_MISSING_DEBITUR'
+      ].includes(act);
+
+      if (isDirectActivity) {
+        formattedHistory.push(ev);
+        continue;
+      }
+
+      // Extract current debitur state from this event
+      const currKol = ev.parsedNew?.kol || ev.diff?.find((d: any) => d.field === 'kol')?.newValue;
+      const currRestruk = ev.parsedNew?.restruk !== undefined ? ev.parsedNew.restruk : ev.diff?.find((d: any) => d.field === 'restruk')?.newValue;
+      const currStatus = ev.parsedNew?.statusDebitur || ev.diff?.find((d: any) => d.field === 'statusDebitur')?.newValue;
+      const currBaki = ev.parsedNew?.bakiDebet !== undefined ? ev.parsedNew.bakiDebet : ev.diff?.find((d: any) => d.field === 'bakiDebet')?.newValue;
+
+      if (!lastKnown) {
+        // Initial baseline creation entry
+        lastKnown = {
+          kol: currKol,
+          restruk: currRestruk,
+          statusDebitur: currStatus,
+          bakiDebet: currBaki
+        };
+        ev.badgeLabel = 'Inisialisasi Data Debitur dari CBS';
+        ev.badgeClass = 'badge-teal';
+        formattedHistory.push(ev);
+        continue;
+      }
+
+      // Detect genuine state changes relative to last known state
+      const kolChanged = currKol && lastKnown.kol && currKol !== lastKnown.kol;
+      const restrukChanged = currRestruk !== undefined && lastKnown.restruk !== undefined && currRestruk !== lastKnown.restruk;
+      const statusChanged = currStatus && lastKnown.statusDebitur && currStatus !== lastKnown.statusDebitur;
+      const bakiChanged = currBaki !== undefined && lastKnown.bakiDebet !== undefined && Math.abs(currBaki - lastKnown.bakiDebet) > 100;
+
+      const meaningfulDiffs: DiffItem[] = [];
+      if (kolChanged) {
+        meaningfulDiffs.push({ field: 'kol', label: 'Kolektibilitas (KOL)', oldValue: lastKnown.kol, newValue: currKol, type: 'modified' });
+      }
+      if (restrukChanged) {
+        meaningfulDiffs.push({ field: 'restruk', label: 'Frekuensi Restrukturisasi', oldValue: lastKnown.restruk, newValue: currRestruk, type: 'modified' });
+      }
+      if (statusChanged) {
+        meaningfulDiffs.push({ field: 'statusDebitur', label: 'Status Debitur', oldValue: lastKnown.statusDebitur, newValue: currStatus, type: 'modified' });
+      }
+      if (bakiChanged) {
+        meaningfulDiffs.push({ field: 'bakiDebet', label: 'Baki Debet', oldValue: lastKnown.bakiDebet, newValue: currBaki, type: 'modified' });
+      }
+
+      if (meaningfulDiffs.length > 0) {
+        ev.diff = meaningfulDiffs;
+        const reclassified = classifyDebiturAuditEvent(ev.action, meaningfulDiffs, ev.parsedNew);
+        ev.category = reclassified.category;
+        ev.badgeClass = reclassified.badgeClass;
+        ev.badgeLabel = reclassified.badgeLabel;
+
+        formattedHistory.push(ev);
+
+        // Update lastKnown state
+        if (currKol) lastKnown.kol = currKol;
+        if (currRestruk !== undefined) lastKnown.restruk = currRestruk;
+        if (currStatus) lastKnown.statusDebitur = currStatus;
+        if (currBaki !== undefined) lastKnown.bakiDebet = currBaki;
+      } else {
+        // No actual change occurred on this CBS upload -> Do not record/display redundant unchanged log
+      }
+    }
+
+    // Sort descending (newest first) for UI display
+    formattedHistory.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return c.json({
+      tableName: rawTableName,
+      recordId,
+      debitur: debiturInfo,
+      history: formattedHistory
+    });
+  } catch (err: any) {
+    return c.json({ error: 'Gagal memuat riwayat record: ' + err.message }, 500);
+  }
+});
+
+// GET /api/audit/:id - Full details with calculated visual diff (Accessible by all authenticated users)
 auditRouter.get('/:id', async (c) => {
   try {
     const id = c.req.param('id');
@@ -345,54 +765,5 @@ auditRouter.get('/:id', async (c) => {
     });
   } catch (err: any) {
     return c.json({ error: 'Gagal memuat detail log: ' + err.message }, 500);
-  }
-});
-
-// GET /api/audit/record/:tableName/:recordId - History for a specific record (e.g. Debitur no_rekening)
-auditRouter.get('/record/:tableName/:recordId', async (c) => {
-  try {
-    const tableName = c.req.param('tableName');
-    const recordId = c.req.param('recordId');
-
-    const logs = await prisma.auditLog.findMany({
-      where: {
-        tableName,
-        recordId
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            nama: true,
-            username: true,
-            posisi: true,
-            avatarUrl: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 50
-    });
-
-    const formatted = logs.map((log) => ({
-      id: log.id,
-      action: log.action,
-      createdAt: log.createdAt,
-      ipAddress: log.ipAddress,
-      user: log.user || {
-        nama: log.userId === 'system' ? 'Sistem Otomatis' : 'User',
-        username: log.userId,
-        posisi: 'system'
-      },
-      diff: computeAuditDiff(log.oldValue, log.newValue)
-    }));
-
-    return c.json({
-      tableName,
-      recordId,
-      history: formatted
-    });
-  } catch (err: any) {
-    return c.json({ error: 'Gagal memuat riwayat record: ' + err.message }, 500);
   }
 });

@@ -90,6 +90,7 @@ app.use('*', async (c, next) => {
   c.header('X-Content-Type-Options', 'nosniff');
   c.header('X-XSS-Protection', '1; mode=block');
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  c.header('ngrok-skip-browser-warning', 'true');
   await next();
 });
 app.use('/public/*', serveStatic({ root: '.' }));
